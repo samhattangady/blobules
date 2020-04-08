@@ -10,23 +10,42 @@ int main(int argc, char** argv) {
     // TODO (31 Mar 2020 sam): Name this window according to the current version;
     renderer r;
     init_renderer(&r, "blobules");
-    game_state state = { {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} };
+    game_state state = { {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, 0.0 };
     uint frame = 0;
     void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
         if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
             glfwSetWindowShouldClose(window, GL_TRUE);
         if (key == GLFW_KEY_W && action == GLFW_RELEASE)
-            state.position[2] += 0.5;
+            state.target_position[2] += 0.5;
         if (key == GLFW_KEY_S && action == GLFW_RELEASE)
-            state.position[2] -= 0.5;
+            state.target_position[2] -= 0.5;
         if (key == GLFW_KEY_A && action == GLFW_RELEASE)
-            state.position[0] -= 0.5;
+            state.target_position[0] -= 0.5;
         if (key == GLFW_KEY_D && action == GLFW_RELEASE)
-            state.position[0] += 0.5;
+            state.target_position[0] += 0.5;
     }
-    // double mouse_x, mouse_y;
+
+    struct timeval start_time;
+    struct timeval current_time;
+    float frame_time;
+    gettimeofday(&start_time, NULL);
+    double mouse_x, mouse_y;
     while (!glfwWindowShouldClose(r.window)) {
         frame += 1;
+        gettimeofday(&current_time, NULL);
+        frame_time = (current_time.tv_sec - start_time.tv_sec) +
+                     ((current_time.tv_usec - start_time.tv_usec) / 1000000.0);
+        start_time = current_time;
+        state.seconds += frame_time;
+
+        if (state.position[0] > state.target_position[0])
+            state.position[0] -= 0.05;
+        if (state.position[0] < state.target_position[0])
+            state.position[0] += 0.05;
+        if (state.position[2] > state.target_position[2])
+            state.position[2] -= 0.05;
+        if (state.position[2] < state.target_position[2])
+            state.position[2] += 0.05;
         glfwPollEvents();
         glfwSetKeyCallback(r.window, key_callback);
         // if (glfwGetKey(r.window, GLFW_KEY_A) == GLFW_RELEASE)

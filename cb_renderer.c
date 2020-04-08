@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <sys/time.h>
 #include "cb_renderer.h"
 #define WINDOW_WIDTH 1536
 #define WINDOW_HEIGHT 864
@@ -101,9 +102,11 @@ int render_scene(renderer* r, game_state* state) {
     int uni_ybyx = glGetUniformLocation(r->shader.shader_program, "ybyx");
     int uni_position = glGetUniformLocation(r->shader.shader_program, "player_position");
     int uni_rotation = glGetUniformLocation(r->shader.shader_program, "player_rotation");
+    int uni_time = glGetUniformLocation(r->shader.shader_program, "time");
     glUniform1f(uni_ybyx, WINDOW_HEIGHT*1.0/WINDOW_WIDTH);
     glUniform3f(uni_position, state->position[0], state->position[1], state->position[2]);
     glUniform3f(uni_rotation, state->rotation[0], state->rotation[1], state->rotation[2]);
+    glUniform1f(uni_time, state->seconds);
     glViewport(0, 0, r->size[0], r->size[1]);
     glDrawArrays(GL_TRIANGLES, 0, 3);
     glfwSwapBuffers(r->window);

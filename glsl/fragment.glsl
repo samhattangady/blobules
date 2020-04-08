@@ -2,6 +2,7 @@
 in vec2 fragCoord;
 out vec4 fragColor;
 uniform float ybyx;
+uniform float time;
 uniform vec3 player_position;
 uniform vec3 player_rotation;
 
@@ -62,7 +63,7 @@ vec4 distanceField(vec3 pos) {
     pos = og_pos;
     d = smin(d, d1, 1.3);
 
-    pos = moveAndRotate(pos, vec3(2.0, 0.0, -3.0), vec3(0.0));
+    pos = moveAndRotate(pos, vec3(2.0, sin(time)*0.3, -3.0), vec3(0.0));
     d1 = sdfRoundedBox(pos, vec3(0.1, 5.1, 0.1), 0.05);
     d1 = sdfRoundedBox(pos, vec3(0.4, 1.1, 0.4), 0.05);
     pos = og_pos;
@@ -106,7 +107,7 @@ vec4 raymarch(vec3 direction, vec3 start) {
     // the closest object that we hit. We then move forward by that distance,
     // and continue the same process. We terminate when we hit an object
     // (distance is very small) or at some predefined distance.
-    float far = 25.0;
+    float far = 150.0;
     vec3 pos = start;
     float d = 0.0;
     vec4 obj = vec4(0.0, 0.0, 0.0, 0.0);
@@ -148,7 +149,7 @@ void main() {
     vec4 obj = raymarch(lookingDirection, planePosition);
     float dist = obj.x;
     vec3 color = vec3(0.01);
-    if (dist < 15.0) {
+    if (dist < 150.0) {
         vec3 world_pos = planePosition+ dist*lookingDirection;
         vec3 normal = calcNormal(world_pos);
         float light = dot(lightFacing, normal);
