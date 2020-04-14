@@ -1,5 +1,5 @@
-#ifndef CHAPLIBOY_GL_DEFINED
-#define CHAPLIBOY_GL_DEFINED
+#ifndef SIMPLE_RENDERER_DEFINED
+#define SIMPLE_RENDERER_DEFINED
 
 #define GLEW_STATIC
 #include <GL/glew.h>
@@ -21,12 +21,11 @@ typedef struct {
     GLFWwindow* window;
     int size[2];
     shader_data shader;
-    float* posdata;
-    int* typedata;
+    uint buffer_size;
+    float* vertex_buffer;
 } renderer;
 
 int init_renderer(renderer* r, char* window_name);
 int set_world(renderer* r, world* w);
 int render_scene(renderer* r, world* w);
-
 #endif
