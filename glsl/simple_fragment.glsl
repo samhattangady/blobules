@@ -13,8 +13,12 @@ vec4 get_color(int material) {
         return vec4(0.3, 0.6, 0.5, 1.0);
     if (material == 5)   // none
         return vec4(0.1, 0.1, 0.1, 0.0);
-    if (material == 5)   // slippery
+    if (material == 6)   // slippery
         return vec4(0.4, 0.4, 0.6, 1.0);
+    if (material == 7)   // hot target
+        return vec4(0.7, 0.4, 0.2, 1.0);
+    if (material == 8)   // cold target
+        return vec4(0.7, 0.7, 0.4, 1.0);
 }
 
 void main() {

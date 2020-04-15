@@ -106,33 +106,47 @@ float get_entity_material(entity_type type) {
         return 5.0;
     if (type == SLIPPERY_GROUND)
         return 6.0;
+    if (type == HOT_TARGET)
+        return 7.0;
+    if (type == COLD_TARGET)
+        return 8.0;
+}
+
+float get_block_size(entity_type type) {
+    if (type == PLAYER)
+        return 0.4;
+    if (type == CUBE)
+        return 0.8;
+    return 1.0;
 }
 
 int update_vertex_buffer(renderer* r, world* w) {
     // the size of a block is 1/20 screen width
-    float block = 1.0 / 20.0;
+    float blockx = 1.0 / 20.0;
+    float blocky = blockx * r->size[0] / r->size[1];
     for (int z=0; z<w->z_size; z++) {
         for (int y=0; y<w->y_size; y++) {
             for (int x=0; x<w->x_size; x++) {
                 int i = get_position_index(w, x, y, z); 
                 float material = get_entity_material(w->entities[i]);
-                r->vertex_buffer[(18*i)+0] = (block*x) - (block/2.0);
-                r->vertex_buffer[(18*i)+1] = (block*y) - (block/2.0);
+                float size = get_block_size(w->entities[i]);
+                r->vertex_buffer[(18*i)+0] = (blockx*x) - (size*blockx/2.0);
+                r->vertex_buffer[(18*i)+1] = (blocky*y) - (size*blocky/2.0);
                 r->vertex_buffer[(18*i)+2] = material;
-                r->vertex_buffer[(18*i)+3] = (block*x) + (block/2.0);
-                r->vertex_buffer[(18*i)+4] = (block*y) - (block/2.0);
+                r->vertex_buffer[(18*i)+3] = (blockx*x) + (size*blockx/2.0);
+                r->vertex_buffer[(18*i)+4] = (blocky*y) - (size*blocky/2.0);
                 r->vertex_buffer[(18*i)+5] = material;
-                r->vertex_buffer[(18*i)+6] = (block*x) - (block/2.0);
-                r->vertex_buffer[(18*i)+7] = (block*y) + (block/2.0);
+                r->vertex_buffer[(18*i)+6] = (blockx*x) - (size*blockx/2.0);
+                r->vertex_buffer[(18*i)+7] = (blocky*y) + (size*blocky/2.0);
                 r->vertex_buffer[(18*i)+8] = material;
-                r->vertex_buffer[(18*i)+9] = (block*x) - (block/2.0);
-                r->vertex_buffer[(18*i)+10] = (block*y) + (block/2.0);
+                r->vertex_buffer[(18*i)+9] = (blockx*x) - (size*blockx/2.0);
+                r->vertex_buffer[(18*i)+10] = (blocky*y) + (size*blocky/2.0);
                 r->vertex_buffer[(18*i)+11] = material;
-                r->vertex_buffer[(18*i)+12] = (block*x) + (block/2.0);
-                r->vertex_buffer[(18*i)+13] = (block*y) - (block/2.0);
+                r->vertex_buffer[(18*i)+12] = (blockx*x) + (size*blockx/2.0);
+                r->vertex_buffer[(18*i)+13] = (blocky*y) - (size*blocky/2.0);
                 r->vertex_buffer[(18*i)+14] = material;
-                r->vertex_buffer[(18*i)+15] = (block*x) + (block/2.0);
-                r->vertex_buffer[(18*i)+16] = (block*y) + (block/2.0);
+                r->vertex_buffer[(18*i)+15] = (blockx*x) + (size*blockx/2.0);
+                r->vertex_buffer[(18*i)+16] = (blocky*y) + (size*blocky/2.0);
                 r->vertex_buffer[(18*i)+17] = material;
             }
         }

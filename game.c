@@ -2,44 +2,41 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "cb_lib/cb_types.h"
+#include "cb_lib/cb_string.h"
 #include "game.h"
 
 #define INPUT_LAG 0.2
+#define LEVEL "levels/000.txt"
+#define LEVEL_LISTING "levels/listing.txt"
 
 int get_position_index(world* w, int x, int y, int z) {
     return ( z * w->x_size * w->y_size ) + ( y * w->x_size ) + x;
+}
+
+char* as_text(entity_type e) {
+    if (e == NONE)
+        return "NONE";
+    if (e == GROUND)
+        return "GROUND";
+    if (e == PLAYER)
+        return "PLAYER";
+    if (e == WALL)
+        return "WALL";
+    if (e == CUBE)
+        return "CUBE";
+    if (e == HOT_TARGET)
+        return "HOT_TARGET";
+    if (e == COLD_TARGET)
+        return "COLD_TARGET";
+    if (e == SLIPPERY_GROUND)
+        return "SLIPPERY_GROUND";
+    return "INVALID";
 }
 
 int add_entity(world* w, entity_type e, int x, int y, int z) {
     int index = get_position_index(w, x, y, z);
     w->entities[index] = e;
     return 0;
-}
-
-level_data get_level_0() {
-    level_data result = {10, 7, 2, "\
-        NNNNNNNNNN\
-        NGGGGGGGGN\
-        NGGGGGGGGN\
-        NGGGGGGGGN\
-        NGGGGGGGGN\
-        NGGGGGGGGN\
-        NNNNNNNNNN\
-        \
-        NNNNNNNNNN\
-        NNNNNNNNNN\
-        NNNNNNNNNN\
-        BNNNNNNINN\
-        NNNNNNNNNN\
-        NNNNNNNPNN\
-        NBNNNNNNNN\
-    "};
-    return result;
-}
-
-level_data get_level1() {
-    level_data result = {1, 1, 1, "I"};
-    return result;
 }
 
 entity_type get_entity_type(char c) {
@@ -53,27 +50,67 @@ entity_type get_entity_type(char c) {
         return WALL;
     if (c == 'I')
         return CUBE;
+    if (c == 'T')
+        return HOT_TARGET;
     return INVALID;
 }
 
-int load_level(world* w, level_data* l) {
-    int x, y, z, i;
+levels_list load_levels_list() {
+    // TODO (15 Apr 2020 sam): PERFORMANCE. Looping through string twice
+    string levels = read_file(LEVEL_LISTING);
+    uint n = 0;
+    char c;
+    for (int i=0; true; i++) {
+        if (levels.text[i] == '\n')
+            n++;
+        if (levels.text[i] == '\0')
+            break;
+    }
+    string* l = (string*) malloc(sizeof(string) * n);
+    string tmp = empty_string();
+    n = 0;
+    for (int i=0; true; i++) {
+        c = levels.text[i];
+        if (c == '\n') {
+            l[n] = string_from(tmp.text);
+            n++;
+            clear_string(&tmp);
+        }
+        else if (c == '\0')
+            break;
+        else
+            append_sprintf(&tmp, "%c", c);
+    }
+    levels_list list = {n, l};
+    for (int i=0; i<n; i++) {
+        print_string(&l[i]);
+    }
+    return list;
+}
+
+int load_level(world* w) {
+    w->player = ALIVE;
+    int x, y, z;
+    char c = ' ';
     if (w->entities != NULL)
         free(w->entities);
-    w->size = l->x_size * l->y_size * l->z_size;
-    w->x_size = l->x_size;
-    w->y_size = l->y_size;
-    w->z_size = l->z_size;
+    char* level_name = w->levels.levels[w->current_level].text;
+    printf("loading level %s\n", level_name);
+    FILE* level_file = fopen(level_name, "r");
+    fscanf(level_file, "%i %i %i\n", &x, &y, &z);
+    w->size = x * y * z;
+    w->x_size = x;
+    w->y_size = y;
+    w->z_size = z;
     w->entities = (entity_type*) malloc(w->size * sizeof(entity_type));
-    i = 0;
-    for (z=0; z<l->z_size; z++) {
-        for (y=l->y_size-1; y>=0; y--) {
-            for (x=0; x<l->x_size; x++) {
+    for (z=0; z<w->z_size; z++) {
+        for (y=w->y_size-1; y>=0; y--) {
+            for (x=0; x<w->x_size; x++) {
                 vec3i position = {x, y, z};
                 entity_type type = INVALID;
                 while (type == INVALID) {
-                    type = get_entity_type(l->data[i]);
-                    i++;
+                    fscanf(level_file, "%c", &c);
+                    type = get_entity_type(c);
                 }
                 add_entity(w, type, x, y, z);
                 if (type == PLAYER)
@@ -81,28 +118,51 @@ int load_level(world* w, level_data* l) {
             }
         }
     }
+    fclose(level_file);
+    return 0;
+}
+
+int load_next_level(world* w) {
+    w->current_level++;
+    if (w->current_level == w->levels.size)
+        w->current_level = 0;
+    load_level(w);
+}
+int load_previous_level(world* w) {
+    w->current_level--;
+    load_level(w);
 }
 
 int init_world(world* w, uint number) {
     entity_type* entities = (entity_type*) malloc(number * sizeof(entity_type));
     player_input input = {NO_INPUT, 0.0};
-    world tmp = {0, 0, 0, 0, NULL, {0, 0, 0}, input, ALIVE};
+    levels_list list = load_levels_list();
+    world tmp = {0, 0, 0, 0, NULL, {0, 0, 0}, input, ALIVE, 0, list};
     *w = tmp;
-    level_data zero = get_level_0();
-    load_level(w, &zero);
+    load_level(w);
     return 0;
 }
 
-int can_stand(entity_type et) {
+int can_support_player(entity_type et) {
     if (et == GROUND ||
+        et == COLD_TARGET ||
+        et == SLIPPERY_GROUND)
+        return 1;
+    return 0;
+}
+
+int can_support_cube(entity_type et) {
+    if (et == GROUND ||
+        et == HOT_TARGET ||
         et == SLIPPERY_GROUND)
         return 1;
     return 0;
 }
 
 int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz) {
-    printf("cube trying to move to %i, %i, %i\t", x+dx, y+dy, z+dz);
-    w->entities[get_position_index(w, x, y, z-1)] = SLIPPERY_GROUND;
+    int on_index = get_position_index(w, x, y, z-1);
+    if (w->entities[on_index] != HOT_TARGET)
+        w->entities[on_index] = SLIPPERY_GROUND;
     int index = get_position_index(w, x, y, z);
     if ((x+dx < 0 || x+dx > w->x_size-1) ||
         (y+dy < 0 || y+dy > w->y_size-1) ||
@@ -112,26 +172,30 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz) {
         w->entities[index] = NONE;
         return -1;
     }
-    int g_index = get_position_index(w, x+dx, y+dy, z+dz-1);
     // see what's already in desired place
-    int t_index = get_position_index(w, x+dx, y+dy, z+dz);
-    if (w->entities[t_index] != NONE) {
-        if (w->entities[t_index] == WALL) {
-            printf("hit wall\n");
+    int target_pos_index = get_position_index(w, x+dx, y+dy, z+dz);
+    if (w->entities[target_pos_index] != NONE) {
+        if (w->entities[target_pos_index] == WALL) {
+            // check if win.
+            if (w->entities[on_index] == HOT_TARGET) {
+                printf("extinguiishing fire\n");
+                // put out fire
+                w->entities[index] = NONE;
+                w->entities[on_index] = COLD_TARGET;
+            }
             return 1;
         }
         // what if it's player?
     }
-    if (!can_stand(w->entities[g_index])) {
+    int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);
+    if (!can_support_cube(w->entities[target_on_index])) {
         // remove cube
         printf("removing cube because no support\n");
         w->entities[index] = NONE;
         return -2;
     }
-    printf("successfully moved \n");
-    w->entities[t_index] = CUBE;
+    w->entities[target_pos_index] = CUBE;
     w->entities[index] = NONE;
-    w->entities[get_position_index(w, x, y, z-1)] = SLIPPERY_GROUND;
     maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz);
     return 0;
 }
@@ -170,7 +234,7 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force) {
     }
     // check if can stand
     int g_index = get_position_index(w, pos.x+dx, pos.y+dy, pos.z+dz-1);
-    if (!can_stand(w->entities[g_index])) {
+    if (!can_support_player(w->entities[g_index])) {
         if (force) {
             w->player = DEAD;
             w->player_position.x += dx;
@@ -187,8 +251,10 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force) {
     w->entities[p_index] = NONE;
     w->entities[t_index] = PLAYER;
     if (w->entities[g_index] == SLIPPERY_GROUND) {
-        printf("sliding from %i,%i,%i\n", pos.x, pos.y, pos.z);
         maybe_move_player(w, dx, dy, dz, true);
+    }
+    if (w->entities[g_index] == COLD_TARGET) {
+        w->player = WIN;
     }
     return 0;
 }
@@ -203,6 +269,10 @@ int trigger_input(world* w, input_type it) {
         maybe_move_player(w, 1, 0, 0, false);
     if (it == MOVE_LEFT)
         maybe_move_player(w, -1, 0, 0, false);
+    if (it == NEXT_LEVEL)
+        load_next_level(w);
+    if (it == PREVIOUS_LEVEL)
+        load_previous_level(w);
 }
 
 int set_input(world* w, input_type it, float seconds) {
@@ -215,6 +285,8 @@ int set_input(world* w, input_type it, float seconds) {
 }
 
 int process_inputs(GLFWwindow* window, world* w, float seconds) {
+    if (w->player == WIN)
+        load_next_level(w);
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -225,6 +297,12 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
         set_input(w, MOVE_LEFT, seconds);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         set_input(w, MOVE_RIGHT, seconds);
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+        load_level(w);
+    if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
+        set_input(w, NEXT_LEVEL, seconds);
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+        set_input(w, PREVIOUS_LEVEL, seconds);
 }
 
 
