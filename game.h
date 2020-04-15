@@ -21,6 +21,11 @@ typedef enum {
     MOVE_RIGHT,
 } input_type;
 
+typedef enum {
+    ALIVE,
+    DEAD,
+} player_state;
+
 typedef struct {
     input_type type;
     float time;
@@ -34,6 +39,7 @@ typedef struct {
     entity_type* entities;
     vec3i player_position;
     player_input input;
+    player_state player;
 } world;
 
 typedef struct {

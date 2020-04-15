@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include "cb_lib/cb_types.h"
 #include "game.h"
 
@@ -20,7 +21,7 @@ level_data get_level_0() {
         NNNNNNNNNN\
         NGGGGGGGGN\
         NGGGGGGGGN\
-        GGGGGGGGGN\
+        NGGGGGGGGN\
         NGGGGGGGGN\
         NGGGGGGGGN\
         NNNNNNNNNN\
@@ -30,7 +31,7 @@ level_data get_level_0() {
         NNNNNNNNNN\
         BNNNNNNINN\
         NNNNNNNNNN\
-        NBNNNNNPNN\
+        NNNNNNNPNN\
         NBNNNNNNNN\
     "};
     return result;
@@ -56,7 +57,7 @@ entity_type get_entity_type(char c) {
 }
 
 int load_level(world* w, level_data* l) {
-    int x, y, z, i; 
+    int x, y, z, i;
     if (w->entities != NULL)
         free(w->entities);
     w->size = l->x_size * l->y_size * l->z_size;
@@ -85,7 +86,7 @@ int load_level(world* w, level_data* l) {
 int init_world(world* w, uint number) {
     entity_type* entities = (entity_type*) malloc(number * sizeof(entity_type));
     player_input input = {NO_INPUT, 0.0};
-    world tmp = {0, 0, 0, 0, NULL, {0, 0, 0}, input};
+    world tmp = {0, 0, 0, 0, NULL, {0, 0, 0}, input, ALIVE};
     *w = tmp;
     level_data zero = get_level_0();
     load_level(w, &zero);
@@ -112,12 +113,6 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz) {
         return -1;
     }
     int g_index = get_position_index(w, x+dx, y+dy, z+dz-1);
-    if (!can_stand(w->entities[g_index])) {
-        // remove cube
-        printf("removing cube because no support\n");
-        w->entities[index] = NONE;
-        return -2;
-    }
     // see what's already in desired place
     int t_index = get_position_index(w, x+dx, y+dy, z+dz);
     if (w->entities[t_index] != NONE) {
@@ -125,54 +120,89 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz) {
             printf("hit wall\n");
             return 1;
         }
-        return 1;
+        // what if it's player?
+    }
+    if (!can_stand(w->entities[g_index])) {
+        // remove cube
+        printf("removing cube because no support\n");
+        w->entities[index] = NONE;
+        return -2;
     }
     printf("successfully moved \n");
     w->entities[t_index] = CUBE;
     w->entities[index] = NONE;
     w->entities[get_position_index(w, x, y, z-1)] = SLIPPERY_GROUND;
-    maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz); 
+    maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz);
     return 0;
 }
 
-int maybe_move_player(world* w, int dx, int dy, int dz) {
+int maybe_move_player(world* w, int dx, int dy, int dz, bool force) {
     // TODO (15 Apr 2020 sam): Add flag here to see whether it was player
     // triggered (move input) or whether it is a player uncontrolled (slide)
     vec3i pos = w->player_position;
+    int p_index = get_position_index(w, pos.x, pos.y, pos.z);
+    int t_index = get_position_index(w, pos.x+dx, pos.y+dy, pos.z+dz);
     // check out of bounds;
     if ((pos.x+dx < 0 || pos.x+dx > w->x_size-1) ||
         (pos.y+dy < 0 || pos.y+dy > w->y_size-1) ||
-        (pos.z+dz < 0 || pos.z+dz > w->z_size-1))
+        (pos.z+dz < 0 || pos.z+dz > w->z_size-1)) {
+        if (force) {
+            w->player = DEAD;
+            w->player_position.x += dx;
+            w->player_position.y += dy;
+            w->player_position.z += dz;
+            w->entities[p_index] = NONE;
+            return 0;
+        }
         return -1;
+    }
+    // see what's already in desired place
+    if (w->entities[t_index] != NONE) {
+        if (w->entities[t_index] == CUBE) {
+            // if cube can move, move cube, else move player backwards.
+            int moved = maybe_move_cube(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz);
+            if (moved == 1 && !force) {
+                maybe_move_player(w, -dx, -dy, -dz, true);
+                return 0;
+            }
+        }
+        return 1;
+    }
     // check if can stand
     int g_index = get_position_index(w, pos.x+dx, pos.y+dy, pos.z+dz-1);
-    if (!can_stand(w->entities[g_index]))
+    if (!can_stand(w->entities[g_index])) {
+        if (force) {
+            w->player = DEAD;
+            w->player_position.x += dx;
+            w->player_position.y += dy;
+            w->player_position.z += dz;
+            w->entities[p_index] = NONE;
+            return 0;
+        }
         return -2;
-    // see what's already in desired place
-    int p_index = get_position_index(w, pos.x, pos.y, pos.z);
-    int t_index = get_position_index(w, pos.x+dx, pos.y+dy, pos.z+dz);
-    if (w->entities[t_index] != NONE) {
-        if (w->entities[t_index] == CUBE)
-            maybe_move_cube(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz);
-        return 1;
     }
     w->player_position.x += dx;
     w->player_position.y += dy;
     w->player_position.z += dz;
     w->entities[p_index] = NONE;
     w->entities[t_index] = PLAYER;
+    if (w->entities[g_index] == SLIPPERY_GROUND) {
+        printf("sliding from %i,%i,%i\n", pos.x, pos.y, pos.z);
+        maybe_move_player(w, dx, dy, dz, true);
+    }
+    return 0;
 }
 
 int trigger_input(world* w, input_type it) {
     vec3i pos = w->player_position;
     if (it == MOVE_UP)
-        maybe_move_player(w, 0, 1, 0);
+        maybe_move_player(w, 0, 1, 0, false);
     if (it == MOVE_DOWN)
-        maybe_move_player(w, 0, -1, 0);
+        maybe_move_player(w, 0, -1, 0, false);
     if (it == MOVE_RIGHT)
-        maybe_move_player(w, 1, 0, 0);
+        maybe_move_player(w, 1, 0, 0, false);
     if (it == MOVE_LEFT)
-        maybe_move_player(w, -1, 0, 0);
+        maybe_move_player(w, -1, 0, 0, false);
 }
 
 int set_input(world* w, input_type it, float seconds) {
