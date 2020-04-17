@@ -11,7 +11,6 @@ int main(int argc, char** argv) {
     init_renderer(&r, "blobules");
     world w;
     init_world(&w, 1024);
-    set_world(&r, &w);
 
     uint frame = 0;
     void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {

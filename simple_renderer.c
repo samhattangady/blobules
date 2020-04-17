@@ -9,13 +9,13 @@ static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Errors: %s\n", description);
 }
 
-int test_shader_compilation(uint shader) {
+int test_shader_compilation(uint shader, char* type) {
     int status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
     if (status != GL_TRUE) {
         char buffer[512];
         glGetShaderInfoLog(shader, 512, NULL, buffer);
-        fprintf(stderr, "fragment shader failed to compile... %s\n", buffer);
+        fprintf(stderr, "%s shader failed to compile... %s\n", type, buffer);
         return -1;
     }
     return 0;
@@ -69,20 +69,24 @@ int init_renderer(renderer* r, char* window_name) {
     return 0;
 }
 
+int get_buffer_size(world* w) {
+    return sizeof(float) * w->size * 18;
+}
+
 int set_world(renderer* r, world* w) {
     if (r->vertex_buffer)
         free(r->vertex_buffer);
-    r->buffer_size = sizeof(float) * w->size * 18;
+    r->buffer_size = get_buffer_size(w);
     r->vertex_buffer = (float*) malloc(r->buffer_size);
 
     string vertex_source = read_file("glsl/simple_vertex.glsl");
     string fragment_source = read_file("glsl/simple_fragment.glsl");
     glShaderSource(r->shader.vertex_shader, 1, &vertex_source.text, NULL);
     glCompileShader(r->shader.vertex_shader);
-    test_shader_compilation(r->shader.vertex_shader);
+    test_shader_compilation(r->shader.vertex_shader, "vertex");
     glShaderSource(r->shader.fragment_shader, 1, &fragment_source.text, NULL);
     glCompileShader(r->shader.fragment_shader);
-    test_shader_compilation(r->shader.fragment_shader);
+    test_shader_compilation(r->shader.fragment_shader, "frag");
     glAttachShader(r->shader.shader_program, r->shader.vertex_shader);
     glAttachShader(r->shader.shader_program, r->shader.fragment_shader);
     glBindFragDataLocation(r->shader.shader_program, 0, "fragColor");
@@ -121,6 +125,10 @@ float get_block_size(entity_type type) {
 }
 
 int update_vertex_buffer(renderer* r, world* w) {
+    // TODO (16 Apr 2020 sam): This check is currently being done every
+    // frame. Figure out best way to do this...
+    if (r->buffer_size != get_buffer_size(w))
+        set_world(r, w);
     // the size of a block is 1/20 screen width
     float blockx = 1.0 / 20.0;
     float blocky = blockx * r->size[0] / r->size[1];
@@ -167,7 +175,9 @@ int render_scene(renderer* r, world* w) {
     glEnableVertexAttribArray(position_attribute);
     glVertexAttribPointer(position_attribute, 3, GL_FLOAT, GL_FLOAT, 0, 0);
     int uni_ybyx = glGetUniformLocation(r->shader.shader_program, "ybyx");
+    int uni_time = glGetUniformLocation(r->shader.shader_program, "time");
     glUniform1f(uni_ybyx, WINDOW_HEIGHT*1.0/WINDOW_WIDTH);
+    glUniform1f(uni_time, w->seconds);
     glViewport(0, 0, r->size[0], r->size[1]);
     glDrawArrays(GL_TRIANGLES, 0, w->size*6);
     glfwSwapBuffers(r->window);

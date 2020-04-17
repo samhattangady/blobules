@@ -40,9 +40,9 @@ int add_entity(world* w, entity_type e, int x, int y, int z) {
 }
 
 entity_type get_entity_type(char c) {
-    if (c == 'N')
+    if (c == '.')
         return NONE;
-    if (c == 'G')
+    if (c == 'o')
         return GROUND;
     if (c == 'P')
         return PLAYER;
@@ -52,6 +52,8 @@ entity_type get_entity_type(char c) {
         return CUBE;
     if (c == 'T')
         return HOT_TARGET;
+    if (c == '~')
+        return SLIPPERY_GROUND;
     return INVALID;
 }
 
@@ -130,6 +132,8 @@ int load_next_level(world* w) {
 }
 int load_previous_level(world* w) {
     w->current_level--;
+    if (w->current_level == -1)
+        w->current_level = w->levels.size-1;
     load_level(w);
 }
 
@@ -137,7 +141,7 @@ int init_world(world* w, uint number) {
     entity_type* entities = (entity_type*) malloc(number * sizeof(entity_type));
     player_input input = {NO_INPUT, 0.0};
     levels_list list = load_levels_list();
-    world tmp = {0, 0, 0, 0, NULL, {0, 0, 0}, input, ALIVE, 0, list};
+    world tmp = {0, 0, 0, 0, NULL, {0, 0, 0}, input, ALIVE, 0, list, 0.0};
     *w = tmp;
     load_level(w);
     return 0;
@@ -200,12 +204,19 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz) {
     return 0;
 }
 
+bool can_push_player_back(entity_type et) {
+    if (et == CUBE ||
+        et == WALL)
+        return true;
+    return false;
+}
+
 int maybe_move_player(world* w, int dx, int dy, int dz, bool force) {
-    // TODO (15 Apr 2020 sam): Add flag here to see whether it was player
-    // triggered (move input) or whether it is a player uncontrolled (slide)
     vec3i pos = w->player_position;
-    int p_index = get_position_index(w, pos.x, pos.y, pos.z);
-    int t_index = get_position_index(w, pos.x+dx, pos.y+dy, pos.z+dz);
+    int position_index = get_position_index(w, pos.x, pos.y, pos.z);
+    int ground_index = get_position_index(w, pos.x, pos.y, pos.z-1);
+    int target_index = get_position_index(w, pos.x+dx, pos.y+dy, pos.z+dz);
+    int target_ground_index = get_position_index(w, pos.x+dx, pos.y+dy, pos.z+dz-1);
     // check out of bounds;
     if ((pos.x+dx < 0 || pos.x+dx > w->x_size-1) ||
         (pos.y+dy < 0 || pos.y+dy > w->y_size-1) ||
@@ -215,45 +226,44 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force) {
             w->player_position.x += dx;
             w->player_position.y += dy;
             w->player_position.z += dz;
-            w->entities[p_index] = NONE;
+            w->entities[position_index] = NONE;
             return 0;
         }
         return -1;
     }
     // see what's already in desired place
-    if (w->entities[t_index] != NONE) {
-        if (w->entities[t_index] == CUBE) {
-            // if cube can move, move cube, else move player backwards.
-            int moved = maybe_move_cube(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz);
-            if (moved == 1 && !force) {
-                maybe_move_player(w, -dx, -dy, -dz, true);
-                return 0;
-            }
+    if (w->entities[target_index] != NONE) {
+        if (can_push_player_back(w->entities[target_index]) && !force) {
+            if (w->entities[ground_index] == SLIPPERY_GROUND)
+            maybe_move_player(w, -dx, -dy, -dz, true);
         }
+        if (w->entities[target_index] == CUBE)
+            maybe_move_cube(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz);
         return 1;
     }
     // check if can stand
-    int g_index = get_position_index(w, pos.x+dx, pos.y+dy, pos.z+dz-1);
-    if (!can_support_player(w->entities[g_index])) {
+    if (!can_support_player(w->entities[target_ground_index])) {
         if (force) {
             w->player = DEAD;
             w->player_position.x += dx;
             w->player_position.y += dy;
             w->player_position.z += dz;
-            w->entities[p_index] = NONE;
+            w->entities[position_index] = NONE;
             return 0;
         }
         return -2;
     }
+    if (w->entities[ground_index] == SLIPPERY_GROUND && !force)
+        return 0;
     w->player_position.x += dx;
     w->player_position.y += dy;
     w->player_position.z += dz;
-    w->entities[p_index] = NONE;
-    w->entities[t_index] = PLAYER;
-    if (w->entities[g_index] == SLIPPERY_GROUND) {
+    w->entities[position_index] = NONE;
+    w->entities[target_index] = PLAYER;
+    if (w->entities[target_ground_index] == SLIPPERY_GROUND) {
         maybe_move_player(w, dx, dy, dz, true);
     }
-    if (w->entities[g_index] == COLD_TARGET) {
+    if (w->entities[target_ground_index] == COLD_TARGET) {
         w->player = WIN;
     }
     return 0;
@@ -287,6 +297,8 @@ int set_input(world* w, input_type it, float seconds) {
 int process_inputs(GLFWwindow* window, world* w, float seconds) {
     if (w->player == WIN)
         load_next_level(w);
+    if (w->player == DEAD)
+        load_level(w);
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -303,6 +315,7 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
         set_input(w, NEXT_LEVEL, seconds);
     if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
         set_input(w, PREVIOUS_LEVEL, seconds);
+    w->seconds = seconds;
 }
 
 

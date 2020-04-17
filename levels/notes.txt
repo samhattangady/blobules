@@ -1,0 +1,24 @@
+000:
+Good to start. Understand the game.
+
+002:
+Catch: If there is no blocker, the icecube will not hit the target
+It's very similar to previous level. I think if we make it vertical instead,
+it will become a lot better specially, in terms of variety.
+
+001:
+Catch: If you push the block forward, you get push backward as well.
+I really like it.
+
+003:
+Catch/Learning: You have to slide across the path you created to get to places you want.
+Fairly simple. But it's good.
+
+004:
+No catch. But decently interesting level.
+It's alright. But it seems like in all places there is only one thing to do
+There is no catch. Nothing there that will mislead the player...
+
+005:
+Catch: You can push the cube to the target, but still be stuck on ice.
+Good. I like it.

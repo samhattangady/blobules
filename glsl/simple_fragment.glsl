@@ -2,6 +2,8 @@
 in vec3 fragCoord;
 out vec4 fragColor;
 
+uniform float time;
+
 vec4 get_color(int material) {
     if (material == 1)   // player
         return vec4(0.6, 0.3, 0.3, 1.0);
@@ -16,7 +18,7 @@ vec4 get_color(int material) {
     if (material == 6)   // slippery
         return vec4(0.4, 0.4, 0.6, 1.0);
     if (material == 7)   // hot target
-        return vec4(0.7, 0.4, 0.2, 1.0);
+        return vec4(0.7 + 0.05 * sin(time*8.0), 0.4 + 0.05*sin(time*8.0), 0.2, 1.0);
     if (material == 8)   // cold target
         return vec4(0.7, 0.7, 0.4, 1.0);
 }

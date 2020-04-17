@@ -1,18 +1,16 @@
-8 7 2
+8 6 2
 
-NNNNNNNN
-NGGGNNNN
-NGGGGGGN
-NGGGGGGN
-NGGGGGGN
-NTGGGGGN
-NGNNNNNN
+........
+.oooooo.
+.oooooo.
+.oooooo.
+.Tooooo.
+.o......
 
-NNNNNNNN
-NNNNNNNN
-NNBNNNNN
-BNNNNINN
-NNNNNNNN
-NNNNNPNN
-NBNNNNNN
+........
+........
+B.P..I..
+........
+........
+.B......
 

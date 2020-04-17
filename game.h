@@ -52,6 +52,7 @@ typedef struct {
     player_state player;
     uint current_level;
     levels_list levels;
+    float seconds;
 } world;
 
 int init_world(world* w, uint number);

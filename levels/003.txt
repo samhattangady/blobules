@@ -1,18 +1,17 @@
 8 7 2
 
-NNNNNNNN
-NGGGNNNN
-NGGGGGGN
-NGGGGGGN
-NGGGGGGN
-NTGGGGGN
-NGNNNNNN
+..oo....
+.ooooo..
+.oooooo.
+.oooooo.
+.oooooo.
+.oTooo..
+........
 
-NNNNNNNN
-NNNNNBNN
-NNBNNNNN
-BNNNNINN
-NNNNNNNN
-NNNNNPNN
-NBNNNNNN
-
+....B...
+.B......
+........
+...B.IP.
+........
+........
+..B.B...
