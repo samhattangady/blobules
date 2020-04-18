@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include "ui.h"
 #include "simple_renderer.h"
 #include "cb_lib/cb_string.h"
 #include "game.h"
@@ -11,6 +12,8 @@ int main(int argc, char** argv) {
     init_renderer(&r, "blobules");
     world w;
     init_world(&w, 1024);
+    cb_ui_state ui_state;
+    init_ui(&ui_state);
 
     uint frame = 0;
     void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -40,9 +43,10 @@ int main(int argc, char** argv) {
         start_time = current_time;
         seconds += frame_time;
         glfwPollEvents();
-        // glfwSetKeyCallback(r.window, key_callback);
         process_inputs(r.window, &w, seconds);
         render_scene(&r, &w);
+        cb_ui_render_text(&ui_state, w.levels.levels[w.current_level].text, 100.0, 100.0);
+        glfwSwapBuffers(r.window);
     }
 
     // TOD (05 Apr 2020 sam): Run all the closing and exit things...

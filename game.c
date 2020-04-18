@@ -245,11 +245,13 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz) 
     if (w->entities[target_pos_index] != NONE) {
         if (w->entities[target_pos_index] == WALL)
             return 1;
-    if (w->entities[target_pos_index] == CUBE) {
-        printf("removing furniture because crashed into cube\n");
-        w->entities[index] = NONE;
-        return 1;
-    }
+        if (w->entities[target_pos_index] == FURNITURE)
+            return 1;
+        if (w->entities[target_pos_index] == CUBE) {
+            printf("removing furniture because crashed into cube\n");
+            w->entities[index] = NONE;
+            return 1;
+        }
         // what if it's player?
     }
     int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);

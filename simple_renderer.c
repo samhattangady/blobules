@@ -184,6 +184,6 @@ int render_scene(renderer* r, world* w) {
     glUniform1f(uni_time, w->seconds);
     glViewport(0, 0, r->size[0], r->size[1]);
     glDrawArrays(GL_TRIANGLES, 0, w->size*6);
-    glfwSwapBuffers(r->window);
+    // glfwSwapBuffers(r->window);
     return 0;
 }

@@ -17,11 +17,13 @@ Fairly simple. But it's good.
 004:
 No catch. But decently interesting level.
 It's alright. But it seems like in all places there is only one thing to do
-There is no catch. Nothing there that will mislead the player...
+Nothing there that will mislead the player...
 
 005:
 Catch: You can push the cube to the target, but still be stuck on ice.
 Good. I like it.
 
 006:
-Catch: introduce furniture
+Catch: introducing furniture. learn that it needs to be moved to the correct place
+so it can block the cube.
+Yeah. Good enough.

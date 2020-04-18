@@ -1,5 +1,5 @@
 *.swp
 
 # symlinked libraries
-cb_string.*
-cb_types.*
+# cb_string.*
+# cb_types.*
