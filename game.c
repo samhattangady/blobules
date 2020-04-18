@@ -5,9 +5,14 @@
 #include "cb_lib/cb_string.h"
 #include "game.h"
 
-#define INPUT_LAG 0.2
+#define INPUT_LAG 0.05
 #define LEVEL "levels/000.txt"
 #define LEVEL_LISTING "levels/listing.txt"
+
+// TODO (18 Apr 2020 sam): This is required to get the inputs working correctly
+// with callbacks. See if there is a better way to accomplish this.
+world* global_w;
+float global_seconds;
 
 int get_position_index(world* w, int x, int y, int z) {
     return ( z * w->x_size * w->y_size ) + ( y * w->x_size ) + x;
@@ -121,6 +126,7 @@ int load_level(world* w) {
         }
     }
     fclose(level_file);
+    global_w = w;
     return 0;
 }
 
@@ -294,27 +300,32 @@ int set_input(world* w, input_type it, float seconds) {
     return 0;
 }
 
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, GL_TRUE);
+    if (key == GLFW_KEY_R && action == GLFW_PRESS)
+        load_level(global_w);
+    if (key == GLFW_KEY_N && action == GLFW_PRESS)
+        set_input(global_w, NEXT_LEVEL, global_seconds);
+    if (key == GLFW_KEY_P && action == GLFW_PRESS)
+        set_input(global_w, PREVIOUS_LEVEL, global_seconds);
+    if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        set_input(global_w, MOVE_UP, global_seconds);
+    if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        set_input(global_w, MOVE_DOWN, global_seconds);
+    if (key == GLFW_KEY_A && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        set_input(global_w, MOVE_LEFT, global_seconds);
+    if (key == GLFW_KEY_D && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        set_input(global_w, MOVE_RIGHT, global_seconds);
+}
+
 int process_inputs(GLFWwindow* window, world* w, float seconds) {
     if (w->player == WIN)
         load_next_level(w);
     if (w->player == DEAD)
         load_level(w);
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GL_TRUE);
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        set_input(w, MOVE_UP, seconds);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        set_input(w, MOVE_DOWN, seconds);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        set_input(w, MOVE_LEFT, seconds);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        set_input(w, MOVE_RIGHT, seconds);
-    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
-        load_level(w);
-    if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
-        set_input(w, NEXT_LEVEL, seconds);
-    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
-        set_input(w, PREVIOUS_LEVEL, seconds);
+    global_seconds = seconds;
+    glfwSetKeyCallback(window, key_callback);
     w->seconds = seconds;
 }
 
