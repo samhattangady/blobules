@@ -35,6 +35,8 @@ char* as_text(entity_type e) {
         return "COLD_TARGET";
     if (e == SLIPPERY_GROUND)
         return "SLIPPERY_GROUND";
+    if (e == FURNITURE)
+        return "FURNITURE";
     return "INVALID";
 }
 
@@ -59,6 +61,8 @@ entity_type get_entity_type(char c) {
         return HOT_TARGET;
     if (c == '~')
         return SLIPPERY_GROUND;
+    if (c == 'F')
+        return FURNITURE;
     return INVALID;
 }
 
@@ -89,9 +93,6 @@ levels_list load_levels_list() {
             append_sprintf(&tmp, "%c", c);
     }
     levels_list list = {n, l};
-    for (int i=0; i<n; i++) {
-        print_string(&l[i]);
-    }
     return list;
 }
 
@@ -169,6 +170,21 @@ int can_support_cube(entity_type et) {
     return 0;
 }
 
+int can_support_furniture(entity_type et) {
+    if (et == GROUND ||
+        et == SLIPPERY_GROUND)
+        return 1;
+    return 0;
+}
+
+int can_stop_cube_slide(entity_type et) {
+    if (et == CUBE ||
+        et == FURNITURE ||
+        et == WALL)
+        return true;
+    return false;
+}
+
 int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz) {
     int on_index = get_position_index(w, x, y, z-1);
     if (w->entities[on_index] != HOT_TARGET)
@@ -185,7 +201,11 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz) {
     // see what's already in desired place
     int target_pos_index = get_position_index(w, x+dx, y+dy, z+dz);
     if (w->entities[target_pos_index] != NONE) {
-        if (w->entities[target_pos_index] == WALL) {
+        if (can_stop_cube_slide(w->entities[target_pos_index])) {
+            if (w->entities[target_pos_index] == FURNITURE) {
+                printf("removing furniture because cube crashed into it\n");
+                w->entities[target_pos_index] = NONE;
+            }
             // check if win.
             if (w->entities[on_index] == HOT_TARGET) {
                 printf("extinguiishing fire\n");
@@ -210,8 +230,44 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz) {
     return 0;
 }
 
+int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz) {
+    int on_index = get_position_index(w, x, y, z-1);
+    int index = get_position_index(w, x, y, z);
+    if ((x+dx < 0 || x+dx > w->x_size-1) ||
+        (y+dy < 0 || y+dy > w->y_size-1) ||
+        (z+dz < 0 || z+dz > w->z_size-1)) {
+        printf("removing furniture because oob\n");
+        w->entities[index] = NONE;
+        return -1;
+    }
+    // see what's already in desired place
+    int target_pos_index = get_position_index(w, x+dx, y+dy, z+dz);
+    if (w->entities[target_pos_index] != NONE) {
+        if (w->entities[target_pos_index] == WALL)
+            return 1;
+    if (w->entities[target_pos_index] == CUBE) {
+        printf("removing furniture because crashed into cube\n");
+        w->entities[index] = NONE;
+        return 1;
+    }
+        // what if it's player?
+    }
+    int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);
+    if (!can_support_furniture(w->entities[target_on_index])) {
+        printf("removing furniture because no support\n");
+        w->entities[index] = NONE;
+        return -2;
+    }
+    w->entities[target_pos_index] = FURNITURE;
+    w->entities[index] = NONE;
+    if (w->entities[target_on_index] == SLIPPERY_GROUND)
+        maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz);
+    return 0;
+}
+
 bool can_push_player_back(entity_type et) {
     if (et == CUBE ||
+        et == FURNITURE ||
         et == WALL)
         return true;
     return false;
@@ -241,16 +297,18 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force) {
     if (w->entities[target_index] != NONE) {
         if (can_push_player_back(w->entities[target_index]) && !force) {
             if (w->entities[ground_index] == SLIPPERY_GROUND)
-            maybe_move_player(w, -dx, -dy, -dz, true);
+                maybe_move_player(w, -dx, -dy, -dz, true);
         }
         if (w->entities[target_index] == CUBE)
             maybe_move_cube(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz);
+        if (w->entities[target_index] == FURNITURE)
+            maybe_move_furniture(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz);
         return 1;
     }
     // check if can stand
     if (!can_support_player(w->entities[target_ground_index])) {
         if (force) {
-            w->player = DEAD;
+            // w->player = DEAD;
             w->player_position.x += dx;
             w->player_position.y += dy;
             w->player_position.z += dz;
@@ -328,5 +386,4 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
     glfwSetKeyCallback(window, key_callback);
     w->seconds = seconds;
 }
-
 

@@ -12,6 +12,7 @@ typedef enum {
     HOT_TARGET,
     COLD_TARGET,
     NONE,
+    FURNITURE,
     INVALID,
 } entity_type;
 

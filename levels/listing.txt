@@ -1,3 +1,4 @@
+levels/006.txt
 levels/000.txt
 levels/002.txt
 levels/001.txt

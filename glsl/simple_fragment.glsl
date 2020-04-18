@@ -21,6 +21,8 @@ vec4 get_color(int material) {
         return vec4(0.7 + 0.05 * sin(time*8.0), 0.4 + 0.05*sin(time*8.0), 0.2, 1.0);
     if (material == 8)   // cold target
         return vec4(0.7, 0.7, 0.4, 1.0);
+    if (material == 9)   // furniture
+        return vec4(0.9, 0.7, 0.4, 1.0);
 }
 
 void main() {

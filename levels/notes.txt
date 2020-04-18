@@ -22,3 +22,6 @@ There is no catch. Nothing there that will mislead the player...
 005:
 Catch: You can push the cube to the target, but still be stuck on ice.
 Good. I like it.
+
+006:
+Catch: introduce furniture

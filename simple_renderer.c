@@ -114,6 +114,8 @@ float get_entity_material(entity_type type) {
         return 7.0;
     if (type == COLD_TARGET)
         return 8.0;
+    if (type == FURNITURE)
+        return 9.0;
 }
 
 float get_block_size(entity_type type) {
@@ -121,6 +123,8 @@ float get_block_size(entity_type type) {
         return 0.4;
     if (type == CUBE)
         return 0.8;
+    if (type == FURNITURE)
+        return 0.6;
     return 1.0;
 }
 
