@@ -1,0 +1,8 @@
+#ifndef GAME_SETTINGS_DEFINED
+#define GAME_SETTINGS_DEFINED
+
+#define WINDOW_WIDTH 1536
+#define WINDOW_HEIGHT 864
+#define BLOCK_SIZE 90
+
+#endif

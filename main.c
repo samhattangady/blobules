@@ -4,6 +4,7 @@
 #include "simple_renderer.h"
 #include "cb_lib/cb_string.h"
 #include "game.h"
+#include "game_settings.h"
 
 
 int main(int argc, char** argv) {
@@ -45,7 +46,13 @@ int main(int argc, char** argv) {
         glfwPollEvents();
         process_inputs(r.window, &w, seconds);
         render_scene(&r, &w);
-        cb_ui_render_text(&ui_state, w.levels.levels[w.current_level].text, 100.0, 100.0);
+        cb_ui_render_text(&ui_state, w.levels.levels[w.current_level].text, 0.0, WINDOW_HEIGHT-(1.0*18.0));
+        char active_z_level[32];
+        sprintf(active_z_level, "z_level: %i", w.editor.z_level);
+        cb_ui_render_text(&ui_state, active_z_level, 0.0, WINDOW_HEIGHT-(2.0*18.0));
+        char active_block[48];
+        sprintf(active_block, "active_block: %s", as_text(w.editor.active_type));
+        cb_ui_render_text(&ui_state, active_block, 0.0, WINDOW_HEIGHT-(3.0*18.0));
         glfwSwapBuffers(r.window);
     }
 

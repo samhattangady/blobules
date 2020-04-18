@@ -2,8 +2,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include "simple_renderer.h"
-#define WINDOW_WIDTH 1536
-#define WINDOW_HEIGHT 864
+#include "game_settings.h"
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Errors: %s\n", description);
@@ -133,8 +132,7 @@ int update_vertex_buffer(renderer* r, world* w) {
     // frame. Figure out best way to do this...
     if (r->buffer_size != get_buffer_size(w))
         set_world(r, w);
-    // the size of a block is 1/20 screen width
-    float blockx = 1.0 / 20.0;
+    float blockx = BLOCK_SIZE*1.0 / WINDOW_WIDTH*1.0;
     float blocky = blockx * r->size[0] / r->size[1];
     for (int z=0; z<w->z_size; z++) {
         for (int y=0; y<w->y_size; y++) {

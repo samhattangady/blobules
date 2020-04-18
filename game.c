@@ -4,6 +4,7 @@
 #include "cb_lib/cb_types.h"
 #include "cb_lib/cb_string.h"
 #include "game.h"
+#include "game_settings.h"
 
 #define INPUT_LAG 0.05
 #define LEVEL "levels/000.txt"
@@ -41,6 +42,9 @@ char* as_text(entity_type e) {
 }
 
 int add_entity(world* w, entity_type e, int x, int y, int z) {
+    printf("adding entity %s at (%i, %i, %i)\n", as_text(e), x, y, z);
+    if (x >= w->x_size || y >= w->y_size || z >= w->z_size)
+        return -1;
     int index = get_position_index(w, x, y, z);
     w->entities[index] = e;
     return 0;
@@ -148,7 +152,8 @@ int init_world(world* w, uint number) {
     entity_type* entities = (entity_type*) malloc(number * sizeof(entity_type));
     player_input input = {NO_INPUT, 0.0};
     levels_list list = load_levels_list();
-    world tmp = {0, 0, 0, 0, NULL, {0, 0, 0}, input, ALIVE, 0, list, 0.0};
+    world tmp = {0, 0, 0, 0, NULL, {0, 0, 0}, input, ALIVE, 0, list,
+                 0.0, {true, 0, GROUND, {false, false, 0.0, 0.0}}};
     *w = tmp;
     load_level(w);
     return 0;
@@ -377,6 +382,42 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         set_input(global_w, MOVE_LEFT, global_seconds);
     if (key == GLFW_KEY_D && (action == GLFW_PRESS || action == GLFW_REPEAT))
         set_input(global_w, MOVE_RIGHT, global_seconds);
+    if (key == GLFW_KEY_SPACE && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        global_w->editor.z_level = (global_w->editor.z_level+1)  % 2;
+    if (key == GLFW_KEY_TAB && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        global_w->editor.active_type = (global_w->editor.active_type+1)  % INVALID;
+}
+
+void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+    global_w->editor.mouse.xpos = xpos;
+    global_w->editor.mouse.ypos = ypos;
+}
+
+int get_world_x(world* w) {
+    double xpos = global_w->editor.mouse.xpos;
+    return (int) (0.5 + ((xpos - (WINDOW_WIDTH/2.0)) / (BLOCK_SIZE/2.0)));
+}
+
+int get_world_y(world* w) {
+    double ypos = global_w->editor.mouse.ypos;
+    return (int) (0.5 - ((ypos - (WINDOW_WIDTH/2.0)*(WINDOW_HEIGHT*1.0/WINDOW_WIDTH*1.0)) / (BLOCK_SIZE/2.0)));
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    global_w->editor.mouse.l_pressed = (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS);
+    global_w->editor.mouse.r_pressed = (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS);
+    if (global_w->editor.mouse.l_pressed) {
+        int x = get_world_x(global_w);
+        int y = get_world_y(global_w);
+        // TODO (19 Apr 2020 sam): Add check here to see whether the type is
+        // on "correct z level"
+        add_entity(global_w, global_w->editor.active_type, x, y, global_w->editor.z_level);
+    }
+    if (global_w->editor.mouse.r_pressed) {
+        int x = get_world_x(global_w);
+        int y = get_world_y(global_w);
+        add_entity(global_w, NONE, x, y, global_w->editor.z_level);
+    }
 }
 
 int process_inputs(GLFWwindow* window, world* w, float seconds) {
@@ -386,6 +427,8 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
         load_level(w);
     global_seconds = seconds;
     glfwSetKeyCallback(window, key_callback);
+    glfwSetCursorPosCallback(window, cursor_position_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
     w->seconds = seconds;
 }
 

@@ -1,5 +1,6 @@
 #ifndef BLOBULES_GAME_DEFINED
 #define BLOBULES_GAME_DEFINED
+#include <stdbool.h>
 #include "cb_lib/cb_types.h"
 #include <GLFW/glfw3.h>
 
@@ -42,6 +43,21 @@ typedef struct {
     string* levels;
 } levels_list;
 
+
+typedef struct {
+    bool l_pressed;
+    bool r_pressed;
+    double xpos;
+    double ypos;
+} mouse_state;
+
+typedef struct {
+    bool editor_enabled;
+    uint z_level;
+    entity_type active_type;
+    mouse_state mouse;
+} editor_data;
+
 typedef struct {
     uint size;
     uint x_size;
@@ -54,10 +70,12 @@ typedef struct {
     uint current_level;
     levels_list levels;
     float seconds;
+    editor_data editor;
 } world;
 
 int init_world(world* w, uint number);
 int get_position_index(world* w, int x, int y, int z);
 int process_inputs(GLFWwindow* window, world* w, float seconds);
+char* as_text (entity_type et);
 
 #endif
