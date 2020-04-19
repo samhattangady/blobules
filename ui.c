@@ -120,11 +120,11 @@ int init_ui(cb_ui_state* state) {
     return 0;
 }
 
-int cb_ui_render_rectangle(cb_ui_state* state, float xpos, float ypos, float w, float h) {
+int cb_ui_render_rectangle(cb_ui_state* state, float xpos, float ypos, float w, float h, float opacity) {
     glUseProgram(state->values.shader_program);
     glLinkProgram(state->values.shader_program);
     glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), 1536, 864);
-    glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 0.2, 0.2, 0.4,0.4);
+    glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 0.2, 0.2, 0.4, opacity);
     glUniform1i(glGetUniformLocation(state->values.shader_program, "mode"), 2);
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(state->values.vao);
@@ -189,6 +189,7 @@ int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y) {
 }
 
 int init_cb_window(cb_window* w, char* title, uint position[2], uint size[2]) {
+    printf("mallocing... init_cb_window\n");
     cb_widget* widget_mem = (cb_widget*) malloc(DEFAULT_WIDGET_NUMBER * sizeof(cb_widget));
     cb_widget_array widgets = {DEFAULT_WIDGET_NUMBER, 0, widget_mem};
     cb_window window = {title, {position[0], position[1]}, {size[0], size[1]}, 0, TEXT_HEIGHT, widgets};
@@ -258,6 +259,13 @@ int new_line(cb_ui_state* state, cb_window* window, bool padding) {
     }
 }
 
+int vert_spacer(cb_ui_state* state, cb_window* window, bool padding) {
+    window->current_x += BUTTON_PADDING;
+    if (padding) {
+        window->current_x += BUTTON_PADDING;
+    }
+}
+
 int clear_window(cb_ui_state* state, cb_window* window) {
     window->current_x = 0;
     window->current_y = TEXT_HEIGHT;
@@ -267,7 +275,7 @@ int clear_window(cb_ui_state* state, cb_window* window) {
 
 int cb_render_window(cb_ui_state* state, cb_window* window) {
     float width = get_text_width(state, window->title);
-    cb_ui_render_rectangle(state, window->position[0]-UI_PADDING, window->position[1]-TEXT_HEIGHT-UI_PADDING, window->size[0]+2*UI_PADDING, window->size[1]+2*UI_PADDING+TEXT_HEIGHT);
+    cb_ui_render_rectangle(state, window->position[0]-UI_PADDING, window->position[1]-TEXT_HEIGHT-UI_PADDING, window->size[0]+2*UI_PADDING, window->size[1]+2*UI_PADDING+TEXT_HEIGHT, 0.4);
     cb_ui_render_text(state, window->title,
             window->position[0]+(window->size[0]/2.0)-(width/2.0),
             window->position[1]);
@@ -276,7 +284,10 @@ int cb_render_window(cb_ui_state* state, cb_window* window) {
         float text_x = window->position[0]+w.position[0];
         float text_y = window->position[1]+w.position[1];
         if (w.type == CB_BUTTON) {
-            cb_ui_render_rectangle(state, text_x, text_y, w.size[0], w.size[1]);
+            float bg = 0.4;
+            if (mouse_in(state, window, w.position, w.size))
+                bg = 0.8;
+            cb_ui_render_rectangle(state, text_x, text_y, w.size[0], w.size[1], bg);
             text_x += BUTTON_PADDING;
             text_y += BUTTON_PADDING;
         }

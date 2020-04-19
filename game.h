@@ -82,5 +82,6 @@ int process_inputs(GLFWwindow* window, world* w, float seconds);
 char* as_text (entity_type et);
 int change_world_xsize(world* w, int sign);
 int change_world_ysize(world* w, int sign);
+int save_level(world* w);
 
 #endif

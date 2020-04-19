@@ -77,6 +77,26 @@ entity_type get_entity_type(char c) {
     return INVALID;
 }
 
+char get_entity_char(entity_type et) {
+    if (et ==NONE)
+        return  '.';
+    if (et == GROUND)
+        return 'o';
+    if (et == PLAYER)
+        return 'P';
+    if (et == WALL)
+        return 'B';
+    if (et == CUBE)
+        return 'I';
+    if (et == HOT_TARGET)
+        return 'T';
+    if (et == SLIPPERY_GROUND)
+        return '~';
+    if (et == FURNITURE)
+        return 'F';
+    return ' ';
+}
+
 levels_list load_levels_list() {
     // TODO (15 Apr 2020 sam): PERFORMANCE. Looping through string twice
     string levels = read_file(LEVEL_LISTING);
@@ -88,6 +108,7 @@ levels_list load_levels_list() {
         if (levels.text[i] == '\0')
             break;
     }
+    printf("mallocing... load_leves_list\n");
     string* l = (string*) malloc(sizeof(string) * n);
     string tmp = empty_string();
     n = 0;
@@ -121,6 +142,7 @@ int load_level(world* w) {
     w->x_size = x;
     w->y_size = y;
     w->z_size = z;
+    printf("mallocing... load_level\n");
     w->entities = (entity_type*) malloc(w->size * sizeof(entity_type));
     for (z=0; z<w->z_size; z++) {
         for (y=w->y_size-1; y>=0; y--) {
@@ -140,6 +162,29 @@ int load_level(world* w) {
     return 0;
 }
 
+int save_level(world* w) {
+    int x, y, z;
+    int index;
+    char c = ' ';
+    char* level_name = w->levels.levels[w->current_level].text;
+    printf("saving level %s\n", level_name);
+    FILE* level_file = fopen(level_name, "w");
+    fprintf(level_file, "%i %i %i\n", w->x_size, w->y_size, w->z_size);
+    for (z=0; z<w->z_size; z++) {
+        for (y=w->y_size-1; y>=0; y--) {
+            for (x=0; x<w->x_size; x++) {
+                index = get_position_index(w, x, y, z);
+                c = get_entity_char(w->entities[index]);
+                fprintf(level_file, "%c", c);
+            }
+            fprintf(level_file, "\n");
+        }
+        fprintf(level_file, "\n");
+    }
+    fclose(level_file);
+    return 0;
+}
+
 int load_next_level(world* w) {
     w->current_level++;
     if (w->current_level == w->levels.size)
@@ -154,6 +199,7 @@ int load_previous_level(world* w) {
 }
 
 int init_world(world* w, uint number) {
+    printf("mallocing... init_world\n");
     entity_type* entities = (entity_type*) malloc(number * sizeof(entity_type));
     player_input input = {NO_INPUT, 0.0};
     levels_list list = load_levels_list();
@@ -391,6 +437,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         global_w->editor.z_level = (global_w->editor.z_level+1)  % 2;
     if (key == GLFW_KEY_TAB && (action == GLFW_PRESS || action == GLFW_REPEAT))
         global_w->editor.active_type = (global_w->editor.active_type+1)  % INVALID;
+    if (key == GLFW_KEY_E && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        global_w->editor.editor_enabled =  !global_w->editor.editor_enabled;
 }
 
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
@@ -423,21 +471,18 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         global_w->ui_state->mouse.l_released = true;
     }
     if (global_w->editor.mouse.l_pressed) {
-        if (global_w->editor.mouse.xpos < UI_WIDTH) {
-            return;
-        }
-        else {
-            int x = get_world_x(global_w);
-            int y = get_world_y(global_w);
-            // TODO (19 Apr 2020 sam): Add check here to see whether the type is
-            // on "correct z level"
+        int x = get_world_x(global_w);
+        int y = get_world_y(global_w);
+        // TODO (19 Apr 2020 sam): Add check here to see whether the type is
+        // on "correct z level"
+        if (global_w->editor.editor_enabled)
             add_entity(global_w, global_w->editor.active_type, x, y, global_w->editor.z_level);
-        }
     }
     if (global_w->editor.mouse.r_pressed) {
         int x = get_world_x(global_w);
         int y = get_world_y(global_w);
-        add_entity(global_w, NONE, x, y, global_w->editor.z_level);
+        if (global_w->editor.editor_enabled)
+            add_entity(global_w, NONE, x, y, global_w->editor.z_level);
     }
 }
 
@@ -455,19 +500,46 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
 
 int change_world_xsize(world* w, int sign) {
     int ogx = w->x_size;
+    printf("mallocing... change_world_size\n");
+    entity_type* old_entities = malloc(w->size * sizeof(entity_type));
+    memcpy(old_entities, w->entities, w->size*sizeof(entity_type));
+    // TODO (19 Apr 2020 sam): This should get the sign value. It's wrong here.
     w->x_size = w->x_size + (1.0 * sign);
     w->size = w->x_size * w->y_size * w->z_size;
     w->entities = (entity_type*) realloc(w->entities, w->size * sizeof(entity_type));
     for (int z=0; z<w->z_size; z++) {
         for (int y=0; y<w->y_size; y++) {
             for (int x=0; x<w->x_size; x++) {
-                if (sign>0 && x==w->x_size-1) {
-                    add_entity(w, NONE, x, y, z);
-                    continue;
-                }
                 int index = get_position_index_sizes(ogx, w->y_size, w->z_size, x, y, z);
-                add_entity(w, w->entities[index], x, y, z);
+                if (x==w->x_size-1 && sign>0)
+                    add_entity(w, NONE, x, y, z);
+                else
+                    add_entity(w, old_entities[index], x, y, z);
             }
         }
     }
+    free(old_entities);
+}
+
+int change_world_ysize(world* w, int sign) {
+    int ogy = w->y_size;
+    printf("mallocing... change_world_size\n");
+    entity_type* old_entities = malloc(w->size * sizeof(entity_type));
+    memcpy(old_entities, w->entities, w->size*sizeof(entity_type));
+    // TODO (19 Apr 2020 sam): This should get the sign value. It's wrong here.
+    w->y_size = w->y_size + (1.0 * sign);
+    w->size = w->x_size * w->y_size * w->z_size;
+    w->entities = (entity_type*) realloc(w->entities, w->size * sizeof(entity_type));
+    for (int z=0; z<w->z_size; z++) {
+        for (int y=0; y<w->y_size; y++) {
+            for (int x=0; x<w->x_size; x++) {
+                int index = get_position_index_sizes(w->x_size, ogy, w->z_size, x, y, z);
+                if (y==w->y_size-1 && sign>0)
+                    add_entity(w, NONE, x, y, z);
+                else
+                    add_entity(w, old_entities[index], x, y, z);
+            }
+        }
+    }
+    free(old_entities);
 }

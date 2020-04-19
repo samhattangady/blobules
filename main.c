@@ -77,14 +77,30 @@ int main(int argc, char** argv) {
                 w.editor.z_level = 0;
                 w.editor.active_type = HOT_TARGET;
             }
-            if (add_button(&ui_state, &w.ui_window, "x_size +1", true)) {
+            new_line(&ui_state, &w.ui_window, false);
+            if (add_button(&ui_state, &w.ui_window, "x_size plus1", false)) {
                 change_world_xsize(&w, 1);
             }
-            if (add_button(&ui_state, &w.ui_window, "x_size -1", true)) {
+            vert_spacer(&ui_state, &w.ui_window, true);
+            if (add_button(&ui_state, &w.ui_window, "x_size minus1", true)) {
                 change_world_xsize(&w, -1);
             }
+            new_line(&ui_state, &w.ui_window, false);
+            if (add_button(&ui_state, &w.ui_window, "y_size plus1", false)) {
+                change_world_ysize(&w, 1);
+            }
+            vert_spacer(&ui_state, &w.ui_window, true);
+            if (add_button(&ui_state, &w.ui_window, "y_size minus1", true)) {
+                change_world_ysize(&w, -1);
+            }
+            new_line(&ui_state, &w.ui_window, false);
+            new_line(&ui_state, &w.ui_window, false);
+            new_line(&ui_state, &w.ui_window, false);
+            if (add_button(&ui_state, &w.ui_window, "save_level", true)) {
+                save_level(&w);
+            }
+            cb_render_window(&ui_state, &w.ui_window);
         }
-        cb_render_window(&ui_state, &w.ui_window);
         
         glfwSwapBuffers(r.window);
     }

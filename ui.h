@@ -80,6 +80,7 @@ int init_cb_window(cb_window* w, char* title, uint position[2], uint size[2]);
 int add_text(cb_ui_state* state, cb_window* window, char* text, bool newline);
 bool add_button(cb_ui_state* state, cb_window* window, char* text, bool newline);
 int new_line(cb_ui_state* state, cb_window* window, bool padding);
+int vert_spacer(cb_ui_state* state, cb_window* window, bool padding);
 int cb_render_window(cb_ui_state* state, cb_window* window);
 
 #endif

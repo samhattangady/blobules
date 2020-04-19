@@ -76,6 +76,7 @@ int set_world(renderer* r, world* w) {
     if (r->vertex_buffer)
         free(r->vertex_buffer);
     r->buffer_size = get_buffer_size(w);
+    printf("mallocing... set_world\n");
     r->vertex_buffer = (float*) malloc(r->buffer_size);
 
     string vertex_source = read_file("glsl/simple_vertex.glsl");

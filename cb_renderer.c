@@ -87,6 +87,7 @@ int init_renderer(renderer* r, char* window_name) {
     // TODO (13 Apr 2020 sam): figure out how much space to allocate. note that
     // this has to be in sync with the uniform in frag.glsl as well as the world
     // data alloted space.
+    printf("mallocing... cb_renderer.c\n");
     float* posdata = (float*) malloc(sizeof(float) * 128);
     int* typedata = (int*) malloc(sizeof(int) * 128);
 
