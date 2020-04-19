@@ -5,4 +5,8 @@
 #define WINDOW_HEIGHT 864
 #define BLOCK_SIZE 90
 
+#define UI_WIDTH 400
+#define TEXT_HEIGHT 18
+#define UI_PADDING 8
+
 #endif

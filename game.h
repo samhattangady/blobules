@@ -2,6 +2,7 @@
 #define BLOBULES_GAME_DEFINED
 #include <stdbool.h>
 #include "cb_lib/cb_types.h"
+#include "ui.h"
 #include <GLFW/glfw3.h>
 
 typedef enum {
@@ -71,11 +72,15 @@ typedef struct {
     levels_list levels;
     float seconds;
     editor_data editor;
+    cb_ui_state* ui_state;
+    cb_window ui_window;
 } world;
 
 int init_world(world* w, uint number);
 int get_position_index(world* w, int x, int y, int z);
 int process_inputs(GLFWwindow* window, world* w, float seconds);
 char* as_text (entity_type et);
+int change_world_xsize(world* w, int sign);
+int change_world_ysize(world* w, int sign);
 
 #endif

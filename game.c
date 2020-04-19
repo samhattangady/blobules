@@ -15,8 +15,12 @@
 world* global_w;
 float global_seconds;
 
+int get_position_index_sizes(int x_size, int y_size, int z_size, int x, int y, int z) {
+    return ( z * x_size * y_size ) + ( y * x_size ) + x;
+}
+
 int get_position_index(world* w, int x, int y, int z) {
-    return ( z * w->x_size * w->y_size ) + ( y * w->x_size ) + x;
+    return get_position_index_sizes(w->x_size, w->y_size, w->z_size, x, y, z);
 }
 
 char* as_text(entity_type e) {
@@ -42,11 +46,14 @@ char* as_text(entity_type e) {
 }
 
 int add_entity(world* w, entity_type e, int x, int y, int z) {
-    printf("adding entity %s at (%i, %i, %i)\n", as_text(e), x, y, z);
     if (x >= w->x_size || y >= w->y_size || z >= w->z_size)
         return -1;
     int index = get_position_index(w, x, y, z);
     w->entities[index] = e;
+    if (e == PLAYER) {
+        vec3i pos = {x, y, z};
+        w->player_position = pos;
+    }
     return 0;
 }
 
@@ -125,8 +132,6 @@ int load_level(world* w) {
                     type = get_entity_type(c);
                 }
                 add_entity(w, type, x, y, z);
-                if (type == PLAYER)
-                    w->player_position = position;
             }
         }
     }
@@ -153,7 +158,7 @@ int init_world(world* w, uint number) {
     player_input input = {NO_INPUT, 0.0};
     levels_list list = load_levels_list();
     world tmp = {0, 0, 0, 0, NULL, {0, 0, 0}, input, ALIVE, 0, list,
-                 0.0, {true, 0, GROUND, {false, false, 0.0, 0.0}}};
+                 0.0, {true, 0, GROUND, {false, false, 0.0, 0.0}}, NULL, {}};
     *w = tmp;
     load_level(w);
     return 0;
@@ -391,6 +396,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     global_w->editor.mouse.xpos = xpos;
     global_w->editor.mouse.ypos = ypos;
+    global_w->ui_state->mouse.current_x = xpos;
+    global_w->ui_state->mouse.current_y = ypos;
 }
 
 int get_world_x(world* w) {
@@ -406,12 +413,26 @@ int get_world_y(world* w) {
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     global_w->editor.mouse.l_pressed = (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS);
     global_w->editor.mouse.r_pressed = (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS);
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        global_w->ui_state->mouse.l_pressed = true;
+        global_w->ui_state->mouse.l_down_x = global_w->ui_state->mouse.current_x;
+        global_w->ui_state->mouse.l_down_y = global_w->ui_state->mouse.current_y;
+    }
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+        global_w->ui_state->mouse.l_pressed = false;
+        global_w->ui_state->mouse.l_released = true;
+    }
     if (global_w->editor.mouse.l_pressed) {
-        int x = get_world_x(global_w);
-        int y = get_world_y(global_w);
-        // TODO (19 Apr 2020 sam): Add check here to see whether the type is
-        // on "correct z level"
-        add_entity(global_w, global_w->editor.active_type, x, y, global_w->editor.z_level);
+        if (global_w->editor.mouse.xpos < UI_WIDTH) {
+            return;
+        }
+        else {
+            int x = get_world_x(global_w);
+            int y = get_world_y(global_w);
+            // TODO (19 Apr 2020 sam): Add check here to see whether the type is
+            // on "correct z level"
+            add_entity(global_w, global_w->editor.active_type, x, y, global_w->editor.z_level);
+        }
     }
     if (global_w->editor.mouse.r_pressed) {
         int x = get_world_x(global_w);
@@ -432,3 +453,21 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
     w->seconds = seconds;
 }
 
+int change_world_xsize(world* w, int sign) {
+    int ogx = w->x_size;
+    w->x_size = w->x_size + (1.0 * sign);
+    w->size = w->x_size * w->y_size * w->z_size;
+    w->entities = (entity_type*) realloc(w->entities, w->size * sizeof(entity_type));
+    for (int z=0; z<w->z_size; z++) {
+        for (int y=0; y<w->y_size; y++) {
+            for (int x=0; x<w->x_size; x++) {
+                if (sign>0 && x==w->x_size-1) {
+                    add_entity(w, NONE, x, y, z);
+                    continue;
+                }
+                int index = get_position_index_sizes(ogx, w->y_size, w->z_size, x, y, z);
+                add_entity(w, w->entities[index], x, y, z);
+            }
+        }
+    }
+}

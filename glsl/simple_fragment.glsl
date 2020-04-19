@@ -14,7 +14,7 @@ vec4 get_color(int material) {
     if (material == 4)   // ground
         return vec4(0.3, 0.6, 0.5, 1.0);
     if (material == 5)   // none
-        return vec4(0.1, 0.1, 0.1, 0.0);
+        return vec4(1.1, 1.1, 1.1, 0.01);
     if (material == 6)   // slippery
         return vec4(0.4, 0.4, 0.6, 1.0);
     if (material == 7)   // hot target
