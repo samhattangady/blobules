@@ -101,7 +101,9 @@ int main(int argc, char** argv) {
             }
             cb_render_window(&ui_state, &w.ui_window);
         }
-        
+        char fps_counter[48];
+        sprintf(fps_counter, "%.2f frames per second", 1.0/frame_time);
+        cb_ui_render_text(&ui_state, fps_counter, WINDOW_WIDTH-50, 20);
         glfwSwapBuffers(r.window);
     }
 

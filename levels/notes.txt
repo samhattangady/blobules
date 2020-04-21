@@ -21,9 +21,27 @@ Nothing there that will mislead the player...
 
 005:
 Catch: You can push the cube to the target, but still be stuck on ice.
-Good. I like it.
+The catch is nice. But the solution itself is kinda boring.
 
 006:
 Catch: introducing furniture. learn that it needs to be moved to the correct place
 so it can block the cube.
 Yeah. Good enough.
+
+007:
+Catch: introducing furniture. learn that it needs to be moved to the correct place
+so it can block the cube.
+Feels very similar to the previous level... Replacable basically.
+
+008:
+Catch: you need the furniture to be in the correct place to stop your slide, so
+you can push the cube.
+Yeah. I quite like it. Forced the player to actually move the furniture in the way
+that I designed. 
+
+009:
+Catch: You can't always easily push a furniture across slippery, because you will
+end up getting stuck on the slippery.
+Yeah. The level will likely get you caught. There might be a possibility to do
+something a little more clever than the movement that is currently required. But
+yeah, lets see..
