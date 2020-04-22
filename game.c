@@ -304,8 +304,6 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz) 
         if (w->entities[target_pos_index] == FURNITURE)
             return 1;
         if (w->entities[target_pos_index] == CUBE) {
-            printf("removing furniture because crashed into cube\n");
-            w->entities[index] = NONE;
             return 1;
         }
         // what if it's player?
@@ -498,7 +496,7 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
     w->seconds = seconds;
 }
 
-int change_world_xsize(world* w, int sign) {
+int change_world_xsize_right(world* w, int sign) {
     int ogx = w->x_size;
     printf("mallocing... change_world_size\n");
     entity_type* old_entities = malloc(w->size * sizeof(entity_type));
@@ -521,7 +519,37 @@ int change_world_xsize(world* w, int sign) {
     free(old_entities);
 }
 
-int change_world_ysize(world* w, int sign) {
+int change_world_xsize_left(world* w, int sign) {
+    int ogx = w->x_size;
+    printf("mallocing... change_world_size\n");
+    entity_type* old_entities = malloc(w->size * sizeof(entity_type));
+    memcpy(old_entities, w->entities, w->size*sizeof(entity_type));
+    // TODO (19 Apr 2020 sam): This should get the sign value. It's wrong here.
+    w->x_size = w->x_size + (1.0 * sign);
+    w->size = w->x_size * w->y_size * w->z_size;
+    w->entities = (entity_type*) realloc(w->entities, w->size * sizeof(entity_type));
+    for (int z=0; z<w->z_size; z++) {
+        for (int y=0; y<w->y_size; y++) {
+            for (int x=0; x<w->x_size; x++) {
+                if (sign>0){
+                    int index = get_position_index_sizes(ogx, w->y_size, w->z_size, x-1, y, z);
+                    if (x==0)
+                        add_entity(w, NONE, 0, y, z);
+                    else
+                        add_entity(w, old_entities[index], x, y, z);
+                }
+                else {
+                    int index = get_position_index_sizes(ogx, w->y_size, w->z_size, x+1, y, z);
+                    add_entity(w, old_entities[index], x, y, z);
+                }
+            }
+        }
+    }
+    free(old_entities);
+}
+
+
+int change_world_ysize_top(world *w, int sign) {
     int ogy = w->y_size;
     printf("mallocing... change_world_size\n");
     entity_type* old_entities = malloc(w->size * sizeof(entity_type));
@@ -542,4 +570,47 @@ int change_world_ysize(world* w, int sign) {
         }
     }
     free(old_entities);
+}
+
+int change_world_ysize_bottom(world *w, int sign) {
+    int ogy = w->y_size;
+    printf("mallocing... change_world_size\n");
+    entity_type* old_entities = malloc(w->size * sizeof(entity_type));
+    memcpy(old_entities, w->entities, w->size*sizeof(entity_type));
+    // TODO (19 Apr 2020 sam): This should get the sign value. It's wrong here.
+    w->y_size = w->y_size + (1.0 * sign);
+    w->size = w->x_size * w->y_size * w->z_size;
+    w->entities = (entity_type*) realloc(w->entities, w->size * sizeof(entity_type));
+    for (int z=0; z<w->z_size; z++) {
+        for (int y=0; y<w->y_size; y++) {
+            for (int x=0; x<w->x_size; x++) {
+                if (sign>0){
+                    int index = get_position_index_sizes(w->x_size, ogy, w->z_size, x, y-1, z);
+                    if (y==0)
+                        add_entity(w, NONE, x, 0, z);
+                    else
+                        add_entity(w, old_entities[index], x, y, z);
+                }
+                else {
+                    int index = get_position_index_sizes(w->x_size, ogy, w->z_size, x, y+1, z);
+                    add_entity(w, old_entities[index], x, y, z);
+                }
+            }
+        }
+    }
+    free(old_entities);
+}
+
+int change_world_xsize(world* w, int direction, int sign) {
+    if (direction == 1)
+        change_world_xsize_right(w, sign);
+    if (direction == -1)
+        change_world_xsize_left(w, sign);
+}
+
+int change_world_ysize(world* w, int direction, int sign) {
+    if (direction == 1)
+        change_world_ysize_top(w, sign);
+    else
+        change_world_ysize_bottom(w, sign);
 }

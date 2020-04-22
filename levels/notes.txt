@@ -1,20 +1,19 @@
-000:
+000: 5
 Good to start. Understand the game.
 
-002:
+002: 5
 Catch: If there is no blocker, the icecube will not hit the target
-It's very similar to previous level. I think if we make it vertical instead,
-it will become a lot better specially, in terms of variety.
+Again. Very simple. But I think it does introduce you to the catch.
 
-001:
+001: 9
 Catch: If you push the block forward, you get push backward as well.
 I really like it.
 
-003:
+003: 4
 Catch/Learning: You have to slide across the path you created to get to places you want.
-Fairly simple. But it's good.
+Fairly simple. But it's good. But there's always only one thing to do.
 
-004:
+004: 2
 No catch. But decently interesting level.
 It's alright. But it seems like in all places there is only one thing to do
 Nothing there that will mislead the player...
@@ -37,7 +36,7 @@ Feels very similar to the previous level... Replacable basically.
 Catch: you need the furniture to be in the correct place to stop your slide, so
 you can push the cube.
 Yeah. I quite like it. Forced the player to actually move the furniture in the way
-that I designed. 
+that I designed.
 
 009:
 Catch: You can't always easily push a furniture across slippery, because you will
@@ -45,3 +44,12 @@ end up getting stuck on the slippery.
 Yeah. The level will likely get you caught. There might be a possibility to do
 something a little more clever than the movement that is currently required. But
 yeah, lets see..
+
+010:
+Catch: The furniture can be used as blocker, and you have to use the block to position
+it correctly on the ice.
+Oh man, I think that was a really good idea. I even changed the mechanic for it.
+Level is great. Also see how first the cube has to be pushed, only then do we get the
+furniture in correct position.
+
+011:

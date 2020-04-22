@@ -78,20 +78,36 @@ int main(int argc, char** argv) {
                 w.editor.active_type = HOT_TARGET;
             }
             new_line(&ui_state, &w.ui_window, false);
-            if (add_button(&ui_state, &w.ui_window, "x_size plus1", false)) {
-                change_world_xsize(&w, 1);
+            if (add_button(&ui_state, &w.ui_window, "add col left", false)) {
+                change_world_xsize(&w, -1, 1);
             }
             vert_spacer(&ui_state, &w.ui_window, true);
-            if (add_button(&ui_state, &w.ui_window, "x_size minus1", true)) {
-                change_world_xsize(&w, -1);
+            if (add_button(&ui_state, &w.ui_window, "add col right", true)) {
+                change_world_xsize(&w, 1, 1);
             }
             new_line(&ui_state, &w.ui_window, false);
-            if (add_button(&ui_state, &w.ui_window, "y_size plus1", false)) {
-                change_world_ysize(&w, 1);
+            if (add_button(&ui_state, &w.ui_window, "del col left", false)) {
+                change_world_xsize(&w, -1, -1);
             }
             vert_spacer(&ui_state, &w.ui_window, true);
-            if (add_button(&ui_state, &w.ui_window, "y_size minus1", true)) {
-                change_world_ysize(&w, -1);
+            if (add_button(&ui_state, &w.ui_window, "del col right", true)) {
+                change_world_xsize(&w, 1, -1);
+            }
+            new_line(&ui_state, &w.ui_window, false);
+            if (add_button(&ui_state, &w.ui_window, "add row top", false)) {
+                change_world_ysize(&w, 1, 1);
+            }
+            vert_spacer(&ui_state, &w.ui_window, true);
+            if (add_button(&ui_state, &w.ui_window, "del row top", true)) {
+                change_world_ysize(&w, 1, -1);
+            }
+            new_line(&ui_state, &w.ui_window, false);
+            if (add_button(&ui_state, &w.ui_window, "add row bottom", false)) {
+                change_world_ysize(&w, -1, 1);
+            }
+            vert_spacer(&ui_state, &w.ui_window, true);
+            if (add_button(&ui_state, &w.ui_window, "del row bottom", true)) {
+                change_world_ysize(&w, -1, -1);
             }
             new_line(&ui_state, &w.ui_window, false);
             new_line(&ui_state, &w.ui_window, false);

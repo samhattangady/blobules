@@ -4,6 +4,9 @@
 #include "simple_renderer.h"
 #include "game_settings.h"
 
+#define X_PADDING -0.0
+#define Y_PADDING -0.35
+
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Errors: %s\n", description);
 }
@@ -141,23 +144,23 @@ int update_vertex_buffer(renderer* r, world* w) {
                 int i = get_position_index(w, x, y, z); 
                 float material = get_entity_material(w->entities[i]);
                 float size = get_block_size(w->entities[i]);
-                r->vertex_buffer[(18*i)+0] = (blockx*x) - (size*blockx/2.0);
-                r->vertex_buffer[(18*i)+1] = (blocky*y) - (size*blocky/2.0);
+                r->vertex_buffer[(18*i)+0] = X_PADDING + (blockx*x) - (size*blockx/2.0);
+                r->vertex_buffer[(18*i)+1] = Y_PADDING + (blocky*y) - (size*blocky/2.0);
                 r->vertex_buffer[(18*i)+2] = material;
-                r->vertex_buffer[(18*i)+3] = (blockx*x) + (size*blockx/2.0);
-                r->vertex_buffer[(18*i)+4] = (blocky*y) - (size*blocky/2.0);
+                r->vertex_buffer[(18*i)+3] = X_PADDING + (blockx*x) + (size*blockx/2.0);
+                r->vertex_buffer[(18*i)+4] = Y_PADDING + (blocky*y) - (size*blocky/2.0);
                 r->vertex_buffer[(18*i)+5] = material;
-                r->vertex_buffer[(18*i)+6] = (blockx*x) - (size*blockx/2.0);
-                r->vertex_buffer[(18*i)+7] = (blocky*y) + (size*blocky/2.0);
+                r->vertex_buffer[(18*i)+6] = X_PADDING + (blockx*x) - (size*blockx/2.0);
+                r->vertex_buffer[(18*i)+7] = Y_PADDING + (blocky*y) + (size*blocky/2.0);
                 r->vertex_buffer[(18*i)+8] = material;
-                r->vertex_buffer[(18*i)+9] = (blockx*x) - (size*blockx/2.0);
-                r->vertex_buffer[(18*i)+10] = (blocky*y) + (size*blocky/2.0);
+                r->vertex_buffer[(18*i)+9] = X_PADDING + (blockx*x) - (size*blockx/2.0);
+                r->vertex_buffer[(18*i)+10] = Y_PADDING + (blocky*y) + (size*blocky/2.0);
                 r->vertex_buffer[(18*i)+11] = material;
-                r->vertex_buffer[(18*i)+12] = (blockx*x) + (size*blockx/2.0);
-                r->vertex_buffer[(18*i)+13] = (blocky*y) - (size*blocky/2.0);
+                r->vertex_buffer[(18*i)+12] = X_PADDING + (blockx*x) + (size*blockx/2.0);
+                r->vertex_buffer[(18*i)+13] = Y_PADDING + (blocky*y) - (size*blocky/2.0);
                 r->vertex_buffer[(18*i)+14] = material;
-                r->vertex_buffer[(18*i)+15] = (blockx*x) + (size*blockx/2.0);
-                r->vertex_buffer[(18*i)+16] = (blocky*y) + (size*blocky/2.0);
+                r->vertex_buffer[(18*i)+15] = X_PADDING + (blockx*x) + (size*blockx/2.0);
+                r->vertex_buffer[(18*i)+16] = Y_PADDING + (blocky*y) + (size*blocky/2.0);
                 r->vertex_buffer[(18*i)+17] = material;
             }
         }

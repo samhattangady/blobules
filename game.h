@@ -80,8 +80,8 @@ int init_world(world* w, uint number);
 int get_position_index(world* w, int x, int y, int z);
 int process_inputs(GLFWwindow* window, world* w, float seconds);
 char* as_text (entity_type et);
-int change_world_xsize(world* w, int sign);
-int change_world_ysize(world* w, int sign);
+int change_world_xsize(world* w, int direction, int sign);
+int change_world_ysize(world* w, int direction, int sign);
 int save_level(world* w);
 
 #endif

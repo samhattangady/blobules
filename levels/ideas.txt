@@ -1,0 +1,4 @@
+- you can't push furniture into a cube (cube won't move)
+- L shaped level, where the only connecting part is slippery
+- furniture that is blocking the way. you need to break it to get through
+- you're sandwiched between a wall and a cube.
