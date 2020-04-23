@@ -8,5 +8,7 @@
 #define UI_WIDTH 400
 #define TEXT_HEIGHT 18
 #define UI_PADDING 8
+#define X_PADDING -0.10
+#define Y_PADDING -0.30
 
 #endif

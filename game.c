@@ -448,12 +448,16 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 
 int get_world_x(world* w) {
     double xpos = global_w->editor.mouse.xpos;
-    return (int) (0.5 + ((xpos - (WINDOW_WIDTH/2.0)) / (BLOCK_SIZE/2.0)));
+    return (int) (0.5 + ((xpos - (X_PADDING*WINDOW_WIDTH/2.0) - (WINDOW_WIDTH/2.0)) /
+                         (BLOCK_SIZE/2.0))
+                 );
 }
 
 int get_world_y(world* w) {
     double ypos = global_w->editor.mouse.ypos;
-    return (int) (0.5 - ((ypos - (WINDOW_WIDTH/2.0)*(WINDOW_HEIGHT*1.0/WINDOW_WIDTH*1.0)) / (BLOCK_SIZE/2.0)));
+    return (int) (0.5 - ((ypos+ (Y_PADDING*WINDOW_HEIGHT/2.0) - WINDOW_HEIGHT/2.0) /
+                         (BLOCK_SIZE/2.0))
+                 );
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {

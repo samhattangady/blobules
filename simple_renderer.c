@@ -4,8 +4,6 @@
 #include "simple_renderer.h"
 #include "game_settings.h"
 
-#define X_PADDING -0.0
-#define Y_PADDING -0.35
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Errors: %s\n", description);
