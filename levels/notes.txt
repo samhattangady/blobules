@@ -53,3 +53,7 @@ Level is great. Also see how first the cube has to be pushed, only then do we ge
 furniture in correct position.
 
 011:
+Catch: If you use furniture to stop the cube in the correct place, you might have
+difficulty getting there yourself.
+It's bland. The solution itself does not involve the catch, or anything inteeresting
+You're just as likely to solve it correctly without the catch.

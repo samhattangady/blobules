@@ -259,8 +259,7 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz) {
     if (w->entities[target_pos_index] != NONE) {
         if (can_stop_cube_slide(w->entities[target_pos_index])) {
             if (w->entities[target_pos_index] == FURNITURE) {
-                printf("removing furniture because cube crashed into it\n");
-                w->entities[target_pos_index] = NONE;
+                maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz);
             }
             // check if win.
             if (w->entities[on_index] == HOT_TARGET) {
