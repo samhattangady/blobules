@@ -74,6 +74,10 @@ entity_type get_entity_type(char c) {
         return SLIPPERY_GROUND;
     if (c == 'F')
         return FURNITURE;
+    if (c == 'C')
+        return COLD_TARGET;
+    if (c == 'D')
+        return DESTROYED_TARGET;
     return INVALID;
 }
 
@@ -94,6 +98,10 @@ char get_entity_char(entity_type et) {
         return '~';
     if (et == FURNITURE)
         return 'F';
+    if (et == COLD_TARGET)
+        return 'C';
+    if (et == DESTROYED_TARGET)
+        return 'D';
     return ' ';
 }
 
@@ -132,18 +140,18 @@ int load_level(world* w) {
     w->player = ALIVE;
     int x, y, z;
     char c = ' ';
-    if (w->entities != NULL)
-        free(w->entities);
+    if (w->entities == NULL)
+        w->entities = (entity_type*) malloc(MAX_WORLD_ENTITIES * sizeof(entity_type));
     char* level_name = w->levels.levels[w->current_level].text;
     printf("loading level %s\n", level_name);
     FILE* level_file = fopen(level_name, "r");
     fscanf(level_file, "%i %i %i\n", &x, &y, &z);
     w->size = x * y * z;
+    if (w->size > MAX_WORLD_ENTITIES)
+        printf("not enough room malloced for all entities... Might crash.");
     w->x_size = x;
     w->y_size = y;
     w->z_size = z;
-    printf("mallocing... load_level\n");
-    w->entities = (entity_type*) malloc(w->size * sizeof(entity_type));
     for (z=0; z<w->z_size; z++) {
         for (y=w->y_size-1; y>=0; y--) {
             for (x=0; x<w->x_size; x++) {
@@ -159,6 +167,7 @@ int load_level(world* w) {
     }
     fclose(level_file);
     global_w = w;
+    save_freezeframe(w);
     return 0;
 }
 
@@ -199,12 +208,12 @@ int load_previous_level(world* w) {
 }
 
 int init_world(world* w, uint number) {
-    printf("mallocing... init_world\n");
-    entity_type* entities = (entity_type*) malloc(number * sizeof(entity_type));
     player_input input = {NO_INPUT, 0.0};
     levels_list list = load_levels_list();
+    world_freezeframe* frames = (world_freezeframe*) malloc(HISTORY_STEPS * sizeof(world_freezeframe));
+    world_history history = {0, frames};
     world tmp = {0, 0, 0, 0, NULL, {0, 0, 0}, input, ALIVE, 0, list,
-                 0.0, {true, 0, GROUND, {false, false, 0.0, 0.0}}, NULL, {}};
+                 0.0, {true, 0, GROUND, {false, false, 0.0, 0.0}}, NULL, {}, history};
     *w = tmp;
     load_level(w);
     return 0;
@@ -363,7 +372,7 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force) {
     // check if can stand
     if (!can_support_player(w->entities[target_ground_index])) {
         if (force) {
-            // w->player = DEAD;
+            w->player = DEAD;
             w->player_position.x += dx;
             w->player_position.y += dy;
             w->player_position.z += dz;
@@ -383,9 +392,58 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force) {
         maybe_move_player(w, dx, dy, dz, true);
     }
     if (w->entities[target_ground_index] == COLD_TARGET) {
-        w->player = WIN;
+        // We don't want to be able to slide into the target
+        if (!force)
+            w->player = WIN;
+        else {
+            w->player = DEAD;
+            w->entities[target_index] = NONE;
+            w->entities[target_ground_index] = DESTROYED_TARGET;
+        }
     }
     return 0;
+}
+
+int save_freezeframe(world* w) {
+    int i, index;
+    w->history.index++;
+    if (w->history.index == HISTORY_STEPS) {
+        // When the index is above HISTORY_STEPS, move the whole
+        // array backwards by HISTORY_STEPS/2
+        int num = HISTORY_STEPS/2;
+        memcpy(&w->history.history[0], &w->history.history[num], num*sizeof(world_freezeframe));
+        printf("history memory full...\n");
+        w->history.index = num;
+    }
+    index = w->history.index;
+    w->history.history[index].current_level = w->current_level;
+    for (i=0; i<w->size; i++)
+        w->history.history[index].entities[i] = get_entity_char(w->entities[i]);
+}
+
+int load_previous_freezeframe(world* w) {
+    int i, index;
+    if (w->history.index <= 1) return 0;
+    w->history.index--;
+    index = w->history.index;
+    if (w->history.history[index].current_level != w->current_level) {
+        // TODO (27 Apr 2020 sam): Changing level requires us to press z twice?
+        // Bug needs to be found and fixed.
+        w->current_level = w->history.history[index].current_level;
+        load_level(w);
+    }
+    for (i=0; i<w->size; i++) {
+        entity_type et = get_entity_type(w->history.history[index].entities[i]);
+        w->entities[i] = et;
+        if (et == PLAYER) {
+            int x, y, z;
+            z = i / (w->x_size * w->y_size);
+            y = (i - (z*w->x_size*w->y_size)) / w->x_size;
+            x = i % w->x_size;
+            vec3i pos = {x, y, z};
+            w->player_position = pos;
+        }
+    }
 }
 
 int trigger_input(world* w, input_type it) {
@@ -398,10 +456,14 @@ int trigger_input(world* w, input_type it) {
         maybe_move_player(w, 1, 0, 0, false);
     if (it == MOVE_LEFT)
         maybe_move_player(w, -1, 0, 0, false);
+    if (it == RESTART_LEVEL)
+        load_level(w);
     if (it == NEXT_LEVEL)
         load_next_level(w);
     if (it == PREVIOUS_LEVEL)
         load_previous_level(w);
+    if (it == UNDO_MOVE)
+        load_previous_freezeframe(w);
 }
 
 int set_input(world* w, input_type it, float seconds) {
@@ -409,6 +471,9 @@ int set_input(world* w, input_type it, float seconds) {
         w->input.type = it;
         w->input.time = seconds;
         trigger_input(w, it);
+        // TODO (27 Apr 2020 sam): Figure out exactly when to save the freezeframe
+        if (it != UNDO_MOVE)
+            save_freezeframe(w);
     }
     return 0;
 }
@@ -417,7 +482,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
     if (key == GLFW_KEY_R && action == GLFW_PRESS)
-        load_level(global_w);
+        set_input(global_w, RESTART_LEVEL, global_seconds);
     if (key == GLFW_KEY_N && action == GLFW_PRESS)
         set_input(global_w, NEXT_LEVEL, global_seconds);
     if (key == GLFW_KEY_P && action == GLFW_PRESS)
@@ -430,6 +495,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         set_input(global_w, MOVE_LEFT, global_seconds);
     if (key == GLFW_KEY_D && (action == GLFW_PRESS || action == GLFW_REPEAT))
         set_input(global_w, MOVE_RIGHT, global_seconds);
+    if (key == GLFW_KEY_Z && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        set_input(global_w, UNDO_MOVE, global_seconds);
     if (key == GLFW_KEY_SPACE && (action == GLFW_PRESS || action == GLFW_REPEAT))
         global_w->editor.z_level = (global_w->editor.z_level+1)  % 2;
     if (key == GLFW_KEY_TAB && (action == GLFW_PRESS || action == GLFW_REPEAT))
@@ -476,22 +543,26 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         int y = get_world_y(global_w);
         // TODO (19 Apr 2020 sam): Add check here to see whether the type is
         // on "correct z level"
-        if (global_w->editor.editor_enabled)
+        if (global_w->editor.editor_enabled) {
             add_entity(global_w, global_w->editor.active_type, x, y, global_w->editor.z_level);
+            save_freezeframe(global_w);
+        }
     }
     if (global_w->editor.mouse.r_pressed) {
         int x = get_world_x(global_w);
         int y = get_world_y(global_w);
-        if (global_w->editor.editor_enabled)
+        if (global_w->editor.editor_enabled) {
             add_entity(global_w, NONE, x, y, global_w->editor.z_level);
+            save_freezeframe(global_w);
+        }
     }
 }
 
 int process_inputs(GLFWwindow* window, world* w, float seconds) {
     if (w->player == WIN)
         load_next_level(w);
-    if (w->player == DEAD)
-        load_level(w);
+    // if (w->player == DEAD)
+    //     load_level(w);
     global_seconds = seconds;
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);

@@ -10,5 +10,7 @@
 #define UI_PADDING 8
 #define X_PADDING -0.10
 #define Y_PADDING -0.30
+#define MAX_WORLD_ENTITIES 512
+#define HISTORY_STEPS 128
 
 #endif

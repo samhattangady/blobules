@@ -1,59 +1,95 @@
-000: 5
+000:
+Catch: Icecube slides off if there's no blocker
+Insight: Blocker blocks cube
+Rating: 6
 Good to start. Understand the game.
 
-002: 5
+002:
 Catch: If there is no blocker, the icecube will not hit the target
+Insight: None
+Rating: 5
 Again. Very simple. But I think it does introduce you to the catch.
 
-001: 9
+001:
 Catch: If you push the block forward, you get push backward as well.
+Insight: None
+Rating: 9
 I really like it.
 
-003: 4
+003:
 Catch/Learning: You have to slide across the path you created to get to places you want.
+Insight: You can slide across slippery. Learn the pattern of the available ground.
+Rating: 4
 Fairly simple. But it's good. But there's always only one thing to do.
 
-004: 2
+004:
+Catch: None
+Insight: None
+Rating: 4
 No catch. But decently interesting level.
 It's alright. But it seems like in all places there is only one thing to do
 Nothing there that will mislead the player...
 
 005:
 Catch: You can push the cube to the target, but still be stuck on ice.
+Insight: None
+Rating: 5
 The catch is nice. But the solution itself is kinda boring.
 
 006:
-Catch: introducing furniture. learn that it needs to be moved to the correct place
-so it can block the cube.
-Yeah. Good enough.
+Catch: introducing furniture.
+Insight: Furniture can be moved and it blocks cube
+Rating: 3
+Yeah. Good enough. as introduction. 
 
 007:
-Catch: introducing furniture. learn that it needs to be moved to the correct place
-so it can block the cube.
+Catch: introducing furniture.
+Insight: Furniture can be moved and it blocks cube
+Rating: 6
 Feels very similar to the previous level... Replacable basically.
 
 008:
-Catch: you need the furniture to be in the correct place to stop your slide, so
+Catch: None
+Insight: you need the furniture to be in the correct place to stop your slide, so
 you can push the cube.
+Rating: 9
 Yeah. I quite like it. Forced the player to actually move the furniture in the way
 that I designed.
 
 009:
 Catch: You can't always easily push a furniture across slippery, because you will
 end up getting stuck on the slippery.
+Insight: None
+Rating: 8
 Yeah. The level will likely get you caught. There might be a possibility to do
 something a little more clever than the movement that is currently required. But
-yeah, lets see..
+yeah, lets see.. quite happy though
 
 010:
-Catch: The furniture can be used as blocker, and you have to use the block to position
-it correctly on the ice.
-Oh man, I think that was a really good idea. I even changed the mechanic for it.
+Catch: None
+Insight: cube can block slide of furniture.
+Rating: 9
 Level is great. Also see how first the cube has to be pushed, only then do we get the
 furniture in correct position.
 
 011:
 Catch: If you use furniture to stop the cube in the correct place, you might have
 difficulty getting there yourself.
-It's bland. The solution itself does not involve the catch, or anything inteeresting
-You're just as likely to solve it correctly without the catch.
+Insight: You can use the furniture multiple times.
+Rating: 8
+It's fine. Semi interesting. Note that this is the first level where the furniture
+is not pushed off the map when hit correctly by the cube. Also, the furniture will
+trap you if you try to push the block left then up
+
+012:
+Catch: Because of the land and slippery, you cant push the furniture to the right
+Insight: You can bump the ice into the furniture in order to move it
+Rating: 8
+I'm quite happy with it. Just discovered the solution. Honestly, it's quite simple
+Can probably be moved up a bit. But certainly very interesting
+
+013:
+Catch: difficult to move the furniture to the obvious blocking spot. If you do that
+there's no way to get off the slippery. Lots of different ways to get stuck. yay
+Insight. Use the furniture to set up the cube at the edge of the slippery
+Rating: 9

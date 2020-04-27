@@ -1,5 +1,11 @@
-levels/011.txt
-levels/012.txt
+levels/013.txt
+levels/014.txt
+levels/015.txt
+levels/016.txt
+levels/017.txt
+levels/018.txt
+levels/019.txt
+levels/020.txt
 levels/000.txt
 levels/002.txt
 levels/001.txt
@@ -11,3 +17,5 @@ levels/007.txt
 levels/008.txt
 levels/009.txt
 levels/010.txt
+levels/011.txt
+levels/012.txt

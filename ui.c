@@ -158,6 +158,7 @@ int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y) {
     glBindVertexArray(state->values.vao);
     // we want text coordinates to be passed with top left of window as (0,0)
     y = WINDOW_HEIGHT-y;
+    y -= PIXEL_SIZE - BUTTON_PADDING;
     for (int i=0; i<strlen(text); i++) {
         // TODO (05 Apr 2020 sam): Convert to using a single bitmap texture for this
         char c = text[i];

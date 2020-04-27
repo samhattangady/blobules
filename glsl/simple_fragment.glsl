@@ -23,6 +23,8 @@ vec4 get_color(int material) {
         return vec4(0.7, 0.7, 0.4, 1.0);
     if (material == 9)   // furniture
         return vec4(0.9, 0.7, 0.4, 1.0);
+    if (material == 10)   // destroyed target
+        return vec4(0.7, 0.0, 0.0, 1.0);
 }
 
 void main() {

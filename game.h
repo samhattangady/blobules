@@ -4,6 +4,7 @@
 #include "cb_lib/cb_types.h"
 #include "ui.h"
 #include <GLFW/glfw3.h>
+#include "game_settings.h"
 
 typedef enum {
     PLAYER,
@@ -13,6 +14,7 @@ typedef enum {
     SLIPPERY_GROUND,
     HOT_TARGET,
     COLD_TARGET,
+    DESTROYED_TARGET,
     NONE,
     FURNITURE,
     INVALID,
@@ -24,8 +26,10 @@ typedef enum {
     MOVE_DOWN,
     MOVE_LEFT,
     MOVE_RIGHT,
+    RESTART_LEVEL,
     NEXT_LEVEL,
     PREVIOUS_LEVEL,
+    UNDO_MOVE,
 } input_type;
 
 typedef enum {
@@ -60,6 +64,16 @@ typedef struct {
 } editor_data;
 
 typedef struct {
+    uint current_level;
+    char entities[MAX_WORLD_ENTITIES];        
+} world_freezeframe;
+
+typedef struct {
+    uint index;
+    world_freezeframe* history;
+} world_history;
+
+typedef struct {
     uint size;
     uint x_size;
     uint y_size;
@@ -74,6 +88,7 @@ typedef struct {
     editor_data editor;
     cb_ui_state* ui_state;
     cb_window ui_window;
+    world_history history;
 } world;
 
 int init_world(world* w, uint number);
