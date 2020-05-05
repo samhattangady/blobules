@@ -267,9 +267,10 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz) {
     int target_pos_index = get_position_index(w, x+dx, y+dy, z+dz);
     if (w->entities[target_pos_index] != NONE) {
         if (can_stop_cube_slide(w->entities[target_pos_index])) {
-            if (w->entities[target_pos_index] == FURNITURE) {
+            if (w->entities[target_pos_index] == CUBE)
+                maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz);
+            if (w->entities[target_pos_index] == FURNITURE)
                 maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz);
-            }
             // check if win.
             if (w->entities[on_index] == HOT_TARGET) {
                 printf("extinguiishing fire\n");
@@ -392,14 +393,7 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force) {
         maybe_move_player(w, dx, dy, dz, true);
     }
     if (w->entities[target_ground_index] == COLD_TARGET) {
-        // We don't want to be able to slide into the target
-        if (!force)
-            w->player = WIN;
-        else {
-            w->player = DEAD;
-            w->entities[target_index] = NONE;
-            w->entities[target_ground_index] = DESTROYED_TARGET;
-        }
+        w->player = WIN;
     }
     return 0;
 }
@@ -578,7 +572,6 @@ int change_world_xsize_right(world* w, int sign) {
     // TODO (19 Apr 2020 sam): This should get the sign value. It's wrong here.
     w->x_size = w->x_size + (1.0 * sign);
     w->size = w->x_size * w->y_size * w->z_size;
-    w->entities = (entity_type*) realloc(w->entities, w->size * sizeof(entity_type));
     for (int z=0; z<w->z_size; z++) {
         for (int y=0; y<w->y_size; y++) {
             for (int x=0; x<w->x_size; x++) {
@@ -601,7 +594,6 @@ int change_world_xsize_left(world* w, int sign) {
     // TODO (19 Apr 2020 sam): This should get the sign value. It's wrong here.
     w->x_size = w->x_size + (1.0 * sign);
     w->size = w->x_size * w->y_size * w->z_size;
-    w->entities = (entity_type*) realloc(w->entities, w->size * sizeof(entity_type));
     for (int z=0; z<w->z_size; z++) {
         for (int y=0; y<w->y_size; y++) {
             for (int x=0; x<w->x_size; x++) {
@@ -631,7 +623,6 @@ int change_world_ysize_top(world *w, int sign) {
     // TODO (19 Apr 2020 sam): This should get the sign value. It's wrong here.
     w->y_size = w->y_size + (1.0 * sign);
     w->size = w->x_size * w->y_size * w->z_size;
-    w->entities = (entity_type*) realloc(w->entities, w->size * sizeof(entity_type));
     for (int z=0; z<w->z_size; z++) {
         for (int y=0; y<w->y_size; y++) {
             for (int x=0; x<w->x_size; x++) {
@@ -654,7 +645,6 @@ int change_world_ysize_bottom(world *w, int sign) {
     // TODO (19 Apr 2020 sam): This should get the sign value. It's wrong here.
     w->y_size = w->y_size + (1.0 * sign);
     w->size = w->x_size * w->y_size * w->z_size;
-    w->entities = (entity_type*) realloc(w->entities, w->size * sizeof(entity_type));
     for (int z=0; z<w->z_size; z++) {
         for (int y=0; y<w->y_size; y++) {
             for (int x=0; x<w->x_size; x++) {

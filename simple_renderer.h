@@ -15,6 +15,7 @@ typedef struct {
     uint vertex_shader;
     uint fragment_shader;
     uint shader_program;
+    uint texture;
 } shader_data;
 
 typedef struct {

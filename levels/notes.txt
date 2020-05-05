@@ -93,3 +93,34 @@ Catch: difficult to move the furniture to the obvious blocking spot. If you do t
 there's no way to get off the slippery. Lots of different ways to get stuck. yay
 Insight. Use the furniture to set up the cube at the edge of the slippery
 Rating: 9
+
+014:
+Catch: cube slips
+Insight: you need to move the furniture and cube together or you get stuck.
+Rating: 7
+It's very interesting. But also it kinda solves itself? Like once you get the funrniture
+in the correct spot once, after that it's semi automatic. But it's actually really fun.
+
+015:
+Catch: none
+Insight: Hitting a cube against another causes it to slide. cube acts as blocker
+Rating: 6
+Does it's role well. Introducing the concept of two cubes.
+
+018:
+Catch: It's not possible to get to the square required to push the cube in
+Insight: You can use the other cube as a push off
+Rating: 6
+It's okay.
+
+016:
+Catch: There's no way to push the cube in
+Insight: When you're sandwiched between cubes, the ground becomes steady.
+Rating: 9
+It's really quite interesting the way you need to get between the cubes.
+
+019:
+Catch: the wall in the middle cannot be accessed for easy win.
+Insight: move the cubes around in loops till it's where you need it
+Rating: 9
+Yeah, it's fun to discover how the cubes push each other around the loops.

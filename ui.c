@@ -124,7 +124,7 @@ int cb_ui_render_rectangle(cb_ui_state* state, float xpos, float ypos, float w, 
     glUseProgram(state->values.shader_program);
     glLinkProgram(state->values.shader_program);
     glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), 1536, 864);
-    glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 0.2, 0.2, 0.4, opacity);
+    glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 0.2, 0.2, 0.23, opacity);
     glUniform1i(glGetUniformLocation(state->values.shader_program, "mode"), 2);
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(state->values.vao);
