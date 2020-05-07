@@ -74,11 +74,22 @@ typedef struct {
 } world_history;
 
 typedef struct {
+    // okay what is required here?
+} animation_state;
+
+typedef struct {
+    entity_type type;
+} entity_data;
+
+typedef struct {
     uint size;
     uint x_size;
     uint y_size;
     uint z_size;
-    entity_type* entities;
+    uint grid_data[MAX_WORLD_ENTITIES];
+    uint entities_occupied;
+    entity_data entities[MAX_WORLD_ENTITIES];
+    uint* animation_frames;
     vec3i player_position;
     player_input input;
     player_state player;
@@ -98,5 +109,6 @@ char* as_text (entity_type et);
 int change_world_xsize(world* w, int direction, int sign);
 int change_world_ysize(world* w, int direction, int sign);
 int save_level(world* w);
+entity_type get_entity_at(world* w, int index);
 
 #endif

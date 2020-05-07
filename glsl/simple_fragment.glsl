@@ -1,6 +1,6 @@
 #version 330 core
 in vec3 fragCoord;
-in vec2 texCoord;
+in vec3 texCoord;
 
 out vec4 fragColor;
 uniform sampler2D ground_texture;
@@ -69,14 +69,25 @@ vec4 get_color(int material) {
         return vec4(0.7, 0.0, 0.0, 1.0);
 }
 
+int get_rand_0_to_3() {
+    float r = rand(vec2(time));
+    r*= 3.0;
+    r+= 0.5;
+    return int(r);
+}
+
 void main() {
     vec4 colour = get_color(int(fragCoord.z));
     if (colour.w < 0.1) {
         fragColor = colour;
         return;
     }
+    if (int(fragCoord.z) == 1) {
+        fragColor = texture(ground_texture, vec2(0.25*texCoord.z+(texCoord.x/4.0), texCoord.y));
+        return;
+    }
     if (int(fragCoord.z) == 4) {
-        fragColor = texture(ground_texture, texCoord);
+        fragColor = texture(ground_texture, vec2(texCoord.x/4.0, texCoord.y));
         return;
     }
     float noise = pNoise(gl_FragCoord.xy+vec2(5.0)*fragCoord.z, 3)*(2.0);

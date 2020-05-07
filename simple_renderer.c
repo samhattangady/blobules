@@ -74,8 +74,8 @@ int init_renderer(renderer* r, char* window_name) {
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     stbi_set_flip_vertically_on_load(true);
-    unsigned char *data = stbi_load("static/ground1.png",&width,&height,&nrChannels,0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    unsigned char *data = stbi_load("static/ground2.png",&width,&height,&nrChannels,0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     stbi_image_free(data);
     glGenerateMipmap(GL_TEXTURE_2D);
     renderer r_ = { window, { WINDOW_WIDTH, WINDOW_HEIGHT },
@@ -86,7 +86,7 @@ int init_renderer(renderer* r, char* window_name) {
 }
 
 int get_buffer_size(world* w) {
-    return sizeof(float) * w->size * 30;
+    return sizeof(float) * w->size * 36;
 }
 
 int set_world(renderer* r, world* w) {
@@ -138,8 +138,8 @@ float get_entity_material(entity_type type) {
 }
 
 float get_block_size(entity_type type) {
-    if (type == PLAYER)
-        return 0.4;
+    // if (type == PLAYER)
+    //     return 0.4;
     if (type == CUBE)
         return 0.8;
     if (type == FURNITURE)
@@ -157,39 +157,45 @@ int update_vertex_buffer(renderer* r, world* w) {
     for (int z=0; z<w->z_size; z++) {
         for (int y=0; y<w->y_size; y++) {
             for (int x=0; x<w->x_size; x++) {
-                int i = get_position_index(w, x, y, z); 
-                float material = get_entity_material(w->entities[i]);
-                float size = get_block_size(w->entities[i]);
-                r->vertex_buffer[(30*i)+0] = X_PADDING + (blockx*x) - (size*blockx/2.0);
-                r->vertex_buffer[(30*i)+1] = Y_PADDING + (blocky*y) - (size*blocky/2.0);
-                r->vertex_buffer[(30*i)+2] = material;
-                r->vertex_buffer[(30*i)+3] = 0.0;
-                r->vertex_buffer[(30*i)+4] = 0.0;
-                r->vertex_buffer[(30*i)+5] = X_PADDING + (blockx*x) + (size*blockx/2.0);
-                r->vertex_buffer[(30*i)+6] = Y_PADDING + (blocky*y) - (size*blocky/2.0);
-                r->vertex_buffer[(30*i)+7] = material;
-                r->vertex_buffer[(30*i)+8] = 1.0;
-                r->vertex_buffer[(30*i)+9] = 0.0;
-                r->vertex_buffer[(30*i)+10] = X_PADDING + (blockx*x) - (size*blockx/2.0);
-                r->vertex_buffer[(30*i)+11] = Y_PADDING + (blocky*y) + (size*blocky/2.0);
-                r->vertex_buffer[(30*i)+12] = material;
-                r->vertex_buffer[(30*i)+13] = 0.0;
-                r->vertex_buffer[(30*i)+14] = 1.0;
-                r->vertex_buffer[(30*i)+15] = X_PADDING + (blockx*x) - (size*blockx/2.0);
-                r->vertex_buffer[(30*i)+16] = Y_PADDING + (blocky*y) + (size*blocky/2.0);
-                r->vertex_buffer[(30*i)+17] = material;
-                r->vertex_buffer[(30*i)+18] = 0.0;
-                r->vertex_buffer[(30*i)+19] = 1.0;
-                r->vertex_buffer[(30*i)+20] = X_PADDING + (blockx*x) + (size*blockx/2.0);
-                r->vertex_buffer[(30*i)+21] = Y_PADDING + (blocky*y) - (size*blocky/2.0);
-                r->vertex_buffer[(30*i)+22] = material;
-                r->vertex_buffer[(30*i)+23] = 1.0;
-                r->vertex_buffer[(30*i)+24] = 0.0;
-                r->vertex_buffer[(30*i)+25] = X_PADDING + (blockx*x) + (size*blockx/2.0);
-                r->vertex_buffer[(30*i)+26] = Y_PADDING + (blocky*y) + (size*blocky/2.0);
-                r->vertex_buffer[(30*i)+27] = material;
-                r->vertex_buffer[(30*i)+28] = 1.0;
-                r->vertex_buffer[(30*i)+29] = 1.0;
+                int i = get_position_index(w, x, y, z);
+                float material = get_entity_material(get_entity_at(w, i));
+                float size = get_block_size(get_entity_at(w, i));
+                r->vertex_buffer[(36*i)+0] = X_PADDING + (blockx*x) - (size*blockx/2.0);
+                r->vertex_buffer[(36*i)+1] = Y_PADDING + (blocky*y) - (size*blocky/2.0);
+                r->vertex_buffer[(36*i)+2] = material;
+                r->vertex_buffer[(36*i)+3] = 0.0;
+                r->vertex_buffer[(36*i)+4] = 0.0;
+                r->vertex_buffer[(36*i)+5] = 1.0*w->animation_frames[i];
+                r->vertex_buffer[(36*i)+6] = X_PADDING + (blockx*x) + (size*blockx/2.0);
+                r->vertex_buffer[(36*i)+7] = Y_PADDING + (blocky*y) - (size*blocky/2.0);
+                r->vertex_buffer[(36*i)+8] = material;
+                r->vertex_buffer[(36*i)+9] = 1.0;
+                r->vertex_buffer[(36*i)+10] = 0.0;
+                r->vertex_buffer[(36*i)+11] = 1.0*w->animation_frames[i];
+                r->vertex_buffer[(36*i)+12] = X_PADDING + (blockx*x) - (size*blockx/2.0);
+                r->vertex_buffer[(36*i)+13] = Y_PADDING + (blocky*y) + (size*blocky/2.0);
+                r->vertex_buffer[(36*i)+14] = material;
+                r->vertex_buffer[(36*i)+15] = 0.0;
+                r->vertex_buffer[(36*i)+16] = 1.0;
+                r->vertex_buffer[(36*i)+17] = 1.0*w->animation_frames[i];
+                r->vertex_buffer[(36*i)+18] = X_PADDING + (blockx*x) - (size*blockx/2.0);
+                r->vertex_buffer[(36*i)+19] = Y_PADDING + (blocky*y) + (size*blocky/2.0);
+                r->vertex_buffer[(36*i)+20] = material;
+                r->vertex_buffer[(36*i)+21] = 0.0;
+                r->vertex_buffer[(36*i)+22] = 1.0;
+                r->vertex_buffer[(36*i)+23] = 1.0*w->animation_frames[i];
+                r->vertex_buffer[(36*i)+24] = X_PADDING + (blockx*x) + (size*blockx/2.0);
+                r->vertex_buffer[(36*i)+25] = Y_PADDING + (blocky*y) - (size*blocky/2.0);
+                r->vertex_buffer[(36*i)+26] = material;
+                r->vertex_buffer[(36*i)+27] = 1.0;
+                r->vertex_buffer[(36*i)+28] = 0.0;
+                r->vertex_buffer[(36*i)+29] = 1.0*w->animation_frames[i];
+                r->vertex_buffer[(36*i)+30] = X_PADDING + (blockx*x) + (size*blockx/2.0);
+                r->vertex_buffer[(36*i)+31] = Y_PADDING + (blocky*y) + (size*blocky/2.0);
+                r->vertex_buffer[(36*i)+32] = material;
+                r->vertex_buffer[(36*i)+33] = 1.0;
+                r->vertex_buffer[(36*i)+34] = 1.0;
+                r->vertex_buffer[(36*i)+35] = 1.0*w->animation_frames[i];
             }
         }
     }
@@ -209,15 +215,15 @@ int render_scene(renderer* r, world* w) {
     glBufferData(GL_ARRAY_BUFFER, r->buffer_size, r->vertex_buffer, GL_DYNAMIC_DRAW);
     int position_attribute = glGetAttribLocation(r->shader.shader_program, "position");
     glEnableVertexAttribArray(position_attribute);
-    glVertexAttribPointer(position_attribute, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0);
+    glVertexAttribPointer(position_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
     int tex_attribute = glGetAttribLocation(r->shader.shader_program, "tex");
     glEnableVertexAttribArray(tex_attribute);
-    glVertexAttribPointer(tex_attribute, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), 3*sizeof(float));
+    glVertexAttribPointer(tex_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 3*sizeof(float));
     int uni_ybyx = glGetUniformLocation(r->shader.shader_program, "ybyx");
     int uni_time = glGetUniformLocation(r->shader.shader_program, "time");
     glUniform1f(uni_ybyx, WINDOW_HEIGHT*1.0/WINDOW_WIDTH);
     glUniform1f(uni_time, w->seconds);
     glViewport(0, 0, r->size[0], r->size[1]);
-    glDrawArrays(GL_TRIANGLES, 0, w->size*10);
+    glDrawArrays(GL_TRIANGLES, 0, w->size*12);
     return 0;
 }
