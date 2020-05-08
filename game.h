@@ -75,10 +75,20 @@ typedef struct {
 
 typedef struct {
     // okay what is required here?
+    bool animating;
+    float start_time;
+    float duration;
+    float x;
+    float y;
+    int start_x;
+    int start_y;
+    int dx;
+    int dy;
 } animation_state;
 
 typedef struct {
     entity_type type;
+    uint anim_index;
 } entity_data;
 
 typedef struct {
@@ -86,10 +96,12 @@ typedef struct {
     uint x_size;
     uint y_size;
     uint z_size;
+    bool animating;
     uint grid_data[MAX_WORLD_ENTITIES];
     uint entities_occupied;
     entity_data entities[MAX_WORLD_ENTITIES];
-    uint* animation_frames;
+    uint animations_occupied;
+    animation_state animations[MAX_WORLD_ENTITIES/16];
     vec3i player_position;
     player_input input;
     player_state player;
@@ -110,5 +122,6 @@ int change_world_xsize(world* w, int direction, int sign);
 int change_world_ysize(world* w, int direction, int sign);
 int save_level(world* w);
 entity_type get_entity_at(world* w, int index);
+uint get_entity_anim_index(world* w, int index);
 
 #endif

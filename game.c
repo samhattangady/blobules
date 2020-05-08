@@ -62,6 +62,10 @@ int set_cold_target(world* w, int index) {
     w->grid_data[index] = 4;
     return 0;
 }
+bool has_animations(entity_type et) {
+    // return (et==PLAYER);
+    return (et==PLAYER || et==CUBE || et==FURNITURE);
+}
 
 int add_entity(world* w, entity_type e, int x, int y, int z) {
     if (x < 0 || y < 0 || z  < 0)
@@ -74,11 +78,17 @@ int add_entity(world* w, entity_type e, int x, int y, int z) {
         entity_index = 0;
     else if (e == GROUND)
         entity_index = 1;
-    else if (e == GROUND)
+    else if (e == SLIPPERY_GROUND)
         entity_index = 2;
     else {
         entity_index = w->entities_occupied;
-        entity_data ed = {e};
+        int anim_index = 0;
+        if (has_animations(e)) {
+            anim_index = w->animations_occupied;
+            w->animations[anim_index].animating = false;
+            w->animations_occupied++;
+        }
+        entity_data ed = {e, anim_index};
         w->entities[entity_index] = ed;
         w->entities_occupied++;
     }
@@ -92,6 +102,9 @@ int add_entity(world* w, entity_type e, int x, int y, int z) {
 
 entity_type get_entity_at(world* w, int index) {
     return w->entities[w->grid_data[index]].type;
+}
+uint get_entity_anim_index(world* w, int index) {
+    return w->entities[w->grid_data[index]].anim_index;
 }
 
 entity_type get_entity_type(char c) {
@@ -177,7 +190,10 @@ int init_entities(world* w) {
     // Initialise all the entities that will not have additional data
     // or which can have only one instance
     w->entities_occupied = 5;
+    // This is initialised at 1 so index 0 has all the unanimated entities
+    w->animations_occupied = 1;
     entity_data ed;
+    ed.anim_index = 0;
     ed.type = NONE;
     w->entities[0] = ed;
     ed.type = GROUND;
@@ -192,6 +208,7 @@ int init_entities(world* w) {
 
 int load_level(world* w) {
     w->player = ALIVE;
+    w->animating = false;
     init_entities(w);
     int x, y, z;
     char c = ' ';
@@ -265,10 +282,7 @@ int init_world(world* w, uint number) {
     levels_list list = load_levels_list();
     world_freezeframe* frames = (world_freezeframe*) malloc(HISTORY_STEPS * sizeof(world_freezeframe));
     world_history history = {0, frames};
-    uint* anim_frames = (uint*) malloc(MAX_WORLD_ENTITIES*sizeof(uint));
-    for (int i=0; i<MAX_WORLD_ENTITIES; i++)
-        anim_frames[i] = 0;
-    world tmp = {0, 0, 0, 0, {}, 0, {}, anim_frames, {0, 0, 0}, input, ALIVE, 0, list,
+    world tmp = {0, 0, 0, 0, false, {}, 0, {}, 0, {}, {0, 0, 0}, input, ALIVE, 0, list,
                  0.0, {true, 0, GROUND, {false, false, 0.0, 0.0}}, NULL, {}, history};
     *w = tmp;
     load_level(w);
@@ -306,7 +320,24 @@ int can_stop_cube_slide(entity_type et) {
     return false;
 }
 
-int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz) {
+int add_interpolation(world* w, uint index, int x, int y, int dx, int dy, int depth) {
+    w->animating = true;
+    if (w->animations[w->entities[index].anim_index].animating) {
+        w->animations[w->entities[index].anim_index].duration += ANIMATION_SINGLE_STEP_TIME;
+        w->animations[w->entities[index].anim_index].dx += dx;
+        w->animations[w->entities[index].anim_index].dy += dy;
+    } else {
+        animation_state move_animation = {
+            true,
+            w->seconds+(depth*ANIMATION_SINGLE_STEP_TIME),
+            ANIMATION_SINGLE_STEP_TIME,
+            x, y, x, y, dx, dy};
+        w->animations[w->entities[index].anim_index] = move_animation;
+    }
+    return 0;
+}
+
+int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int depth) {
     int on_index = get_position_index(w, x, y, z-1);
     if (get_entity_at(w, on_index) != HOT_TARGET)
         set_slippery(w, on_index);
@@ -325,9 +356,9 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz) {
     if (get_entity_at(w, target_pos_index) != NONE) {
         if (can_stop_cube_slide(get_entity_at(w, target_pos_index))) {
             if (get_entity_at(w, target_pos_index) == CUBE)
-                maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz);
+                maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth);
             if (get_entity_at(w, target_pos_index) == FURNITURE)
-                maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz);
+                maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth);
             // check if win.
             if (get_entity_at(w, on_index) == HOT_TARGET) {
                 printf("extinguiishing fire\n");
@@ -350,11 +381,12 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz) {
     int cube_index = w->grid_data[index];
     w->grid_data[target_pos_index] = cube_index;
     set_none(w, index);
-    maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz);
+    add_interpolation(w, cube_index, x, y, dx, dy, depth);
+    maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1);
     return 0;
 }
 
-int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz) {
+int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, int depth) {
     int on_index = get_position_index(w, x, y, z-1);
     int index = get_position_index(w, x, y, z);
     if ((x+dx < 0 || x+dx > w->x_size-1) ||
@@ -385,8 +417,9 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz) 
     int furniture_index = w->grid_data[index];
     w->grid_data[target_pos_index] = furniture_index;
     set_none(w, index);
+    add_interpolation(w, furniture_index, x, y, dx, dy, depth);
     if (get_entity_at(w, target_on_index) == SLIPPERY_GROUND)
-        maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz);
+        maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1);
     return 0;
 }
 
@@ -398,17 +431,19 @@ bool can_push_player_back(entity_type et) {
     return false;
 }
 
-int maybe_move_player(world* w, int dx, int dy, int dz, bool force) {
+int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     vec3i pos = w->player_position;
     int position_index = get_position_index(w, pos.x, pos.y, pos.z);
     int ground_index = get_position_index(w, pos.x, pos.y, pos.z-1);
     int target_index = get_position_index(w, pos.x+dx, pos.y+dy, pos.z+dz);
     int target_ground_index = get_position_index(w, pos.x+dx, pos.y+dy, pos.z+dz-1);
+    int player_index = w->grid_data[position_index];
     // check out of bounds;
     if ((pos.x+dx < 0 || pos.x+dx > w->x_size-1) ||
         (pos.y+dy < 0 || pos.y+dy > w->y_size-1) ||
         (pos.z+dz < 0 || pos.z+dz > w->z_size-1)) {
         if (force) {
+            add_interpolation(w, player_index, pos.x, pos.y, dx, dy, depth);
             w->player = DEAD;
             w->player_position.x += dx;
             w->player_position.y += dy;
@@ -422,17 +457,18 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force) {
     if (get_entity_at(w, target_index) != NONE) {
         if (can_push_player_back(get_entity_at(w, target_index)) && !force) {
             if (get_entity_at(w, ground_index) == SLIPPERY_GROUND)
-                maybe_move_player(w, -dx, -dy, -dz, true);
+                maybe_move_player(w, -dx, -dy, -dz, true, depth);
         }
         if (get_entity_at(w, target_index) == CUBE)
-            maybe_move_cube(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz);
+            maybe_move_cube(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz, depth);
         if (get_entity_at(w, target_index) == FURNITURE)
-            maybe_move_furniture(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz);
+            maybe_move_furniture(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz, depth);
         return 1;
     }
     // check if can stand
     if (!can_support_player(get_entity_at(w, target_ground_index))) {
         if (force) {
+            add_interpolation(w, player_index, pos.x, pos.y, dx, dy, depth);
             w->player = DEAD;
             w->player_position.x += dx;
             w->player_position.y += dy;
@@ -444,18 +480,16 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force) {
     }
     if (get_entity_at(w, ground_index) == SLIPPERY_GROUND && !force)
         return 0;
+    w->grid_data[target_index] = player_index;
+    set_none(w, position_index);
+    add_interpolation(w, player_index, pos.x, pos.y, dx, dy, depth);
     w->player_position.x += dx;
     w->player_position.y += dy;
     w->player_position.z += dz;
-    int player_index = w->grid_data[position_index];
-    w->grid_data[target_index] = player_index;
-    set_none(w, position_index);
-    if (get_entity_at(w, target_ground_index) == SLIPPERY_GROUND) {
-        maybe_move_player(w, dx, dy, dz, true);
-    }
-    if (get_entity_at(w, target_ground_index) == COLD_TARGET) {
+    if (get_entity_at(w, target_ground_index) == SLIPPERY_GROUND)
+        maybe_move_player(w, dx, dy, dz, true, depth+1);
+    if (get_entity_at(w, target_ground_index) == COLD_TARGET)
         w->player = WIN;
-    }
     return 0;
 }
 
@@ -505,13 +539,13 @@ int load_previous_freezeframe(world* w) {
 int trigger_input(world* w, input_type it) {
     vec3i pos = w->player_position;
     if (it == MOVE_UP)
-        maybe_move_player(w, 0, 1, 0, false);
+        maybe_move_player(w, 0, 1, 0, false, 0);
     if (it == MOVE_DOWN)
-        maybe_move_player(w, 0, -1, 0, false);
+        maybe_move_player(w, 0, -1, 0, false, 0);
     if (it == MOVE_RIGHT)
-        maybe_move_player(w, 1, 0, 0, false);
+        maybe_move_player(w, 1, 0, 0, false, 0);
     if (it == MOVE_LEFT)
-        maybe_move_player(w, -1, 0, 0, false);
+        maybe_move_player(w, -1, 0, 0, false, 0);
     if (it == RESTART_LEVEL)
         load_level(w);
     if (it == NEXT_LEVEL)
@@ -537,6 +571,8 @@ int set_input(world* w, input_type it, float seconds) {
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
+    if (global_w->animating)
+        return;
     if (key == GLFW_KEY_R && action == GLFW_PRESS)
         set_input(global_w, RESTART_LEVEL, global_seconds);
     if (key == GLFW_KEY_N && action == GLFW_PRESS)
@@ -620,21 +656,30 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
     // if (w->player == DEAD)
     //     load_level(w);
     global_seconds = seconds;
+    w->seconds = seconds;
+    if (w->animating) {
+        bool still_animating = false;
+        for (int i=0; i<w->animations_occupied; i++) {
+            if (!w->animations[i].animating)
+                continue;
+            float elapsed = (seconds-w->animations[i].start_time) / w->animations[i].duration;
+            if (elapsed < 0.0)
+                elapsed = 0.0;
+            if (elapsed > 1.0)
+                w->animations[i].animating = false;
+            still_animating = still_animating || w->animations[i].animating;
+            w->animations[i].x = w->animations[i].start_x + elapsed*w->animations[i].dx;
+            w->animations[i].y = w->animations[i].start_y + elapsed*w->animations[i].dy;
+        }
+        w->animating = still_animating;
+    }
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
 
-    if (seconds-global_frame_change_seconds >= 1.0/12.0) {
-        uint current_frame = w->animation_frames[0];
-        current_frame += 1;
-        current_frame %= 3;
-        for (int i=0; i<MAX_WORLD_ENTITIES; i++)
-            w->animation_frames[i] = current_frame+1;
-        global_frame_change_seconds = seconds;
-    }
-    w->seconds = seconds;
 }
 
+// TODO (07 May 2020 sam): Reimplement changing world sizes
 // int change_world_xsize_right(world* w, int sign) {
 //     int ogx = w->x_size;
 //     printf("mallocing... change_world_size\n");
@@ -656,7 +701,7 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
 //     }
 //     free(old_entities);
 // }
-// 
+//
 // int change_world_xsize_left(world* w, int sign) {
 //     int ogx = w->x_size;
 //     printf("mallocing... change_world_size\n");
@@ -684,8 +729,8 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
 //     }
 //     free(old_entities);
 // }
-// 
-// 
+//
+//
 // int change_world_ysize_top(world *w, int sign) {
 //     int ogy = w->y_size;
 //     printf("mallocing... change_world_size\n");
@@ -707,7 +752,7 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
 //     }
 //     free(old_entities);
 // }
-// 
+//
 // int change_world_ysize_bottom(world *w, int sign) {
 //     int ogy = w->y_size;
 //     printf("mallocing... change_world_size\n");
@@ -735,14 +780,14 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
 //     }
 //     free(old_entities);
 // }
-// 
+//
 // int change_world_xsize(world* w, int direction, int sign) {
 //     if (direction == 1)
 //         change_world_xsize_right(w, sign);
 //     if (direction == -1)
 //         change_world_xsize_left(w, sign);
 // }
-// 
+//
 // int change_world_ysize(world* w, int direction, int sign) {
 //     if (direction == 1)
 //         change_world_ysize_top(w, sign);

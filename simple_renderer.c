@@ -147,6 +147,26 @@ float get_block_size(entity_type type) {
     return 1.0;
 }
 
+float get_x_pos(world* w, int x, int y, int z) {
+    if (!w->animating)
+        return x;
+    int i = get_position_index(w, x, y, z);
+    int anim_index = get_entity_anim_index(w, i);
+    if (!w->animations[anim_index].animating)
+        return x;
+    return w->animations[anim_index].x;
+}
+
+float get_y_pos(world* w, int x, int y, int z) {
+    if (!w->animating)
+        return y;
+    int i = get_position_index(w, x, y, z);
+    int anim_index = get_entity_anim_index(w, i);
+    if (!w->animations[anim_index].animating)
+        return y;
+    return w->animations[anim_index].y;
+}
+
 int update_vertex_buffer(renderer* r, world* w) {
     // TODO (16 Apr 2020 sam): This check is currently being done every
     // frame. Figure out best way to do this...
@@ -160,42 +180,42 @@ int update_vertex_buffer(renderer* r, world* w) {
                 int i = get_position_index(w, x, y, z);
                 float material = get_entity_material(get_entity_at(w, i));
                 float size = get_block_size(get_entity_at(w, i));
-                r->vertex_buffer[(36*i)+0] = X_PADDING + (blockx*x) - (size*blockx/2.0);
-                r->vertex_buffer[(36*i)+1] = Y_PADDING + (blocky*y) - (size*blocky/2.0);
+                r->vertex_buffer[(36*i)+0] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) - (size*blockx/2.0);
+                r->vertex_buffer[(36*i)+1] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) - (size*blocky/2.0);
                 r->vertex_buffer[(36*i)+2] = material;
                 r->vertex_buffer[(36*i)+3] = 0.0;
                 r->vertex_buffer[(36*i)+4] = 0.0;
-                r->vertex_buffer[(36*i)+5] = 1.0*w->animation_frames[i];
-                r->vertex_buffer[(36*i)+6] = X_PADDING + (blockx*x) + (size*blockx/2.0);
-                r->vertex_buffer[(36*i)+7] = Y_PADDING + (blocky*y) - (size*blocky/2.0);
+                r->vertex_buffer[(36*i)+5] = 1.0;
+                r->vertex_buffer[(36*i)+6] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (size*blockx/2.0);
+                r->vertex_buffer[(36*i)+7] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) - (size*blocky/2.0);
                 r->vertex_buffer[(36*i)+8] = material;
                 r->vertex_buffer[(36*i)+9] = 1.0;
                 r->vertex_buffer[(36*i)+10] = 0.0;
-                r->vertex_buffer[(36*i)+11] = 1.0*w->animation_frames[i];
-                r->vertex_buffer[(36*i)+12] = X_PADDING + (blockx*x) - (size*blockx/2.0);
-                r->vertex_buffer[(36*i)+13] = Y_PADDING + (blocky*y) + (size*blocky/2.0);
+                r->vertex_buffer[(36*i)+11] = 1.0;
+                r->vertex_buffer[(36*i)+12] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) - (size*blockx/2.0);
+                r->vertex_buffer[(36*i)+13] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (size*blocky/2.0);
                 r->vertex_buffer[(36*i)+14] = material;
                 r->vertex_buffer[(36*i)+15] = 0.0;
                 r->vertex_buffer[(36*i)+16] = 1.0;
-                r->vertex_buffer[(36*i)+17] = 1.0*w->animation_frames[i];
-                r->vertex_buffer[(36*i)+18] = X_PADDING + (blockx*x) - (size*blockx/2.0);
-                r->vertex_buffer[(36*i)+19] = Y_PADDING + (blocky*y) + (size*blocky/2.0);
+                r->vertex_buffer[(36*i)+17] = 1.0;
+                r->vertex_buffer[(36*i)+18] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) - (size*blockx/2.0);
+                r->vertex_buffer[(36*i)+19] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (size*blocky/2.0);
                 r->vertex_buffer[(36*i)+20] = material;
                 r->vertex_buffer[(36*i)+21] = 0.0;
                 r->vertex_buffer[(36*i)+22] = 1.0;
-                r->vertex_buffer[(36*i)+23] = 1.0*w->animation_frames[i];
-                r->vertex_buffer[(36*i)+24] = X_PADDING + (blockx*x) + (size*blockx/2.0);
-                r->vertex_buffer[(36*i)+25] = Y_PADDING + (blocky*y) - (size*blocky/2.0);
+                r->vertex_buffer[(36*i)+23] = 1.0;
+                r->vertex_buffer[(36*i)+24] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (size*blockx/2.0);
+                r->vertex_buffer[(36*i)+25] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) - (size*blocky/2.0);
                 r->vertex_buffer[(36*i)+26] = material;
                 r->vertex_buffer[(36*i)+27] = 1.0;
                 r->vertex_buffer[(36*i)+28] = 0.0;
-                r->vertex_buffer[(36*i)+29] = 1.0*w->animation_frames[i];
-                r->vertex_buffer[(36*i)+30] = X_PADDING + (blockx*x) + (size*blockx/2.0);
-                r->vertex_buffer[(36*i)+31] = Y_PADDING + (blocky*y) + (size*blocky/2.0);
+                r->vertex_buffer[(36*i)+29] = 1.0;
+                r->vertex_buffer[(36*i)+30] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (size*blockx/2.0);
+                r->vertex_buffer[(36*i)+31] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (size*blocky/2.0);
                 r->vertex_buffer[(36*i)+32] = material;
                 r->vertex_buffer[(36*i)+33] = 1.0;
                 r->vertex_buffer[(36*i)+34] = 1.0;
-                r->vertex_buffer[(36*i)+35] = 1.0*w->animation_frames[i];
+                r->vertex_buffer[(36*i)+35] = 1.0;
             }
         }
     }
