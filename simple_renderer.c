@@ -23,6 +23,29 @@ int test_shader_compilation(uint shader, char* type) {
     return 0;
 }
 
+int get_buffer_size() {
+    return sizeof(float) * MAX_WORLD_ENTITIES * 36;
+}
+
+int load_shaders(renderer* r) {
+    string vertex_source = read_file("glsl/simple_vertex.glsl");
+    string fragment_source = read_file("glsl/simple_fragment.glsl");
+    glShaderSource(r->shader.vertex_shader, 1, &vertex_source.text, NULL);
+    glCompileShader(r->shader.vertex_shader);
+    test_shader_compilation(r->shader.vertex_shader, "vertex");
+    glShaderSource(r->shader.fragment_shader, 1, &fragment_source.text, NULL);
+    glCompileShader(r->shader.fragment_shader);
+    test_shader_compilation(r->shader.fragment_shader, "frag");
+    glAttachShader(r->shader.shader_program, r->shader.vertex_shader);
+    glAttachShader(r->shader.shader_program, r->shader.fragment_shader);
+    glBindFragDataLocation(r->shader.shader_program, 0, "fragColor");
+    glLinkProgram(r->shader.shader_program);
+    glUseProgram(r->shader.shader_program);
+    dispose_string(&vertex_source);
+    dispose_string(&fragment_source);
+    return 0;
+}
+
 int init_renderer(renderer* r, char* window_name) {
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) return -1;
@@ -80,37 +103,12 @@ int init_renderer(renderer* r, char* window_name) {
     glGenerateMipmap(GL_TEXTURE_2D);
     renderer r_ = { window, { WINDOW_WIDTH, WINDOW_HEIGHT },
                   { vao, vbo, vertex_shader, fragment_shader, shader_program, texture},
-                    NULL };
+                    0, NULL };
     *r = r_;
-    return 0;
-}
-
-int get_buffer_size(world* w) {
-    return sizeof(float) * w->size * 36;
-}
-
-int set_world(renderer* r, world* w) {
-    if (r->vertex_buffer)
-        free(r->vertex_buffer);
-    r->buffer_size = get_buffer_size(w);
-    printf("mallocing... set_world\n");
+    r->buffer_size = get_buffer_size();
+    printf("mallocing... vertex_buffer\n");
     r->vertex_buffer = (float*) malloc(r->buffer_size);
-
-    string vertex_source = read_file("glsl/simple_vertex.glsl");
-    string fragment_source = read_file("glsl/simple_fragment.glsl");
-    glShaderSource(r->shader.vertex_shader, 1, &vertex_source.text, NULL);
-    glCompileShader(r->shader.vertex_shader);
-    test_shader_compilation(r->shader.vertex_shader, "vertex");
-    glShaderSource(r->shader.fragment_shader, 1, &fragment_source.text, NULL);
-    glCompileShader(r->shader.fragment_shader);
-    test_shader_compilation(r->shader.fragment_shader, "frag");
-    glAttachShader(r->shader.shader_program, r->shader.vertex_shader);
-    glAttachShader(r->shader.shader_program, r->shader.fragment_shader);
-    glBindFragDataLocation(r->shader.shader_program, 0, "fragColor");
-    glLinkProgram(r->shader.shader_program);
-    glUseProgram(r->shader.shader_program);
-    dispose_string(&vertex_source);
-    dispose_string(&fragment_source);
+    load_shaders(r);
     return 0;
 }
 
@@ -168,10 +166,6 @@ float get_y_pos(world* w, int x, int y, int z) {
 }
 
 int update_vertex_buffer(renderer* r, world* w) {
-    // TODO (16 Apr 2020 sam): This check is currently being done every
-    // frame. Figure out best way to do this...
-    if (r->buffer_size != get_buffer_size(w))
-        set_world(r, w);
     float blockx = BLOCK_SIZE*1.0 / WINDOW_WIDTH*1.0;
     float blocky = blockx * r->size[0] / r->size[1];
     for (int z=0; z<w->z_size; z++) {
@@ -244,6 +238,6 @@ int render_scene(renderer* r, world* w) {
     glUniform1f(uni_ybyx, WINDOW_HEIGHT*1.0/WINDOW_WIDTH);
     glUniform1f(uni_time, w->seconds);
     glViewport(0, 0, r->size[0], r->size[1]);
-    glDrawArrays(GL_TRIANGLES, 0, w->size*12);
+    glDrawArrays(GL_TRIANGLES, 0, w->size*6);
     return 0;
 }

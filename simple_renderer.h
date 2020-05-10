@@ -27,6 +27,5 @@ typedef struct {
 } renderer;
 
 int init_renderer(renderer* r, char* window_name);
-int set_world(renderer* r, world* w);
 int render_scene(renderer* r, world* w);
 #endif

@@ -9,10 +9,10 @@
 
 int main(int argc, char** argv) {
     // TODO (31 Mar 2020 sam): Name this window according to the current version;
-    renderer r;
-    init_renderer(&r, "blobules");
     world w;
     init_world(&w, 1024);
+    renderer r;
+    init_renderer(&r, "blobules");
     cb_ui_state ui_state;
     init_ui(&ui_state);
     w.ui_state = &ui_state;
