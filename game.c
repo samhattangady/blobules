@@ -679,124 +679,120 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
 
 }
 
-// TODO (07 May 2020 sam): Reimplement changing world sizes
-// int change_world_xsize_right(world* w, int sign) {
-//     int ogx = w->x_size;
-//     printf("mallocing... change_world_size\n");
-//     entity_type* old_entities = malloc(w->size * sizeof(entity_type));
-//     memcpy(old_entities, ccc_entities, w->size*sizeof(entity_type));
-//     // TODO (19 Apr 2020 sam): This should get the sign value. It's wrong here.
-//     w->x_size = w->x_size + (1.0 * sign);
-//     w->size = w->x_size * w->y_size * w->z_size;
-//     for (int z=0; z<w->z_size; z++) {
-//         for (int y=0; y<w->y_size; y++) {
-//             for (int x=0; x<w->x_size; x++) {
-//                 int index = get_position_index_sizes(ogx, w->y_size, w->z_size, x, y, z);
-//                 if (x==w->x_size-1 && sign>0)
-//                     add_entity(w, NONE, x, y, z);
-//                 else
-//                     add_entity(w, old_entities[index], x, y, z);
-//             }
-//         }
-//     }
-//     free(old_entities);
-// }
-//
-// int change_world_xsize_left(world* w, int sign) {
-//     int ogx = w->x_size;
-//     printf("mallocing... change_world_size\n");
-//     entity_type* old_entities = malloc(w->size * sizeof(entity_type));
-//     memcpy(old_entities, ccc_entities, w->size*sizeof(entity_type));
-//     // TODO (19 Apr 2020 sam): This should get the sign value. It's wrong here.
-//     w->x_size = w->x_size + (1.0 * sign);
-//     w->size = w->x_size * w->y_size * w->z_size;
-//     for (int z=0; z<w->z_size; z++) {
-//         for (int y=0; y<w->y_size; y++) {
-//             for (int x=0; x<w->x_size; x++) {
-//                 if (sign>0){
-//                     int index = get_position_index_sizes(ogx, w->y_size, w->z_size, x-1, y, z);
-//                     if (x==0)
-//                         add_entity(w, NONE, 0, y, z);
-//                     else
-//                         add_entity(w, old_entities[index], x, y, z);
-//                 }
-//                 else {
-//                     int index = get_position_index_sizes(ogx, w->y_size, w->z_size, x+1, y, z);
-//                     add_entity(w, old_entities[index], x, y, z);
-//                 }
-//             }
-//         }
-//     }
-//     free(old_entities);
-// }
-//
-//
-// int change_world_ysize_top(world *w, int sign) {
-//     int ogy = w->y_size;
-//     printf("mallocing... change_world_size\n");
-//     entity_type* old_entities = malloc(w->size * sizeof(entity_type));
-//     memcpy(old_entities, ccc_entities, w->size*sizeof(entity_type));
-//     // TODO (19 Apr 2020 sam): This should get the sign value. It's wrong here.
-//     w->y_size = w->y_size + (1.0 * sign);
-//     w->size = w->x_size * w->y_size * w->z_size;
-//     for (int z=0; z<w->z_size; z++) {
-//         for (int y=0; y<w->y_size; y++) {
-//             for (int x=0; x<w->x_size; x++) {
-//                 int index = get_position_index_sizes(w->x_size, ogy, w->z_size, x, y, z);
-//                 if (y==w->y_size-1 && sign>0)
-//                     add_entity(w, NONE, x, y, z);
-//                 else
-//                     add_entity(w, old_entities[index], x, y, z);
-//             }
-//         }
-//     }
-//     free(old_entities);
-// }
-//
-// int change_world_ysize_bottom(world *w, int sign) {
-//     int ogy = w->y_size;
-//     printf("mallocing... change_world_size\n");
-//     entity_type* old_entities = malloc(w->size * sizeof(entity_type));
-//     memcpy(old_entities, ccc_entities, w->size*sizeof(entity_type));
-//     // TODO (19 Apr 2020 sam): This should get the sign value. It's wrong here.
-//     w->y_size = w->y_size + (1.0 * sign);
-//     w->size = w->x_size * w->y_size * w->z_size;
-//     for (int z=0; z<w->z_size; z++) {
-//         for (int y=0; y<w->y_size; y++) {
-//             for (int x=0; x<w->x_size; x++) {
-//                 if (sign>0){
-//                     int index = get_position_index_sizes(w->x_size, ogy, w->z_size, x, y-1, z);
-//                     if (y==0)
-//                         add_entity(w, NONE, x, 0, z);
-//                     else
-//                         add_entity(w, old_entities[index], x, y, z);
-//                 }
-//                 else {
-//                     int index = get_position_index_sizes(w->x_size, ogy, w->z_size, x, y+1, z);
-//                     add_entity(w, old_entities[index], x, y, z);
-//                 }
-//             }
-//         }
-//     }
-//     free(old_entities);
-// }
-//
-// int change_world_xsize(world* w, int direction, int sign) {
-//     if (direction == 1)
-//         change_world_xsize_right(w, sign);
-//     if (direction == -1)
-//         change_world_xsize_left(w, sign);
-// }
-//
-// int change_world_ysize(world* w, int direction, int sign) {
-//     if (direction == 1)
-//         change_world_ysize_top(w, sign);
-//     else
-//         change_world_ysize_bottom(w, sign);
-// }
-int change_world_xsize(world* w, int direction, int sign) {
-    return 0;
+int change_world_xsize_right(world* w, int sign) {
+    int ogx = w->x_size;
+    uint old_grid[MAX_WORLD_ENTITIES];
+    memcpy(old_grid, w->grid_data, w->size*sizeof(uint));
+    entity_data old_entities[MAX_WORLD_ENTITIES];
+    memcpy(old_entities, w->entities, w->size*sizeof(entity_data));
+    sign = sign / abs(sign);
+    w->x_size = w->x_size + sign;
+    w->size = w->x_size * w->y_size * w->z_size;
+    init_entities(w);
+    for (int z=0; z<w->z_size; z++) {
+        for (int y=0; y<w->y_size; y++) {
+            for (int x=0; x<w->x_size; x++) {
+                int index = get_position_index_sizes(ogx, w->y_size, w->z_size, x, y, z);
+                if (x==w->x_size-1 && sign>0)
+                    add_entity(w, NONE, x, y, z);
+                else
+                    add_entity(w, old_entities[old_grid[index]].type, x, y, z);
+            }
+        }
+    }
 }
+
+int change_world_xsize_left(world* w, int sign) {
+    int ogx = w->x_size;
+    uint old_grid[MAX_WORLD_ENTITIES];
+    memcpy(old_grid, w->grid_data, w->size*sizeof(uint));
+    entity_data old_entities[MAX_WORLD_ENTITIES];
+    memcpy(old_entities, w->entities, w->size*sizeof(entity_data));
+    sign = sign / abs(sign);
+    w->x_size = w->x_size + sign;
+    w->size = w->x_size * w->y_size * w->z_size;
+    init_entities(w);
+    for (int z=0; z<w->z_size; z++) {
+        for (int y=0; y<w->y_size; y++) {
+            for (int x=0; x<w->x_size; x++) {
+                if (sign>0){
+                    int index = get_position_index_sizes(ogx, w->y_size, w->z_size, x-1, y, z);
+                    if (x==0)
+                        add_entity(w, NONE, 0, y, z);
+                    else
+                        add_entity(w, old_entities[old_grid[index]].type, x, y, z);
+                }
+                else {
+                    int index = get_position_index_sizes(ogx, w->y_size, w->z_size, x+1, y, z);
+                    add_entity(w, old_entities[old_grid[index]].type, x, y, z);
+                }
+            }
+        }
+    }
+}
+
+int change_world_ysize_top(world *w, int sign) {
+    int ogy = w->y_size;
+    uint old_grid[MAX_WORLD_ENTITIES];
+    memcpy(old_grid, w->grid_data, w->size*sizeof(uint));
+    entity_data old_entities[MAX_WORLD_ENTITIES];
+    memcpy(old_entities, w->entities, w->size*sizeof(entity_data));
+    sign = sign / abs(sign);
+    w->y_size = w->y_size + sign;
+    w->size = w->x_size * w->y_size * w->z_size;
+    init_entities(w);
+    for (int z=0; z<w->z_size; z++) {
+        for (int y=0; y<w->y_size; y++) {
+            for (int x=0; x<w->x_size; x++) {
+                int index = get_position_index_sizes(w->x_size, ogy, w->z_size, x, y, z);
+                if (y==w->y_size-1 && sign>0)
+                    add_entity(w, NONE, x, y, z);
+                else
+                    add_entity(w, old_entities[old_grid[index]].type, x, y, z);
+            }
+        }
+    }
+}
+
+int change_world_ysize_bottom(world *w, int sign) {
+    int ogy = w->y_size;
+    uint old_grid[MAX_WORLD_ENTITIES];
+    memcpy(old_grid, w->grid_data, w->size*sizeof(uint));
+    entity_data old_entities[MAX_WORLD_ENTITIES];
+    memcpy(old_entities, w->entities, w->size*sizeof(entity_data));
+    sign = sign / abs(sign);
+    w->y_size = w->y_size + sign;
+    w->size = w->x_size * w->y_size * w->z_size;
+    init_entities(w);
+    for (int z=0; z<w->z_size; z++) {
+        for (int y=0; y<w->y_size; y++) {
+            for (int x=0; x<w->x_size; x++) {
+                if (sign>0){
+                    int index = get_position_index_sizes(w->x_size, ogy, w->z_size, x, y-1, z);
+                    if (y==0)
+                        add_entity(w, NONE, x, 0, z);
+                    else
+                        add_entity(w, old_entities[old_grid[index]].type, x, y, z);
+                }
+                else {
+                    int index = get_position_index_sizes(w->x_size, ogy, w->z_size, x, y+1, z);
+                    add_entity(w, old_entities[old_grid[index]].type, x, y, z);
+                }
+            }
+        }
+    }
+}
+
+int change_world_xsize(world* w, int direction, int sign) {
+    if (direction == 1)
+        change_world_xsize_right(w, sign);
+    if (direction == -1)
+        change_world_xsize_left(w, sign);
+}
+
 int change_world_ysize(world* w, int direction, int sign) {
-    return 0;
+    if (direction == 1)
+        change_world_ysize_top(w, sign);
+    else
+        change_world_ysize_bottom(w, sign);
 }
