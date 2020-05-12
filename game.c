@@ -283,7 +283,7 @@ int init_world(world* w, uint number) {
     world_freezeframe* frames = (world_freezeframe*) malloc(HISTORY_STEPS * sizeof(world_freezeframe));
     world_history history = {0, frames};
     world tmp = {0, 0, 0, 0, false, {}, 0, {}, 0, {}, {0, 0, 0}, input, ALIVE, 0, list,
-                 0.0, {true, 0, GROUND, {false, false, 0.0, 0.0}}, NULL, {}, history};
+                 0.0, {false, 0, GROUND, {false, false, 0.0, 0.0}}, NULL, {}, history};
     *w = tmp;
     load_level(w);
     return 0;

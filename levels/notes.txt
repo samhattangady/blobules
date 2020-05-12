@@ -124,3 +124,17 @@ Catch: the wall in the middle cannot be accessed for easy win.
 Insight: move the cubes around in loops till it's where you need it
 Rating: 9
 Yeah, it's fun to discover how the cubes push each other around the loops.
+
+017:
+Catch: ?
+Insight: you need to push the block to the correct place to use it as a pushoff
+Rating: 7
+It;s okay. I wanted to use just two cubes, but couldn't work it without the furn
+
+020:
+Catch: If you push the bottom cube, you get stuck on the ice
+Insight: You need the second cube in the right place so that you're no longer sutck
+Rating: 8
+It's nice. I like the initial conceit. Actually getting the second cube in place is
+a little pedestrian, but still, I do think that the idea holds, especially if its not
+initially obvious that we need to position the second cube in that spot.

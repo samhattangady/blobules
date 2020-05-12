@@ -10,13 +10,21 @@
 #include "cb_lib/cb_types.h"
 
 typedef struct ft_char {
-    uint texture_id;
     uint size_x;
     uint size_y;
     uint bearing_x;
     uint bearing_y;
     uint advance;
+    float x;
+    float y;
+    float dx;
+    float dy;
 } ft_char;
+
+typedef struct {
+    uint chars_occupied;
+    float* vertex_buffer;
+} char_vertex_buffer_data;
 
 typedef struct gl_values {
     uint vao;
@@ -24,6 +32,7 @@ typedef struct gl_values {
     uint vertex_shader;
     uint fragment_shader;
     uint shader_program;
+    char_vertex_buffer_data vertex_buffer;
 } gl_values;
 
 typedef enum {
@@ -68,6 +77,7 @@ typedef struct {
 
 typedef struct cb_ui_state {
     gl_values values;
+    uint font_texture;
     ft_char glyphs[128];
     mouse_state_struct mouse;
 } cb_ui_state;
@@ -82,5 +92,6 @@ bool add_button(cb_ui_state* state, cb_window* window, char* text, bool newline)
 int new_line(cb_ui_state* state, cb_window* window, bool padding);
 int vert_spacer(cb_ui_state* state, cb_window* window, bool padding);
 int cb_render_window(cb_ui_state* state, cb_window* window);
+int render_chars(cb_ui_state* state);
 
 #endif
