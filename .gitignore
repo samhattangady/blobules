@@ -1,4 +1,5 @@
 *.swp
+prof_output
 
 # symlinked libraries
 # cb_string.*

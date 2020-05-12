@@ -83,9 +83,12 @@ int init_character_glyphs(cb_ui_state* state) {
     int width = 0;
     int max_height = 0;
     for (GLubyte c=0; c<128; c++) {
-        // TODO (12 May 2020 sam): Figure out how to get this without having to loop
-        // through it all once. This is needed to create a blank texture to load the
-        // chars onto.
+        // TODO (12 May 2020 sam): Figure out how to get width, max_height without
+        // having to loop through it all once. This is needed to create a
+        // blank texture to load the chars onto.
+        // TODO (12 May 2020 sam): Don't load from 0 to 128. Figure out the correct
+        // range for all chars. Note that you will also have to load the correct char
+        // accordingly.
         FT_Load_Char(ft_face, c, FT_LOAD_RENDER);
         width += ft_face->glyph->bitmap.width;
         if (ft_face->glyph->bitmap.rows > max_height)
@@ -168,6 +171,8 @@ int init_ui(cb_ui_state* state) {
 }
 
 int cb_ui_render_rectangle(cb_ui_state* state, float xpos, float ypos, float w, float h, float opacity) {
+    // TODO (12 May 2020 sam): Don't use multiple draw calls for each rect. Add it to
+    // the same buffer as the chars if required.
     glUseProgram(state->values.shader_program);
     glLinkProgram(state->values.shader_program);
     glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), 1536, 864);
