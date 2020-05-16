@@ -133,6 +133,8 @@ float get_entity_material(entity_type type) {
         return 9.0;
     if (type == DESTROYED_TARGET)
         return 10.0;
+    if (type == REFLECTOR)
+        return 11.0;
 }
 
 float get_block_size(entity_type type) {

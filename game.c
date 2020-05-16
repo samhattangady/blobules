@@ -14,7 +14,6 @@
 // with callbacks. See if there is a better way to accomplish this.
 world* global_w;
 float global_seconds;
-float global_frame_change_seconds;
 
 int get_position_index_sizes(int x_size, int y_size, int z_size, int x, int y, int z) {
     return ( z * x_size * y_size ) + ( y * x_size ) + x;
@@ -43,6 +42,8 @@ char* as_text(entity_type e) {
         return "SLIPPERY_GROUND";
     if (e == FURNITURE)
         return "FURNITURE";
+    if (e == REFLECTOR)
+        return "REFLECTOR";
     return "INVALID";
 }
 
@@ -64,7 +65,7 @@ int set_cold_target(world* w, int index) {
 }
 bool has_animations(entity_type et) {
     // return (et==PLAYER);
-    return (et==PLAYER || et==CUBE || et==FURNITURE);
+    return (et==PLAYER || et==CUBE || et==FURNITURE || et==REFLECTOR);
 }
 
 int add_entity(world* w, entity_type e, int x, int y, int z) {
@@ -88,7 +89,7 @@ int add_entity(world* w, entity_type e, int x, int y, int z) {
             w->animations[anim_index].animating = false;
             w->animations_occupied++;
         }
-        entity_data ed = {e, anim_index};
+        entity_data ed = {e, anim_index, 0};
         w->entities[entity_index] = ed;
         w->entities_occupied++;
     }
@@ -124,6 +125,8 @@ entity_type get_entity_type(char c) {
         return SLIPPERY_GROUND;
     if (c == 'F')
         return FURNITURE;
+    if (c == 'R')
+        return REFLECTOR;
     if (c == 'C')
         return COLD_TARGET;
     if (c == 'D')
@@ -148,6 +151,8 @@ char get_entity_char(entity_type et) {
         return '~';
     if (et == FURNITURE)
         return 'F';
+    if (et == REFLECTOR)
+        return 'R';
     if (et == COLD_TARGET)
         return 'C';
     if (et == DESTROYED_TARGET)
@@ -282,7 +287,7 @@ int init_world(world* w, uint number) {
     levels_list list = load_levels_list();
     world_freezeframe* frames = (world_freezeframe*) malloc(HISTORY_STEPS * sizeof(world_freezeframe));
     world_history history = {0, frames};
-    world tmp = {0, 0, 0, 0, false, {}, 0, {}, 0, {}, {0, 0, 0}, input, ALIVE, 0, list,
+    world tmp = {0, 0, 0, 0, false, 0, 0, {}, {}, {}, {0, 0, 0}, input, ALIVE, 0, list,
                  0.0, {false, 0, GROUND, {false, false, 0.0, 0.0}}, NULL, {}, history};
     *w = tmp;
     load_level(w);
@@ -312,9 +317,17 @@ int can_support_furniture(entity_type et) {
     return 0;
 }
 
+int can_support_reflector(entity_type et) {
+    if (et == GROUND ||
+        et == SLIPPERY_GROUND)
+        return 1;
+    return 0;
+}
+
 int can_stop_cube_slide(entity_type et) {
     if (et == CUBE ||
         et == FURNITURE ||
+        et == REFLECTOR ||
         et == WALL)
         return true;
     return false;
@@ -334,6 +347,36 @@ int add_interpolation(world* w, uint index, int x, int y, int dx, int dy, int de
             x, y, x, y, dx, dy};
         w->animations[w->entities[index].anim_index] = move_animation;
     }
+    return 0;
+}
+
+int maybe_reflect_cube(world* w, int ogx, int ogy, int x, int y, int z, int dx, int dy, int dz, int depth) {
+    // this is slightly different from the other functions because we need to be able to
+    // chain the reflections. ogx and ogy are the original positions of the cube. x and
+    // y are the positions of the reflector (not the cube).
+    int r_index = get_position_index(w, x, y, z);
+    int reflector_index = w->grid_data[r_index];
+    int index = get_position_index(w, ogx, ogy, z);
+    int tx, ty, ndx, ndy;
+    if (w->entities[reflector_index].data == 0) {
+        ndx = dy;
+        ndy = dx;
+        tx = x+ndx;
+        ty = y+ndy;
+    }
+    int target_pos_index = get_position_index(w, tx, ty, z);
+    int et = get_entity_at(w, target_pos_index);
+    if (can_stop_cube_slide(et) && et!=REFLECTOR)
+        return 1;
+    if (et == REFLECTOR) {
+        maybe_reflect_cube(w, ogx, ogy, tx, ty, z, ndx, ndy, dz, depth+1);
+        // does this need to return?
+        return 1;
+    }
+    int cube_index = w->grid_data[index];
+    w->grid_data[target_pos_index] = cube_index;
+    set_none(w, index);
+    maybe_move_cube(w, tx, ty, z, ndx, ndy, dz, depth+1);
     return 0;
 }
 
@@ -357,12 +400,12 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
         if (can_stop_cube_slide(get_entity_at(w, target_pos_index))) {
             if (get_entity_at(w, target_pos_index) == CUBE)
                 maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth);
+            if (get_entity_at(w, target_pos_index) == REFLECTOR)
+                maybe_reflect_cube(w, x, y, x+dx, y+dy, z, dx, dy, dz, depth);
             if (get_entity_at(w, target_pos_index) == FURNITURE)
                 maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth);
             // check if win.
             if (get_entity_at(w, on_index) == HOT_TARGET) {
-                printf("extinguiishing fire\n");
-                // put out fire
                 set_none(w, index);
                 set_cold_target(w, on_index);
             }
@@ -423,9 +466,49 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, 
     return 0;
 }
 
+int maybe_move_reflector(world* w, int x, int y, int z, int dx, int dy, int dz, int depth) {
+    int on_index = get_position_index(w, x, y, z-1);
+    int index = get_position_index(w, x, y, z);
+    if ((x+dx < 0 || x+dx > w->x_size-1) ||
+        (y+dy < 0 || y+dy > w->y_size-1) ||
+        (z+dz < 0 || z+dz > w->z_size-1)) {
+        printf("removing reflector because oob\n");
+        set_none(w, index);
+        return -1;
+    }
+    // see what's already in desired place
+    int target_pos_index = get_position_index(w, x+dx, y+dy, z+dz);
+    if (get_entity_at(w, target_pos_index) != NONE) {
+        if (get_entity_at(w, target_pos_index) == WALL)
+            return 1;
+        if (get_entity_at(w, target_pos_index) == FURNITURE)
+            return 1;
+        if (get_entity_at(w, target_pos_index) == REFLECTOR)
+            return 1;
+        if (get_entity_at(w, target_pos_index) == CUBE) {
+            return 1;
+        }
+        // what if it's player?
+    }
+    int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);
+    if (!can_support_reflector(get_entity_at(w, target_on_index))) {
+        printf("removing reflector because no support\n");
+        set_none(w, index);
+        return -2;
+    }
+    int reflector_index = w->grid_data[index];
+    w->grid_data[target_pos_index] = reflector_index;
+    set_none(w, index);
+    add_interpolation(w, reflector_index, x, y, dx, dy, depth);
+    if (get_entity_at(w, target_on_index) == SLIPPERY_GROUND)
+        maybe_move_reflector(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1);
+    return 0;
+}
+
 bool can_push_player_back(entity_type et) {
     if (et == CUBE ||
         et == FURNITURE ||
+        et == REFLECTOR ||
         et == WALL)
         return true;
     return false;
@@ -463,6 +546,8 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
             maybe_move_cube(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz, depth);
         if (get_entity_at(w, target_index) == FURNITURE)
             maybe_move_furniture(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz, depth);
+        if (get_entity_at(w, target_index) == REFLECTOR)
+            maybe_move_reflector(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz, depth);
         return 1;
     }
     // check if can stand

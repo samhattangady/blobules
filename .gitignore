@@ -1,5 +1,6 @@
 *.swp
 prof_output
+**/*.png~
 
 # symlinked libraries
 # cb_string.*

@@ -17,6 +17,7 @@ typedef enum {
     DESTROYED_TARGET,
     NONE,
     FURNITURE,
+    REFLECTOR,
     INVALID,
 } entity_type;
 
@@ -89,6 +90,7 @@ typedef struct {
 typedef struct {
     entity_type type;
     uint anim_index;
+    uint data;
 } entity_data;
 
 typedef struct {
@@ -97,10 +99,10 @@ typedef struct {
     uint y_size;
     uint z_size;
     bool animating;
-    uint grid_data[MAX_WORLD_ENTITIES];
     uint entities_occupied;
-    entity_data entities[MAX_WORLD_ENTITIES];
     uint animations_occupied;
+    uint grid_data[MAX_WORLD_ENTITIES];
+    entity_data entities[MAX_WORLD_ENTITIES];
     animation_state animations[MAX_WORLD_ENTITIES/16];
     vec3i player_position;
     player_input input;

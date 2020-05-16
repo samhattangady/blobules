@@ -57,6 +57,10 @@ int main(int argc, char** argv) {
                 w.editor.z_level = 1;
                 w.editor.active_type = FURNITURE;
             }
+            if (add_button(&ui_state, &w.ui_window, "REFLECTOR", true)) {
+                w.editor.z_level = 1;
+                w.editor.active_type = REFLECTOR;
+            }
             if (add_button(&ui_state, &w.ui_window, "PLAYER", true)) {
                 w.editor.z_level = 1;
                 w.editor.active_type = PLAYER;
@@ -118,8 +122,8 @@ int main(int argc, char** argv) {
             cb_render_window(&ui_state, &w.ui_window);
         }
         char fps_counter[48];
-        sprintf(fps_counter, "%.2f frames per second", 1.0/frame_time);
-        cb_ui_render_text(&ui_state, fps_counter, WINDOW_WIDTH-50, 20);
+        sprintf(fps_counter, "%.2f fps", 1.0/frame_time);
+        cb_ui_render_text(&ui_state, fps_counter, WINDOW_WIDTH-100, 20);
         render_chars(&ui_state);
         glfwSwapBuffers(r.window);
     }

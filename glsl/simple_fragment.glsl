@@ -67,6 +67,8 @@ vec4 get_color(int material) {
         return vec4(0.9, 0.7, 0.4, 1.0);
     if (material == 10)   // destroyed target
         return vec4(0.7, 0.0, 0.0, 1.0);
+    if (material == 11)   // reflector
+        return vec4(0.1, 0.4, 0.7, 1.0);
 }
 
 int get_rand_0_to_3() {
@@ -83,11 +85,15 @@ void main() {
         return;
     }
     if (int(fragCoord.z) == 1) {
-        fragColor = texture(ground_texture, vec2(0.25*texCoord.z+(texCoord.x/4.0), texCoord.y));
+        fragColor = texture(ground_texture, vec2(0.75*texCoord.z+(texCoord.x/4.0), texCoord.y));
         return;
     }
     if (int(fragCoord.z) == 4) {
         fragColor = texture(ground_texture, vec2(texCoord.x/4.0, texCoord.y));
+        return;
+    }
+    if (int(fragCoord.z) == 11) {
+        fragColor = texture(ground_texture, vec2(0.25*texCoord.z+(texCoord.x/4.0), texCoord.y));
         return;
     }
     float noise = pNoise(gl_FragCoord.xy+vec2(5.0)*fragCoord.z, 3)*(2.0);
