@@ -40,13 +40,14 @@ The catch is nice. But the solution itself is kinda boring.
 Catch: introducing furniture.
 Insight: Furniture can be moved and it blocks cube
 Rating: 3
-Yeah. Good enough. as introduction. 
+Yeah. Good enough. as introduction.
 
 007:
 Catch: introducing furniture.
 Insight: Furniture can be moved and it blocks cube
 Rating: 6
-Feels very similar to the previous level... Replacable basically.
+Feels very similar to the previous level... Replacable basically. Also it's kinda
+"work". I forget the word.
 
 008:
 Catch: None
@@ -97,7 +98,7 @@ Rating: 9
 014:
 Catch: cube slips
 Insight: you need to move the furniture and cube together or you get stuck.
-Rating: 7
+Rating: 8
 It's very interesting. But also it kinda solves itself? Like once you get the funrniture
 in the correct spot once, after that it's semi automatic. But it's actually really fun.
 
@@ -110,7 +111,7 @@ Does it's role well. Introducing the concept of two cubes.
 018:
 Catch: It's not possible to get to the square required to push the cube in
 Insight: You can use the other cube as a push off
-Rating: 6
+Rating: 8
 It's okay.
 
 016:
@@ -132,9 +133,49 @@ Rating: 7
 It;s okay. I wanted to use just two cubes, but couldn't work it without the furn
 
 020:
-Catch: If you push the bottom cube, you get stuck on the ice
+Catch: If you push the bottom cube, you get stuck on the ice. Both the cubes look
+similar, but have "unique" solutions.
 Insight: You need the second cube in the right place so that you're no longer sutck
+You have to push the cube the wrong way, before you can push it the correct way.
+Rating: 9
+It's good. Though both cubes look similar, they have fairly unique solutions, and that's
+a lot of fun. Good stuffs.
+
+021:
+Needs to be redone. Idea was implemented into 020
+
+022:
+Catch: introducing reflectors
+Insight: introducing reflectors
+Rating: 4
+Boring. But clear. Should be able to come up with a more interesting intro...
+
+023:
+Catch: You can't put the reflector where its needed. So you think you need to use
+3 reflectors.
+Insight: you can use 2 reflectors to push cube to wall. before that you have to set
+up the 3rd in correct place.
+Rating: 7
+Fairly nice. Initial setting pushes towards catch. It's interesting. But also I need
+to get a lot better at these games before I can possibly make levels that are truly
+challenging.
+
+026: wip
+Catch
+Insight: If you put a reflector against a wall, it acts like a blocker
+
+024:
+Catch:
+Insight: If you put a reflector against a wall, it acts like a blocker
+         If you put a reflector against a cube, it acts like a blocker* optional
+Rating: 9
+It's really nice. It forces you to realise the new rule. This is really hard without
+knowing the rule though, so I think we should put a level where that is introduced first.
+
+025:
+Catch:
+Insight: If you put a reflector against a wall, it acts like a blocker
 Rating: 8
-It's nice. I like the initial conceit. Actually getting the second cube in place is
-a little pedestrian, but still, I do think that the idea holds, especially if its not
-initially obvious that we need to position the second cube in that spot.
+Original version of 024. I ended up making 024 a lot harder. So maybe we should
+reexplore this idea as well.
+
