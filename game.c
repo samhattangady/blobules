@@ -90,6 +90,8 @@ int add_entity(world* w, entity_type e, int x, int y, int z) {
             w->animations_occupied++;
         }
         entity_data ed = {e, anim_index, 0};
+        // if (e == REFLECTOR)
+        //     ed.data = 1;
         w->entities[entity_index] = ed;
         w->entities_occupied++;
     }
@@ -363,6 +365,11 @@ int maybe_reflect_cube(world* w, int ogx, int ogy, int x, int y, int z, int dx, 
         ndy = dx;
         tx = x+ndx;
         ty = y+ndy;
+    } else {
+        ndx = -dy;
+        ndy = -dx;
+        tx = x+ndx;
+        ty = y+ndy;
     }
     int target_pos_index = get_position_index(w, tx, ty, z);
     int et = get_entity_at(w, target_pos_index);
@@ -374,6 +381,7 @@ int maybe_reflect_cube(world* w, int ogx, int ogy, int x, int y, int z, int dx, 
         return 1;
     }
     int cube_index = w->grid_data[index];
+    // TODO (16 May 2020 sam): Check if there is ground available here or whatevs
     w->grid_data[target_pos_index] = cube_index;
     set_none(w, index);
     maybe_move_cube(w, tx, ty, z, ndx, ndy, dz, depth+1);

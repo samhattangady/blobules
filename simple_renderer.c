@@ -138,8 +138,8 @@ float get_entity_material(entity_type type) {
 }
 
 float get_block_size(entity_type type) {
-    // if (type == PLAYER)
-    //     return 0.4;
+    if (type == PLAYER)
+        return 0.8;
     if (type == CUBE)
         return 0.8;
     if (type == FURNITURE)
