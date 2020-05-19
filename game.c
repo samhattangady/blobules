@@ -597,6 +597,9 @@ int save_freezeframe(world* w) {
         printf("history memory full...\n");
         w->history.index = num;
     }
+    // TODO (17 May 2020 sam): Prevent save if there was no change in the world
+    char prev_world[w->size];
+    char current_world[w->size];
     index = w->history.index;
     w->history.history[index].current_level = w->current_level;
     for (i=0; i<w->size; i++)
@@ -737,6 +740,9 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         int x = get_world_x(global_w);
         int y = get_world_y(global_w);
         if (global_w->editor.editor_enabled) {
+            uint index = get_position_index(global_w, x, y, global_w->editor.z_level);
+            entity_type et = get_entity_at(global_w, index);
+            global_w->editor.active_type = et;
             add_entity(global_w, NONE, x, y, global_w->editor.z_level);
             save_freezeframe(global_w);
         }

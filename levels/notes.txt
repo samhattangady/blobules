@@ -160,22 +160,32 @@ Fairly nice. Initial setting pushes towards catch. It's interesting. But also I 
 to get a lot better at these games before I can possibly make levels that are truly
 challenging.
 
-026: wip
+026:
 Catch
 Insight: If you put a reflector against a wall, it acts like a blocker
+Rating: 7
+It's good. I think it guides you fairly well towards solving the problems.
 
 024:
 Catch:
 Insight: If you put a reflector against a wall, it acts like a blocker
-         If you put a reflector against a cube, it acts like a blocker* optional
 Rating: 9
 It's really nice. It forces you to realise the new rule. This is really hard without
 knowing the rule though, so I think we should put a level where that is introduced first.
 
 025:
 Catch:
-Insight: If you put a reflector against a wall, it acts like a blocker
+Insight: furniture can absorb the energy of the cubes? then you send the furn back to set up
 Rating: 8
-Original version of 024. I ended up making 024 a lot harder. So maybe we should
-reexplore this idea as well.
+I'm a little on the fence about that specific mechanic. That a furniture stops a cube but
+doesn't transfer the momentum to the next cube. Right now we will keep it in and see.
+May be able to sell it with the animations
+
+027:
+Catch: you can get the cube to the correct pos, but can't push in easily
+Insight: use the second cube to push off once the first cube is in pos
+Rating: 9
+I really like it. Just found the solution. feels smart bro. Actually wow. It's quite a
+hard level overall. Really need to make sure there's no other simple solution. Hopefully
+no other solution at all.
 
