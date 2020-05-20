@@ -1,7 +1,3 @@
-levels/026.txt
-levels/024.txt
-levels/025.txt
-levels/027.txt
 levels/028.txt
 levels/029.txt
 levels/030.txt
@@ -29,3 +25,7 @@ levels/020.txt
 levels/021.txt
 levels/022.txt
 levels/023.txt
+levels/026.txt
+levels/024.txt
+levels/025.txt
+levels/027.txt

@@ -179,7 +179,7 @@ Insight: furniture can absorb the energy of the cubes? then you send the furn ba
 Rating: 8
 I'm a little on the fence about that specific mechanic. That a furniture stops a cube but
 doesn't transfer the momentum to the next cube. Right now we will keep it in and see.
-May be able to sell it with the animations
+May be able to sell it with the animations.
 
 027:
 Catch: you can get the cube to the correct pos, but can't push in easily
@@ -188,4 +188,18 @@ Rating: 9
 I really like it. Just found the solution. feels smart bro. Actually wow. It's quite a
 hard level overall. Really need to make sure there's no other simple solution. Hopefully
 no other solution at all.
+
+028:
+Catch: ?
+Insight: ?
+Rating: 7
+It's a little straightforward what to do. But pushing things again and again in the same
+path is also kinda fun. so yeah.
+
+029:
+Catch: Since there is a column of ice, we can't easily position the furn
+Insight: really move the cubes to move the furn
+Rating: 9
+Wooow. I literally spent 20 mins just mucking around, and ended up solving it...
+It's really quite a hard level.
 
