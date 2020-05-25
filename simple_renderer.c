@@ -97,7 +97,7 @@ int init_renderer(renderer* r, char* window_name) {
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     stbi_set_flip_vertically_on_load(true);
-    unsigned char *data = stbi_load("static/ground3.png",&width,&height,&nrChannels,0);
+    unsigned char *data = stbi_load("static/spritesheet.png",&width,&height,&nrChannels,0);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     stbi_image_free(data);
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -137,15 +137,24 @@ float get_entity_material(entity_type type) {
         return 11.0;
 }
 
-float get_block_size(entity_type type) {
-    if (type == PLAYER)
-        return 0.8;
-    if (type == CUBE)
-        return 0.8;
-    if (type == FURNITURE)
-        return 0.6;
+float get_block_size_x(entity_type type) {
+    // if (type == PLAYER)
+    //     return 0.8;
+    // if (type == CUBE)
+    //     return 0.8;
+    // if (type == FURNITURE)
+    //     return 0.6;
     return 1.0;
 }
+
+float get_block_size_y(entity_type type) {
+    if (type == NONE)
+        return 1.0;
+    if (type == GROUND || type == SLIPPERY_GROUND)
+        return 1.0;
+    return 2.0;
+}
+
 
 float get_x_pos(world* w, int x, int y, int z) {
     if (!w->animating)
@@ -184,39 +193,40 @@ int update_vertex_buffer(renderer* r, world* w) {
                 int i = get_position_index(w, x, y, z);
                 int j = get_vertex_buffer_index(w, x, y, z);
                 float material = get_entity_material(get_entity_at(w, i));
-                float size = get_block_size(get_entity_at(w, i));
-                r->vertex_buffer[(36*j)+ 0] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) - (size*blockx/2.0);
-                r->vertex_buffer[(36*j)+ 1] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) - (size*blocky/2.0);
+                float x_size = get_block_size_x(get_entity_at(w, i));
+                float y_size = get_block_size_y(get_entity_at(w, i));
+                r->vertex_buffer[(36*j)+ 0] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
+                r->vertex_buffer[(36*j)+ 1] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
                 r->vertex_buffer[(36*j)+ 2] = material;
                 r->vertex_buffer[(36*j)+ 3] = 0.0;
                 r->vertex_buffer[(36*j)+ 4] = 0.0;
                 r->vertex_buffer[(36*j)+ 5] = 1.0;
-                r->vertex_buffer[(36*j)+ 6] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (size*blockx/2.0);
-                r->vertex_buffer[(36*j)+ 7] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) - (size*blocky/2.0);
+                r->vertex_buffer[(36*j)+ 6] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
+                r->vertex_buffer[(36*j)+ 7] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
                 r->vertex_buffer[(36*j)+ 8] = material;
                 r->vertex_buffer[(36*j)+ 9] = 1.0;
                 r->vertex_buffer[(36*j)+10] = 0.0;
                 r->vertex_buffer[(36*j)+11] = 1.0;
-                r->vertex_buffer[(36*j)+12] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) - (size*blockx/2.0);
-                r->vertex_buffer[(36*j)+13] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (size*blocky/2.0)*3.0;
+                r->vertex_buffer[(36*j)+12] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
+                r->vertex_buffer[(36*j)+13] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
                 r->vertex_buffer[(36*j)+14] = material;
                 r->vertex_buffer[(36*j)+15] = 0.0;
                 r->vertex_buffer[(36*j)+16] = 1.0;
                 r->vertex_buffer[(36*j)+17] = 1.0;
-                r->vertex_buffer[(36*j)+18] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) - (size*blockx/2.0);
-                r->vertex_buffer[(36*j)+19] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (size*blocky/2.0)*3.0;
+                r->vertex_buffer[(36*j)+18] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
+                r->vertex_buffer[(36*j)+19] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
                 r->vertex_buffer[(36*j)+20] = material;
                 r->vertex_buffer[(36*j)+21] = 0.0;
                 r->vertex_buffer[(36*j)+22] = 1.0;
                 r->vertex_buffer[(36*j)+23] = 1.0;
-                r->vertex_buffer[(36*j)+24] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (size*blockx/2.0);
-                r->vertex_buffer[(36*j)+25] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) - (size*blocky/2.0);
+                r->vertex_buffer[(36*j)+24] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
+                r->vertex_buffer[(36*j)+25] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
                 r->vertex_buffer[(36*j)+26] = material;
                 r->vertex_buffer[(36*j)+27] = 1.0;
                 r->vertex_buffer[(36*j)+28] = 0.0;
                 r->vertex_buffer[(36*j)+29] = 1.0;
-                r->vertex_buffer[(36*j)+30] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (size*blockx/2.0);
-                r->vertex_buffer[(36*j)+31] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (size*blocky/2.0)*3.0;
+                r->vertex_buffer[(36*j)+30] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
+                r->vertex_buffer[(36*j)+31] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
                 r->vertex_buffer[(36*j)+32] = material;
                 r->vertex_buffer[(36*j)+33] = 1.0;
                 r->vertex_buffer[(36*j)+34] = 1.0;

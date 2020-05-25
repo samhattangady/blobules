@@ -3,10 +3,11 @@ in vec3 fragCoord;
 in vec3 texCoord;
 
 out vec4 fragColor;
-uniform sampler2D ground_texture;
+uniform sampler2D spritesheet;
 
 uniform float time;
 float PI = 3.141596;
+float NUMBER_OF_SPRITES = 8.0;
 
 float rand(vec2 c) {
 	return fract(sin(dot(c.xy ,vec2(15.868,781.233))) * 4378.5453);
@@ -85,15 +86,39 @@ void main() {
         return;
     }
     if (int(fragCoord.z) == 1) {
-        fragColor = texture(ground_texture, vec2(0.75*texCoord.z+(texCoord.x/4.0), texCoord.y));
+        fragColor = texture(spritesheet, vec2((0.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
+        return;
+    }
+    if (int(fragCoord.z) == 2) {
+        fragColor = texture(spritesheet, vec2((1.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
+        return;
+    }
+    if (int(fragCoord.z) == 3) {
+        fragColor = texture(spritesheet, vec2((2.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
         return;
     }
     if (int(fragCoord.z) == 4) {
-        fragColor = texture(ground_texture, vec2(texCoord.x/4.0, texCoord.y));
+        fragColor = texture(spritesheet, vec2((3.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y/2.0));
+        return;
+    }
+    if (int(fragCoord.z) == 6) {
+        fragColor = texture(spritesheet, vec2((4.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y/2.0));
+        return;
+    }
+    if (int(fragCoord.z) == 7) {
+        fragColor = texture(spritesheet, vec2((5.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
+        return;
+    }
+    if (int(fragCoord.z) == 8) {
+        fragColor = texture(spritesheet, vec2((6.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
+        return;
+    }
+    if (int(fragCoord.z) == 9) {
+        fragColor = texture(spritesheet, vec2((7.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
         return;
     }
     if (int(fragCoord.z) == 11) {
-        fragColor = texture(ground_texture, vec2(0.25*texCoord.z+(texCoord.x/4.0), texCoord.y));
+        fragColor = texture(spritesheet, vec2((8.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
         return;
     }
     float noise = pNoise(gl_FragCoord.xy+vec2(5.0)*fragCoord.z, 3)*(2.0);

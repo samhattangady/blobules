@@ -739,14 +739,14 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 
 int get_world_x(world* w) {
     double xpos = global_w->editor.mouse.xpos;
-    return (int) (0.5 + ((xpos - (X_PADDING*WINDOW_WIDTH/2.0) - (WINDOW_WIDTH/2.0)) /
+    return (int) (((xpos - (X_PADDING*WINDOW_WIDTH/2.0) - (WINDOW_WIDTH/2.0)) /
                          (BLOCK_SIZE/2.0))
                  );
 }
 
 int get_world_y(world* w) {
     double ypos = global_w->editor.mouse.ypos;
-    return (int) (0.5 - ((ypos+ (Y_PADDING*WINDOW_HEIGHT/2.0) - WINDOW_HEIGHT/2.0) /
+    return (int) (0.0 - ((ypos+ (Y_PADDING*WINDOW_HEIGHT/2.0) - WINDOW_HEIGHT/2.0) /
                          (BLOCK_SIZE/2.0))
                  );
 }
