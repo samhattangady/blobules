@@ -85,9 +85,9 @@ trap you if you try to push the block left then up
 012:
 Catch: Because of the land and slippery, you cant push the furniture to the right
 Insight: You can bump the ice into the furniture in order to move it
-Rating: 8
+Rating: 9
 I'm quite happy with it. Just discovered the solution. Honestly, it's quite simple
-Can probably be moved up a bit. But certainly very interesting
+Can probably be moved up a bit. But certainly very interesting. FORCES you to learn
 
 013:
 Catch: difficult to move the furniture to the obvious blocking spot. If you do that
@@ -203,3 +203,29 @@ Rating: 9
 Wooow. I literally spent 20 mins just mucking around, and ended up solving it...
 It's really quite a hard level.
 
+030:
+Catch:
+Insight: Once you realise how the cubes have to be at the end it's easy
+Rating: 8
+Yeah, it's good I think. I don't know how easy it is. Because the answer is fairly clear
+once you know how the final arrangements of elements needs to be.
+
+031:
+Catch: the river doesnt allow us to park the furn exactly unless we use the outcrop
+Insight: Use furn as blocker?
+Rating: 8
+Should be a little earlier on.
+I still like the idea of the river. We haven't explored how having a single outcrop
+allows you to move the furn awat from the river.
+
+032:
+Catch: Introduce river
+Insight: Outcrop in river
+Rating: 8
+It's good.
+
+033:
+Catch: how to get to cube
+Insight: it's all a maze.
+Rating: 5
+It's a concept that needs to be explored. But I don't want it to be unecessarily hard.
