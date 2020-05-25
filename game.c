@@ -588,6 +588,8 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
 
 int save_freezeframe(world* w) {
     int i, index;
+    // TODO (25 May 2020 sam): Since we increment index here, does that mean that
+    // we never use the 0th index?
     w->history.index++;
     if (w->history.index == HISTORY_STEPS) {
         // When the index is above HISTORY_STEPS, move the whole
@@ -597,13 +599,23 @@ int save_freezeframe(world* w) {
         printf("history memory full...\n");
         w->history.index = num;
     }
-    // TODO (17 May 2020 sam): Prevent save if there was no change in the world
-    char prev_world[w->size];
-    char current_world[w->size];
     index = w->history.index;
     w->history.history[index].current_level = w->current_level;
     for (i=0; i<w->size; i++)
         w->history.history[index].entities[i] = get_entity_char(get_entity_at(w, i));
+    // Prevent save if there was no change in the world
+    if (index > 0 && w->history.history[index-1].current_level==w->current_level) {
+        bool same = true;
+        for (int i=0; i<w->size; i++) {
+            if (w->history.history[index-1].entities[i] !=
+                w->history.history[index].entities[i]) {
+                same = false;
+                break;
+            }
+        }
+        if (same)
+            w->history.index--;
+    }
 }
 
 int load_previous_freezeframe(world* w) {
@@ -693,11 +705,36 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         global_w->editor.editor_enabled =  !global_w->editor.editor_enabled;
 }
 
+void add_entity_at_mouse(world* w) {
+    int x = get_world_x(w);
+    int y = get_world_y(w);
+    // TODO (19 Apr 2020 sam): Add check here to see whether the type is
+    // on "correct z level"
+    if (w->editor.editor_enabled)
+        add_entity(w, w->editor.active_type, x, y, w->editor.z_level);
+}
+
+void remove_entity_at_mouse(world* w) {
+    int x = get_world_x(w);
+    int y = get_world_y(w);
+    if (w->editor.editor_enabled) {
+        uint index = get_position_index(w, x, y, w->editor.z_level);
+        entity_type et = get_entity_at(w, index);
+        if (et != NONE)
+            w->editor.active_type = et;
+        add_entity(w, NONE, x, y, w->editor.z_level);
+    }
+}
+
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     global_w->editor.mouse.xpos = xpos;
     global_w->editor.mouse.ypos = ypos;
     global_w->ui_state->mouse.current_x = xpos;
     global_w->ui_state->mouse.current_y = ypos;
+    if (global_w->editor.mouse.l_pressed)
+        add_entity_at_mouse(global_w);
+    if (global_w->editor.mouse.r_pressed)
+        remove_entity_at_mouse(global_w);
 }
 
 int get_world_x(world* w) {
@@ -726,27 +763,10 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         global_w->ui_state->mouse.l_pressed = false;
         global_w->ui_state->mouse.l_released = true;
     }
-    if (global_w->editor.mouse.l_pressed) {
-        int x = get_world_x(global_w);
-        int y = get_world_y(global_w);
-        // TODO (19 Apr 2020 sam): Add check here to see whether the type is
-        // on "correct z level"
-        if (global_w->editor.editor_enabled) {
-            add_entity(global_w, global_w->editor.active_type, x, y, global_w->editor.z_level);
-            save_freezeframe(global_w);
-        }
-    }
-    if (global_w->editor.mouse.r_pressed) {
-        int x = get_world_x(global_w);
-        int y = get_world_y(global_w);
-        if (global_w->editor.editor_enabled) {
-            uint index = get_position_index(global_w, x, y, global_w->editor.z_level);
-            entity_type et = get_entity_at(global_w, index);
-            global_w->editor.active_type = et;
-            add_entity(global_w, NONE, x, y, global_w->editor.z_level);
-            save_freezeframe(global_w);
-        }
-    }
+    if (global_w->editor.mouse.l_pressed)
+        add_entity_at_mouse(global_w);
+    if (global_w->editor.mouse.r_pressed)
+        remove_entity_at_mouse(global_w);
 }
 
 int process_inputs(GLFWwindow* window, world* w, float seconds) {
