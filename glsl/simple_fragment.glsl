@@ -8,9 +8,10 @@ uniform sampler2D spritesheet;
 uniform float time;
 float PI = 3.141596;
 float NUMBER_OF_SPRITES = 8.0;
+float STROKE_THICKNESS = 4.0;
 
 float rand(vec2 c) {
-	return fract(sin(dot(c.xy ,vec2(15.868,781.233))) * 4378.5453);
+	return fract(sin(dot(c.xy ,vec2(1.868,7.233))) * 42349.53);
 }
 
 float noise(vec2 p, float freq ){
@@ -28,11 +29,10 @@ float noise(vec2 p, float freq ){
 	return mix(x1, x2, xy.y);
 }
 
-float pNoise(vec2 p, int res){
+float pNoise(vec2 p, int res, float f){
 	float persistance = .5;
 	float n = 0.;
 	float normK = 0.;
-	float f = 30.3;
 	float amp = 1.;
 	int iCount = 0;
 	for (int i = 0; i<50; i++){
@@ -57,7 +57,7 @@ vec4 get_color(int material) {
     if (material == 4)   // ground
         return vec4(0.3, 0.6, 0.5, 1.0);
     if (material == 5)   // none
-        return vec4(1.0, 1.0, 1.0, 0.01);
+        return vec4(1.0, 1.0, 1.0, 0.00);
     if (material == 6)   // slippery
         return vec4(0.4, 0.4, 0.6, 1.0);
     if (material == 7)   // hot target
@@ -80,13 +80,30 @@ int get_rand_0_to_3() {
 }
 
 void main() {
+    float noise = pNoise(gl_FragCoord.xy, 3, 300.3);
+    // if (noise > 0.5)
+    //     fragColor = vec4(0.0, 0.0, 0.3, 1.0);
+    // else
+    //     fragColor = vec4(0.3, 0.0, 0.3, 1.0);
+    // fragColor = vec4(vec3(noise), 1.0);
+    // return;
     vec4 colour = get_color(int(fragCoord.z));
-    if (colour.w < 0.1) {
-        fragColor = colour;
-        return;
-    }
     if (int(fragCoord.z) == 1) {
-        fragColor = texture(spritesheet, vec2((0.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
+        vec2 tex = texCoord.xy;
+        tex += 0.10*vec2(pNoise(gl_FragCoord.xy,3, 50.3), pNoise(gl_FragCoord.yx,3, 50.3));
+        vec4 col = texture(spritesheet, vec2((0.0/NUMBER_OF_SPRITES)+(tex.x/NUMBER_OF_SPRITES), tex.y));
+        // fragColor = col;
+        if (col.w > 0.9) {
+            float pixel_distance = col.x - 0.5;
+            pixel_distance *= 255.0;
+            // pixel_distance += 2.5 * (noise-0.2);
+            float pencil = smoothstep(1.2, 15.8, pixel_distance);
+            pencil = pow(pencil, 0.01);
+            vec3 colour = vec3(0.0, 0.04, 0.1);
+            float alpha = mix(1.0, 0.0, pencil);
+            fragColor = vec4(colour, alpha);
+        } else
+            fragColor = vec4(0.0);
         return;
     }
     if (int(fragCoord.z) == 2) {
@@ -121,6 +138,6 @@ void main() {
         fragColor = texture(spritesheet, vec2((8.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
         return;
     }
-    float noise = pNoise(gl_FragCoord.xy+vec2(5.0)*fragCoord.z, 3)*(2.0);
-    fragColor = vec4(colour.xyz, 1.0);
+    fragColor = colour;
+    // fragColor = vec4(vec3(noise), 1.0);
 }
