@@ -7,7 +7,7 @@ uniform sampler2D spritesheet;
 
 uniform float time;
 float PI = 3.141596;
-float NUMBER_OF_SPRITES = 8.0;
+float NUMBER_OF_SPRITES = 9.0;
 float STROKE_THICKNESS = 4.0;
 
 float rand(vec2 c) {
@@ -89,6 +89,10 @@ void main() {
     // return;
     vec4 colour = get_color(int(fragCoord.z));
     if (int(fragCoord.z) == 1) {
+        fragColor = texture(spritesheet, vec2((0.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
+        return;
+    }
+    if (int(fragCoord.z) == 1) {
         vec2 tex = texCoord.xy;
         tex += 0.10*vec2(pNoise(gl_FragCoord.xy,3, 50.3), pNoise(gl_FragCoord.yx,3, 50.3));
         vec4 col = texture(spritesheet, vec2((0.0/NUMBER_OF_SPRITES)+(tex.x/NUMBER_OF_SPRITES), tex.y));
@@ -97,8 +101,8 @@ void main() {
             float pixel_distance = col.x - 0.5;
             pixel_distance *= 255.0;
             // pixel_distance += 2.5 * (noise-0.2);
-            float pencil = smoothstep(1.2, 15.8, pixel_distance);
-            pencil = pow(pencil, 0.01);
+            float pencil = smoothstep(1.2, 5.8, pixel_distance);
+            pencil = pow(pencil, 0.1);
             vec3 colour = vec3(0.0, 0.04, 0.1);
             float alpha = mix(1.0, 0.0, pencil);
             fragColor = vec4(colour, alpha);

@@ -62,6 +62,8 @@ typedef struct {
     uint z_level;
     entity_type active_type;
     mouse_state mouse;
+    cb_ui_state* ui_state;
+    cb_window ui_window;
 } editor_data;
 
 typedef struct {
@@ -111,8 +113,6 @@ typedef struct {
     levels_list levels;
     float seconds;
     editor_data editor;
-    cb_ui_state* ui_state;
-    cb_window ui_window;
     world_history history;
 } world;
 

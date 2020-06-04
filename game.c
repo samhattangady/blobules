@@ -64,7 +64,6 @@ int set_cold_target(world* w, int index) {
     return 0;
 }
 bool has_animations(entity_type et) {
-    // return (et==PLAYER);
     return (et==PLAYER || et==CUBE || et==FURNITURE || et==REFLECTOR);
 }
 
@@ -290,7 +289,7 @@ int init_world(world* w, uint number) {
     world_freezeframe* frames = (world_freezeframe*) malloc(HISTORY_STEPS * sizeof(world_freezeframe));
     world_history history = {0, frames};
     world tmp = {0, 0, 0, 0, false, 0, 0, {}, {}, {}, {0, 0, 0}, input, ALIVE, 0, list,
-                 0.0, {false, 0, GROUND, {false, false, 0.0, 0.0}}, NULL, {}, history};
+                 0.0, {false, 0, GROUND, {false, false, 0.0, 0.0}, NULL, {}}, history};
     *w = tmp;
     load_level(w);
     return 0;
@@ -454,9 +453,8 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, 
             return 1;
         if (get_entity_at(w, target_pos_index) == FURNITURE)
             return 1;
-        if (get_entity_at(w, target_pos_index) == CUBE) {
+        if (get_entity_at(w, target_pos_index) == CUBE)
             return 1;
-        }
         // what if it's player?
     }
     int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);
@@ -729,8 +727,8 @@ void remove_entity_at_mouse(world* w) {
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     global_w->editor.mouse.xpos = xpos;
     global_w->editor.mouse.ypos = ypos;
-    global_w->ui_state->mouse.current_x = xpos;
-    global_w->ui_state->mouse.current_y = ypos;
+    global_w->editor.ui_state->mouse.current_x = xpos;
+    global_w->editor.ui_state->mouse.current_y = ypos;
     if (global_w->editor.mouse.l_pressed)
         add_entity_at_mouse(global_w);
     if (global_w->editor.mouse.r_pressed)
@@ -755,13 +753,13 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     global_w->editor.mouse.l_pressed = (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS);
     global_w->editor.mouse.r_pressed = (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS);
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        global_w->ui_state->mouse.l_pressed = true;
-        global_w->ui_state->mouse.l_down_x = global_w->ui_state->mouse.current_x;
-        global_w->ui_state->mouse.l_down_y = global_w->ui_state->mouse.current_y;
+        global_w->editor.ui_state->mouse.l_pressed = true;
+        global_w->editor.ui_state->mouse.l_down_x = global_w->editor.ui_state->mouse.current_x;
+        global_w->editor.ui_state->mouse.l_down_y = global_w->editor.ui_state->mouse.current_y;
     }
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-        global_w->ui_state->mouse.l_pressed = false;
-        global_w->ui_state->mouse.l_released = true;
+        global_w->editor.ui_state->mouse.l_pressed = false;
+        global_w->editor.ui_state->mouse.l_released = true;
     }
     if (global_w->editor.mouse.l_pressed)
         add_entity_at_mouse(global_w);

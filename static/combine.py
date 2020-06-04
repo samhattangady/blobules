@@ -1,7 +1,7 @@
 from PIL import Image
 
 images = ['player.png', 'cube.png', 'wall.png', 'ground.png', 'slippery.png', 'hot_target.png', 'target.png', 'furn.png', 'reflector.png']
-spritesheet = Image.new('RGBA', (720,180), (0,0,0,0))
+spritesheet = Image.new('RGBA', (810,180), (0,0,0,0))
 
 for i, image in enumerate(images):
     sprite = Image.open(image)
@@ -16,7 +16,7 @@ for i, image in enumerate(images):
         sprite = Image.alpha_composite(tmp, sprite)
     spritesheet.paste(sprite, (i*90, y_offset))
 
-im = Image.open('sdf_output.png')
-im = im.resize((90,180))
-spritesheet.paste(im, (0,0))
+# im = Image.open('sdf_output.png')
+# im = im.resize((90,180))
+# spritesheet.paste(im, (0,0))
 spritesheet.save('spritesheet.png')

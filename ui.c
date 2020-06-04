@@ -147,7 +147,7 @@ int init_character_glyphs(cb_ui_state* state) {
 int render_chars(cb_ui_state* state) {
     glUseProgram(state->values.shader_program);
     glLinkProgram(state->values.shader_program);
-    glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), 1536, 864);
+    glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), WINDOW_WIDTH, WINDOW_HEIGHT);
     glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 1, 1, 1, 1);
     glUniform1i(glGetUniformLocation(state->values.shader_program, "mode"), 1);
     glBindTexture(GL_TEXTURE_2D, state->font_texture);
@@ -175,7 +175,7 @@ int cb_ui_render_rectangle(cb_ui_state* state, float xpos, float ypos, float w, 
     // the same buffer as the chars if required.
     glUseProgram(state->values.shader_program);
     glLinkProgram(state->values.shader_program);
-    glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), 1536, 864);
+    glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), WINDOW_WIDTH, WINDOW_HEIGHT);
     glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 0.2, 0.2, 0.23, opacity);
     glUniform1i(glGetUniformLocation(state->values.shader_program, "mode"), 2);
     glActiveTexture(GL_TEXTURE0);
@@ -206,7 +206,6 @@ int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y) {
     y = WINDOW_HEIGHT-y;
     y -= PIXEL_SIZE - BUTTON_PADDING;
     for (int i=0; i<strlen(text); i++) {
-        // TODO (05 Apr 2020 sam): Convert to using a single bitmap texture for this
         char c = text[i];
         ft_char current = state->glyphs[c];
         float xpos = x + current.bearing_x;
@@ -247,15 +246,6 @@ int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y) {
         state->values.vertex_buffer.vertex_buffer[index + 21] = ypos+h;
         state->values.vertex_buffer.vertex_buffer[index + 22] = l+dx;
         state->values.vertex_buffer.vertex_buffer[index + 23] = b;
-        // GLfloat ui_vertices[6][4] = {
-        //     { xpos,     ypos + h,   l   , b    },
-        //     { xpos,     ypos,       l   , b+dy },
-        //     { xpos + w, ypos,       l+dx, b+dy },
-
-        //     { xpos,     ypos + h,   l   , b    },
-        //     { xpos + w, ypos,       l+dx, b+dy },
-        //     { xpos + w, ypos + h,   l+dx, b    }
-        // };
         x += (current.advance >> 6);
     }
     return 0;
@@ -273,7 +263,6 @@ int init_cb_window(cb_window* w, char* title, uint position[2], uint size[2]) {
 float get_text_width(cb_ui_state* state, char* text) {
     float w = 0.0;
     for (int i=0; i<strlen(text); i++) {
-        // TODO (05 Apr 2020 sam): Convert to using a single bitmap texture for this
         char c = text[i];
         ft_char current = state->glyphs[c];
         w += (current.advance >> 6);
