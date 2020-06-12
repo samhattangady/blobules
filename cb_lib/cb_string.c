@@ -31,7 +31,8 @@ int va_append_sprintf(string* base, char* fbase, va_list args) {
     va_list args_copy;
     va_copy(args_copy, args);
     int size = vsnprintf(NULL, 0, fbase, args) + 1;
-    char s[size];
+	// FIXME (09 Jun 1010 sam): Should be size size. Was not working in windows
+    char s[1000];
     s[0] = '\0';
     vsprintf(&s[0], fbase, args_copy);
     s[size-1] = '\0';
@@ -108,6 +109,9 @@ string read_file(char* filename) {
         rewind(handler);
         printf("mallocing... read_file %s\n", filename);
         buffer = (char*) malloc(sizeof(char) * (string_size+1) );
+        // TODO (12 Jun 2020 sam): Why do we have to memset here? Is the size wrong?
+        // Without the memset, it is inconsistent. Does not work all the time. Wierd.
+        memset(buffer, 0, sizeof(char)*(string_size+1));
         read_size = fread(buffer, sizeof(char), string_size, handler);
         buffer[string_size] = '\0';
         if (string_size != read_size) {

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <time.h>
+#define STB_TRUETYPE_IMPLEMENTATION
 #include "ui.h"
 #include "simple_renderer.h"
 #include "cb_lib/cb_string.h"
@@ -12,33 +13,38 @@ int main(int argc, char** argv) {
     // TODO (31 Mar 2020 sam): Name this window according to the current version;
     world w;
     init_world(&w, 1024);
+    printf("initted world\n");
     renderer r;
     init_renderer(&r, "blobules");
     cb_ui_state ui_state;
+    
+    printf("initting ui\n");
     init_ui(&ui_state);
+    printf("initted ui\n");
     w.editor.ui_state = &ui_state;
-
+    
     uint frame = 0;
-
-    struct timeval start_time;
-    struct timeval current_time;
+    
+    //struct timeval start_time;
+    //struct timeval current_time;
     clock_t clock_time;
     float frame_time;
     float frame_cycles;
     float seconds = 0.0;
-    gettimeofday(&start_time, NULL);
+    //gettimeofday(&start_time, NULL);
     double mouse_x, mouse_y;
-
+    
     uint window_pos[2] = {20, 40};
     uint window_size[2] = {UI_WIDTH, WINDOW_HEIGHT};
     init_cb_window(&w.editor.ui_window, "Level Editor", window_pos, window_size);
+    printf("starting game loop\n");
     while (!glfwWindowShouldClose(r.window)) {
         frame += 1;
-        gettimeofday(&current_time, NULL);
+        // gettimeofday(&current_time, NULL);
         clock_time = clock();
-        frame_time = (current_time.tv_sec - start_time.tv_sec) +
-                     ((current_time.tv_usec - start_time.tv_usec) / 1000000.0);
-        start_time = current_time;
+		frame_time = 1.0/60.0;
+        // frame_time = (current_time.tv_sec - start_time.tv_sec) + ((current_time.tv_usec - start_time.tv_usec) / 1000000.0);
+        // start_time = current_time;
         seconds += frame_time;
         glfwPollEvents();
         process_inputs(r.window, &w, seconds);
@@ -114,6 +120,7 @@ int main(int argc, char** argv) {
                 change_world_ysize(&w, -1, 1);
             }
             vert_spacer(&ui_state, &w.editor.ui_window, true);
+            
             if (add_button(&ui_state, &w.editor.ui_window, "del row bottom", true)) {
                 change_world_ysize(&w, -1, -1);
             }
@@ -132,10 +139,11 @@ int main(int argc, char** argv) {
         sprintf(cps_counter, "%.2f cps", 1.0/((double)clock_time/CLOCKS_PER_SEC));
         cb_ui_render_text(&ui_state, fps_counter, WINDOW_WIDTH-100, 20);
         cb_ui_render_text(&ui_state, cps_counter, WINDOW_WIDTH-100, 40);
+        //printf("%f cps\n", cps_counter);
         render_chars(&ui_state);
         glfwSwapBuffers(r.window);
     }
-
+    
     // TODO (05 Apr 2020 sam): Run all the closing and exit things...
     return 0;
 }

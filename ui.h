@@ -4,9 +4,8 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <ft2build.h>
 #include <stdbool.h>
-#include FT_FREETYPE_H
+#include "stb_truetype.h"
 #include "cb_lib/cb_types.h"
 
 typedef struct ft_char {
@@ -78,7 +77,7 @@ typedef struct {
 typedef struct cb_ui_state {
     gl_values values;
     uint font_texture;
-    ft_char glyphs[128];
+    stbtt_bakedchar glyphs[128];
     mouse_state_struct mouse;
 } cb_ui_state;
 

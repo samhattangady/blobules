@@ -189,6 +189,7 @@ levels_list load_levels_list() {
             append_sprintf(&tmp, "%c", c);
     }
     levels_list list = {n, l};
+	printf("got levels\n");
     return list;
 }
 
@@ -213,12 +214,17 @@ int init_entities(world* w) {
 }
 
 int load_level(world* w) {
+    printf("setting player alive \n");
     w->player = ALIVE;
+    printf("setting player animations \n");
     w->animating = false;
     init_entities(w);
+    printf("initted entities \n");
     int x, y, z;
     char c = ' ';
+    printf("getting level name\n");
     char* level_name = w->levels.levels[w->current_level].text;
+    //level_name = "C:/Users/user/blobules/031.txt";
     printf("loading level %s\n", level_name);
     FILE* level_file = fopen(level_name, "r");
     fscanf(level_file, "%i %i %i\n", &x, &y, &z);
@@ -228,6 +234,7 @@ int load_level(world* w) {
     w->x_size = x;
     w->y_size = y;
     w->z_size = z;
+    printf("loading level data...\n");
     for (z=0; z<w->z_size; z++) {
         for (y=w->y_size-1; y>=0; y--) {
             for (x=0; x<w->x_size; x++) {
@@ -288,8 +295,19 @@ int init_world(world* w, uint number) {
     levels_list list = load_levels_list();
     world_freezeframe* frames = (world_freezeframe*) malloc(HISTORY_STEPS * sizeof(world_freezeframe));
     world_history history = {0, frames};
-    world tmp = {0, 0, 0, 0, false, 0, 0, {}, {}, {}, {0, 0, 0}, input, ALIVE, 0, list,
-                 0.0, {false, 0, GROUND, {false, false, 0.0, 0.0}, NULL, {}}, history};
+    // world tmp = {0, 0, 0, 0, false, 0, 0, {}, {}, {}, {0, 0, 0}, input, ALIVE, 0, list,
+    //   0.0, {false, 0, GROUND, {false, false, 0.0, 0.0}, NULL, {}}, history};
+    mouse_state mouse = {false, false, 0.0, 0.0};
+    world tmp;
+    // TODO (12 Jun 2020 sam): See whether there is a cleaner way to set this all to 0;
+    memset(&tmp, 0, sizeof(world));
+    tmp.input = input;
+    tmp.player = ALIVE;
+    tmp.editor.editor_enabled = false;
+    tmp.editor.mouse = mouse;
+    tmp.current_level=0;
+    tmp.levels = list;
+    tmp.history = history;
     *w = tmp;
     load_level(w);
     return 0;
@@ -537,7 +555,7 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
             w->player_position.x += dx;
             w->player_position.y += dy;
             w->player_position.z += dz;
-            set_none(w, index);
+            set_none(w, position_index);
             return 0;
         }
         return -1;
@@ -699,8 +717,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         global_w->editor.z_level = (global_w->editor.z_level+1)  % 2;
     if (key == GLFW_KEY_TAB && (action == GLFW_PRESS || action == GLFW_REPEAT))
         global_w->editor.active_type = (global_w->editor.active_type+1)  % INVALID;
-    if (key == GLFW_KEY_E && (action == GLFW_PRESS || action == GLFW_REPEAT))
+    if (key == GLFW_KEY_E && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+        printf("editor state changed. \n");
         global_w->editor.editor_enabled =  !global_w->editor.editor_enabled;
+    }
 }
 
 void add_entity_at_mouse(world* w) {
@@ -738,15 +758,15 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 int get_world_x(world* w) {
     double xpos = global_w->editor.mouse.xpos;
     return (int) (((xpos - (X_PADDING*WINDOW_WIDTH/2.0) - (WINDOW_WIDTH/2.0)) /
-                         (BLOCK_SIZE/2.0))
-                 );
+                   (BLOCK_SIZE/2.0))
+                  );
 }
 
 int get_world_y(world* w) {
     double ypos = global_w->editor.mouse.ypos;
     return (int) (0.0 - ((ypos+ (Y_PADDING*WINDOW_HEIGHT/2.0) - WINDOW_HEIGHT/2.0) /
                          (BLOCK_SIZE/2.0))
-                 );
+                  );
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
@@ -793,7 +813,7 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
-
+    
 }
 
 int change_world_xsize_right(world* w, int sign) {

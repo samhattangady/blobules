@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include "cb_lib/cb_types.h"
 #include "ui.h"
-#include <GLFW/glfw3.h>
+//#include <GLFW/glfw3.h>
 #include "game_settings.h"
 
 typedef enum {

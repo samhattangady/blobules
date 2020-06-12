@@ -9,7 +9,8 @@ uniform int mode;
 void main() {
     if (mode == 1) {
         vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, text_coords).r);
-        color = vec4(textColor) * sampled;
+        color = textColor*sampled;
+		//color = sampled;
     } else if (mode == 2) {
         color = vec4(textColor);    
     }

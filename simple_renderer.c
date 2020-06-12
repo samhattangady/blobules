@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/time.h>
+//#include <sys/time.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "simple_renderer.h"
@@ -30,6 +30,8 @@ int get_buffer_size() {
 int load_shaders(renderer* r) {
     string vertex_source = read_file("glsl/simple_vertex.glsl");
     string fragment_source = read_file("glsl/simple_fragment.glsl");
+    //printf("%s\n", vertex_source.text);
+    //printf("%s\n", fragment_source.text);
     glShaderSource(r->shader.vertex_shader, 1, &vertex_source.text, NULL);
     glCompileShader(r->shader.vertex_shader);
     test_shader_compilation(r->shader.vertex_shader, "vertex");
@@ -47,6 +49,7 @@ int load_shaders(renderer* r) {
 }
 
 int init_renderer(renderer* r, char* window_name) {
+	printf("init renderer\n");
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) return -1;
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -56,37 +59,39 @@ int init_renderer(renderer* r, char* window_name) {
     GLFWwindow* window;
     int window_height = WINDOW_HEIGHT;
     int window_width = WINDOW_WIDTH;
+    printf("trying to create window\n");
+    
     window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, window_name, NULL, NULL);
     if (!window) {
-        fprintf(stderr, "GLFW could not create a window...\n");
+        printf("GLFW could not create a window...\n");
         glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window);
-
+    
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
-        fprintf(stderr, "GLEW could not initiate.\n");
+        printf("GLEW could not initiate.\n");
         return -1;
     }
-
+    
     glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
+    
     uint vao;
     uint vbo;
     uint vertex_shader;
     uint fragment_shader;
     uint shader_program;
-
+    
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
     glGenBuffers(1, &vbo);
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     shader_program = glCreateProgram();
-
+    
     int width, height, nrChannels;
     // set the texture wrapping/filtering options (on the currently bound texture object)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -102,13 +107,14 @@ int init_renderer(renderer* r, char* window_name) {
     stbi_image_free(data);
     glGenerateMipmap(GL_TEXTURE_2D);
     renderer r_ = { window, { WINDOW_WIDTH, WINDOW_HEIGHT },
-                  { vao, vbo, vertex_shader, fragment_shader, shader_program, texture},
-                    0, NULL };
+        { vao, vbo, vertex_shader, fragment_shader, shader_program, texture},
+        0, NULL };
     *r = r_;
     r->buffer_size = get_buffer_size();
     printf("mallocing... vertex_buffer\n");
     r->vertex_buffer = (float*) malloc(r->buffer_size);
     load_shaders(r);
+	printf("renderer has been initted\n");
     return 0;
 }
 

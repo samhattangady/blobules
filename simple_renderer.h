@@ -4,7 +4,7 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <sys/time.h>
+//#include <sys/time.h>
 #include "cb_lib/cb_string.h"
 #include "cb_lib/cb_types.h"
 #include "game.h"
