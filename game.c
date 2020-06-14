@@ -211,6 +211,7 @@ int init_entities(world* w) {
     w->entities[3] = ed;
     ed.type = COLD_TARGET;
     w->entities[4] = ed;
+    return 0;
 }
 
 int load_level(world* w) {
@@ -282,12 +283,15 @@ int load_next_level(world* w) {
     if (w->current_level == w->levels.size)
         w->current_level = 0;
     load_level(w);
+    return 0;
 }
+
 int load_previous_level(world* w) {
     w->current_level--;
     if (w->current_level == -1)
         w->current_level = w->levels.size-1;
     load_level(w);
+    return 0;
 }
 
 int init_world(world* w, uint number) {
@@ -295,6 +299,7 @@ int init_world(world* w, uint number) {
     levels_list list = load_levels_list();
     world_freezeframe* frames = (world_freezeframe*) malloc(HISTORY_STEPS * sizeof(world_freezeframe));
     world_history history = {0, frames};
+    main_menu_struct main_menu;
     // world tmp = {0, 0, 0, 0, false, 0, 0, {}, {}, {}, {0, 0, 0}, input, ALIVE, 0, list,
     //   0.0, {false, 0, GROUND, {false, false, 0.0, 0.0}, NULL, {}}, history};
     mouse_state mouse = {false, false, 0.0, 0.0};
@@ -302,6 +307,9 @@ int init_world(world* w, uint number) {
     // TODO (12 Jun 2020 sam): See whether there is a cleaner way to set this all to 0;
     memset(&tmp, 0, sizeof(world));
     tmp.input = input;
+    tmp.active_mode = MAIN_MENU;
+    tmp.main_menu = main_menu;
+    init_main_menu(&tmp);
     tmp.player = ALIVE;
     tmp.editor.editor_enabled = false;
     tmp.editor.mouse = mouse;
@@ -632,6 +640,7 @@ int save_freezeframe(world* w) {
         if (same)
             w->history.index--;
     }
+    return 0;
 }
 
 int load_previous_freezeframe(world* w) {
@@ -658,6 +667,7 @@ int load_previous_freezeframe(world* w) {
             w->player_position = pos;
         }
     }
+    return 0;
 }
 
 int trigger_input(world* w, input_type it) {
@@ -678,6 +688,7 @@ int trigger_input(world* w, input_type it) {
         load_previous_level(w);
     if (it == UNDO_MOVE)
         load_previous_freezeframe(w);
+    return 0;
 }
 
 int set_input(world* w, input_type it, float seconds) {
@@ -692,9 +703,7 @@ int set_input(world* w, input_type it, float seconds) {
     return 0;
 }
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GL_TRUE);
+void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (global_w->animating)
         return;
     if (key == GLFW_KEY_R && action == GLFW_PRESS)
@@ -718,9 +727,59 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (key == GLFW_KEY_TAB && (action == GLFW_PRESS || action == GLFW_REPEAT))
         global_w->editor.active_type = (global_w->editor.active_type+1)  % INVALID;
     if (key == GLFW_KEY_E && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-        printf("editor state changed. \n");
         global_w->editor.editor_enabled =  !global_w->editor.editor_enabled;
     }
+}
+
+int init_main_menu(world* w) {
+    menu_option new_game = {string_from("New Game")};
+    menu_option exit = {string_from("Exit")};
+    w->main_menu.total_options = 2;
+    w->main_menu.active_option = 0;
+    w->main_menu.options[0] = new_game;
+    w->main_menu.options[1] = exit;
+    return 0;
+}
+
+int next_option(world* w) {
+    w->main_menu.active_option++;
+    if (w->main_menu.active_option >= w->main_menu.total_options)
+        w->main_menu.active_option = 0;
+    return 0;
+}
+
+int previous_option(world* w) {
+    w->main_menu.active_option--;
+    if (w->main_menu.active_option < 0)
+        w->main_menu.active_option = w->main_menu.total_options-1;
+    return 0;
+}
+
+void main_menu_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        previous_option(global_w);
+    if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        next_option(global_w);
+    if (key == GLFW_KEY_ENTER && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        select_active_option(global_w);
+}
+
+int select_active_option(world* w) {
+    // TODO (14 Jun 2020 sam): Figure out better way to link option with action?
+    if (w->main_menu.active_option == 0)
+	w->active_mode = IN_GAME;
+    if (w->main_menu.active_option == 1)
+	w->active_mode = EXIT;
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, GL_TRUE);
+    if (global_w->active_mode == IN_GAME)
+        in_game_key_callback(window, key, scancode, action, mods);
+    if (global_w->active_mode == MAIN_MENU)
+        main_menu_key_callback(window, key, scancode, action, mods);
+    
 }
 
 void add_entity_at_mouse(world* w) {
@@ -813,7 +872,7 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
-    
+    return 0;
 }
 
 int change_world_xsize_right(world* w, int sign) {
@@ -837,6 +896,7 @@ int change_world_xsize_right(world* w, int sign) {
             }
         }
     }
+    return 0;
 }
 
 int change_world_xsize_left(world* w, int sign) {
@@ -866,6 +926,7 @@ int change_world_xsize_left(world* w, int sign) {
             }
         }
     }
+    return 0;
 }
 
 int change_world_ysize_top(world *w, int sign) {
@@ -889,6 +950,7 @@ int change_world_ysize_top(world *w, int sign) {
             }
         }
     }
+    return 0;
 }
 
 int change_world_ysize_bottom(world *w, int sign) {
@@ -918,6 +980,7 @@ int change_world_ysize_bottom(world *w, int sign) {
             }
         }
     }
+    return 0;
 }
 
 int change_world_xsize(world* w, int direction, int sign) {
@@ -925,6 +988,7 @@ int change_world_xsize(world* w, int direction, int sign) {
         change_world_xsize_right(w, sign);
     if (direction == -1)
         change_world_xsize_left(w, sign);
+    return 0;
 }
 
 int change_world_ysize(world* w, int direction, int sign) {
@@ -932,4 +996,5 @@ int change_world_ysize(world* w, int direction, int sign) {
         change_world_ysize_top(w, sign);
     else
         change_world_ysize_bottom(w, sign);
+    return 0;
 }

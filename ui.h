@@ -83,6 +83,7 @@ typedef struct cb_ui_state {
 
 int init_ui(cb_ui_state* state);
 int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y);
+int cb_ui_render_rectangle(cb_ui_state* state, float xpos, float ypos, float w, float h, float opactity);
 int init_gl_values(cb_ui_state* state);
 int init_character_glyphs(cb_ui_state* state);
 int init_cb_window(cb_window* w, char* title, uint position[2], uint size[2]);

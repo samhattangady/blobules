@@ -117,6 +117,7 @@ int render_chars(cb_ui_state* state) {
     glBindTexture(GL_TEXTURE_2D, 0);
     state->values.vertex_buffer.chars_occupied = 0;
     memset(state->values.vertex_buffer.vertex_buffer, 0, sizeof(float)*CHAR_BUFFER_SIZE*24);
+    return 0;
 }
 
 int init_ui(cb_ui_state* state) {
@@ -260,8 +261,9 @@ float get_text_width(cb_ui_state* state, char* text) {
     for (int i=0; i<strlen(text); i++) {
         char c = text[i];
         stbtt_aligned_quad q;
+        x = 0.0;
         stbtt_GetBakedQuad(state->glyphs, 512,512, c, &x, &y, &q, 1);
-        w += q.x1-q.x0;
+        w += x;
     }
     return w;
 }
@@ -273,6 +275,7 @@ int append_widget(cb_widget_array* array, cb_widget w) {
     }
     array->widgets[array->used] = w;
     array->used++;
+    return 0;
 }
 
 int add_text(cb_ui_state* state, cb_window* window, char* text, bool newline) {
@@ -282,6 +285,7 @@ int add_text(cb_ui_state* state, cb_window* window, char* text, bool newline) {
     append_widget(&window->widgets, b);
     if (newline)
         new_line(state, window, false);
+    return 0;
 }
 
 bool mouse_in(cb_ui_state* state, cb_window* window, uint pos[2], uint size[2]) {
@@ -315,6 +319,7 @@ int new_line(cb_ui_state* state, cb_window* window, bool padding) {
     if (padding) {
         window->current_y += BUTTON_PADDING;
     }
+    return 0;
 }
 
 int vert_spacer(cb_ui_state* state, cb_window* window, bool padding) {
@@ -322,6 +327,7 @@ int vert_spacer(cb_ui_state* state, cb_window* window, bool padding) {
     if (padding) {
         window->current_x += BUTTON_PADDING;
     }
+    return 0;
 }
 
 int clear_window(cb_ui_state* state, cb_window* window) {
@@ -355,5 +361,6 @@ int cb_render_window(cb_ui_state* state, cb_window* window) {
     clear_window(state, window);
     state->mouse.l_released = false;
     state->mouse.r_released = false;
+    return 0;
 }
 

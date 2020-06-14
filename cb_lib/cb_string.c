@@ -51,6 +51,7 @@ int clear_string(string* s) {
 
 int print_string(string* s) {
     printf(s->text);
+    return 0;
 }
 
 int dispose_string(string* base) {

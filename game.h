@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include "cb_lib/cb_types.h"
 #include "ui.h"
-//#include <GLFW/glfw3.h>
 #include "game_settings.h"
 
 typedef enum {
@@ -95,14 +94,38 @@ typedef struct {
     uint data;
 } entity_data;
 
+typedef enum {
+    MAIN_MENU,
+    LEVEL_SELECT,
+    IN_GAME,
+    EXIT,
+} world_mode;
+
+typedef struct {
+    string text;
+} menu_option;
+
+typedef struct {
+    int active_option;
+    uint total_options;
+    menu_option options[10];
+} main_menu_struct;
+
 typedef struct {
     uint size;
     uint x_size;
     uint y_size;
     uint z_size;
+    world_mode active_mode;
+    main_menu_struct main_menu;
     bool animating;
     uint entities_occupied;
     uint animations_occupied;
+    // TODO (14 Jun 2020 sam): Figure out whether this stuff should actually
+    // be on the heap... I had moved it onto the stack at some point, but I
+    // don't really know whether that is more efficient/performant. Also, this
+    // whole system might need to be redesigned, and ideally put into a single
+    // struct.
     uint grid_data[MAX_WORLD_ENTITIES];
     entity_data entities[MAX_WORLD_ENTITIES];
     animation_state animations[MAX_WORLD_ENTITIES/16];
@@ -115,6 +138,12 @@ typedef struct {
     editor_data editor;
     world_history history;
 } world;
+
+int init_main_menu(world* w);
+int next_option(world* w);
+int previous_option(world* w);
+int select_active_option(world* w);
+
 
 int init_world(world* w, uint number);
 int get_position_index(world* w, int x, int y, int z);

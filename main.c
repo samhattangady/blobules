@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
     uint window_size[2] = {UI_WIDTH, WINDOW_HEIGHT};
     init_cb_window(&w.editor.ui_window, "Level Editor", window_pos, window_size);
     printf("starting game loop\n");
-    while (!glfwWindowShouldClose(r.window)) {
+    while (!glfwWindowShouldClose(r.window) && w.active_mode != EXIT) {
         frame += 1;
         // gettimeofday(&current_time, NULL);
         clock_time = clock();

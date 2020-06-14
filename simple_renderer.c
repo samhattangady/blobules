@@ -141,6 +141,7 @@ float get_entity_material(entity_type type) {
         return 10.0;
     if (type == REFLECTOR)
         return 11.0;
+    return 0;
 }
 
 float get_block_size_x(entity_type type) {
@@ -243,15 +244,13 @@ int update_vertex_buffer(renderer* r, world* w) {
     return 0;
 }
 
-int render_scene(renderer* r, world* w) {
+int render_game_scene(renderer* r, world* w) {
     update_vertex_buffer(r, w);
     glUseProgram(r->shader.shader_program);
     glLinkProgram(r->shader.shader_program);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, r->shader.texture);
     glBindVertexArray(r->shader.vao);
-    glClearColor(0.1, 0.1, 0.101, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT);
     glBindBuffer(GL_ARRAY_BUFFER, r->shader.vbo);
     glBufferData(GL_ARRAY_BUFFER, r->buffer_size, r->vertex_buffer, GL_DYNAMIC_DRAW);
     int position_attribute = glGetAttribLocation(r->shader.shader_program, "position");
@@ -267,4 +266,23 @@ int render_scene(renderer* r, world* w) {
     glViewport(0, 0, r->size[0], r->size[1]);
     glDrawArrays(GL_TRIANGLES, 0, w->size*6);
     return 0;
+}
+
+int render_menu_scene(renderer* r, world* w) {
+    // TODO (14 Jun 2020 sam): Keep the ui state in a more accessible location
+    for (int i=0; i<w->main_menu.total_options; i++) {
+        cb_ui_render_text(w->editor.ui_state, w->main_menu.options[i].text.text,
+                          100, 100+(i*30));
+    }
+    cb_ui_render_rectangle(w->editor.ui_state, 95, 95+(w->main_menu.active_option*30), 100, 21, 0.5);
+    return 0;
+}
+
+int render_scene(renderer* r, world* w) {
+    glClearColor(0.1, 0.1, 0.101, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    if (w->active_mode == IN_GAME)
+        render_game_scene(r, w);
+    if (w->active_mode == MAIN_MENU)
+        render_menu_scene(r, w);
 }
