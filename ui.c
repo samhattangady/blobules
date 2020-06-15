@@ -27,13 +27,13 @@ int compile_and_link_text_shader(uint* vertex_shader, uint* fragment_shader, uin
     glShaderSource(*vertex_shader, 1, &vertex_source.text, NULL);
     glCompileShader(*vertex_shader);
     cb_ui_test_shader_compilation(*vertex_shader, "text vertex");
-    
+
     string fragment_source = read_file("glsl/text_fragment.glsl");
     *fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(*fragment_shader, 1, &fragment_source.text, NULL);
     glCompileShader(*fragment_shader);
     cb_ui_test_shader_compilation(*fragment_shader, "text fragment");
-    
+
     *shader_program = glCreateProgram();
     glAttachShader(*shader_program, *vertex_shader);
     glAttachShader(*shader_program, *fragment_shader);
@@ -64,9 +64,11 @@ int init_gl_values(cb_ui_state* state) {
     uint text_shader_program;
     compile_and_link_text_shader(&text_vertex_shader, &text_fragment_shader, &text_shader_program);
     printf("mallocing... text vertex buffer\n");
-    float* vb = (float*) malloc(sizeof(float) * CHAR_BUFFER_SIZE * 24);
-    char_vertex_buffer_data vertex_buffer = {0, vb};
-    gl_values values = {VAO, VBO, text_vertex_shader, text_fragment_shader, text_shader_program, vertex_buffer};
+    float* cb = (float*) malloc(sizeof(float) * CHAR_BUFFER_SIZE * 24);
+    vertex_buffer_data char_buffer = {0, cb};
+    float* rb = (float*) malloc(sizeof(float) * CHAR_BUFFER_SIZE * 24);
+    vertex_buffer_data rect_buffer = {0, rb};
+    gl_values values = {VAO, VBO, text_vertex_shader, text_fragment_shader, text_shader_program, rect_buffer, char_buffer};
     state->values = values;
     return 0;
 }
@@ -101,8 +103,8 @@ int init_character_glyphs(cb_ui_state* state) {
 }
 
 int render_chars(cb_ui_state* state) {
-    glUseProgram(state->values.shader_program);
     glLinkProgram(state->values.shader_program);
+    glUseProgram(state->values.shader_program);
     glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), WINDOW_WIDTH, WINDOW_HEIGHT);
     glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 1, 1, 1, 1);
     glUniform1i(glGetUniformLocation(state->values.shader_program, "mode"), 1);
@@ -110,13 +112,33 @@ int render_chars(cb_ui_state* state) {
     glBindTexture(GL_TEXTURE_2D, state->font_texture);
     glBindVertexArray(state->values.vao);
     glBindBuffer(GL_ARRAY_BUFFER, state->values.vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*CHAR_BUFFER_SIZE*24, state->values.vertex_buffer.vertex_buffer, GL_DYNAMIC_DRAW);
-    glDrawArrays(GL_TRIANGLES, 0, state->values.vertex_buffer.chars_occupied*6);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*CHAR_BUFFER_SIZE*24, state->values.char_buffer.vertex_buffer, GL_DYNAMIC_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, state->values.char_buffer.occupied*6);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
-    state->values.vertex_buffer.chars_occupied = 0;
-    memset(state->values.vertex_buffer.vertex_buffer, 0, sizeof(float)*CHAR_BUFFER_SIZE*24);
+    state->values.char_buffer.occupied = 0;
+    memset(state->values.char_buffer.vertex_buffer, 0, sizeof(float)*CHAR_BUFFER_SIZE*24);
+    return 0;
+}
+
+int render_rectangles(cb_ui_state* state) {
+    glLinkProgram(state->values.shader_program);
+    glUseProgram(state->values.shader_program);
+    glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), WINDOW_WIDTH, WINDOW_HEIGHT);
+    glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 0.2, 0.2, 0.23, 0.2);
+    glUniform1i(glGetUniformLocation(state->values.shader_program, "mode"), 2);
+    glActiveTexture(GL_TEXTURE0);
+    glBindVertexArray(state->values.vao);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, state->values.vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*CHAR_BUFFER_SIZE*24, state->values.rect_buffer.vertex_buffer, GL_DYNAMIC_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, state->values.rect_buffer.occupied*6);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    state->values.rect_buffer.occupied = 0;
+    memset(state->values.rect_buffer.vertex_buffer, 0, sizeof(float)*CHAR_BUFFER_SIZE*24);
     return 0;
 }
 
@@ -131,31 +153,47 @@ int init_ui(cb_ui_state* state) {
 int cb_ui_render_rectangle(cb_ui_state* state, float xpos, float ypos, float w, float h, float opacity) {
     // TODO (12 May 2020 sam): Don't use multiple draw calls for each rect. Add it to
     // the same buffer as the chars if required.
-    glUseProgram(state->values.shader_program);
-    glLinkProgram(state->values.shader_program);
-    glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), WINDOW_WIDTH, WINDOW_HEIGHT);
-    glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 0.2, 0.2, 0.23, opacity);
-    glUniform1i(glGetUniformLocation(state->values.shader_program, "mode"), 2);
-    glActiveTexture(GL_TEXTURE0);
-    glBindVertexArray(state->values.vao);
     // we want text coordinates to be passed with top left of window as (0,0)
     ypos = WINDOW_HEIGHT-ypos;
-    GLfloat ui_vertices[6][4] = {
-        { xpos,   ypos,   0.0, 0.0 },
-        { xpos,   ypos-h,       1.0, 1.0 },
-        { xpos+w, ypos,   1.0, 0.0 },
-        
-        { xpos,   ypos-h,       1.0, 1.0 },
-        { xpos+w,   ypos-h,   0.0, 0.0 },
-        { xpos+w, ypos,   0.0, 1.0 },
-    };
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glBindBuffer(GL_ARRAY_BUFFER, state->values.vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(ui_vertices), ui_vertices);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    uint index = state->values.rect_buffer.occupied;
+    if (index >= CHAR_BUFFER_SIZE*24) {
+        render_rectangles(state);
+        index = 0;
+    }
+    // GLfloat ui_vertices[6][4] = {
+    //     { xpos,   ypos,   0.0, 0.0 },
+    //     { xpos,   ypos-h,       1.0, 1.0 },
+    //     { xpos+w, ypos,   1.0, 0.0 },
+    //
+    //     { xpos,   ypos-h,       1.0, 1.0 },
+    //     { xpos+w,   ypos-h,   0.0, 0.0 },
+    //     { xpos+w, ypos,   0.0, 1.0 },
+    // };
+    state->values.rect_buffer.occupied += 24;
+    state->values.rect_buffer.vertex_buffer[index +  0] = xpos;
+    state->values.rect_buffer.vertex_buffer[index +  1] = ypos;
+    state->values.rect_buffer.vertex_buffer[index +  2] = 0.0;
+    state->values.rect_buffer.vertex_buffer[index +  3] = 0.0;
+    state->values.rect_buffer.vertex_buffer[index +  4] = xpos;
+    state->values.rect_buffer.vertex_buffer[index +  5] = ypos-h;
+    state->values.rect_buffer.vertex_buffer[index +  6] = 1.0;
+    state->values.rect_buffer.vertex_buffer[index +  7] = 1.0;
+    state->values.rect_buffer.vertex_buffer[index +  8] = xpos+w;
+    state->values.rect_buffer.vertex_buffer[index +  9] = ypos;
+    state->values.rect_buffer.vertex_buffer[index + 10] = 1.0;
+    state->values.rect_buffer.vertex_buffer[index + 11] = 0.0;
+    state->values.rect_buffer.vertex_buffer[index + 12] = xpos;
+    state->values.rect_buffer.vertex_buffer[index + 13] = ypos-h;
+    state->values.rect_buffer.vertex_buffer[index + 14] = 1.0;
+    state->values.rect_buffer.vertex_buffer[index + 15] = 1.0;
+    state->values.rect_buffer.vertex_buffer[index + 16] = xpos+w;
+    state->values.rect_buffer.vertex_buffer[index + 17] = ypos-h;
+    state->values.rect_buffer.vertex_buffer[index + 18] = 0.0;
+    state->values.rect_buffer.vertex_buffer[index + 19] = 0.0;
+    state->values.rect_buffer.vertex_buffer[index + 20] = xpos+w;
+    state->values.rect_buffer.vertex_buffer[index + 21] = ypos;
+    state->values.rect_buffer.vertex_buffer[index + 22] = 0.0;
+    state->values.rect_buffer.vertex_buffer[index + 23] = 1.0;
     return 0;
 }
 
@@ -179,68 +217,36 @@ int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y) {
                 float dx = current.dx;
                 float dy = current.dy;
         */
-        uint index = state->values.vertex_buffer.chars_occupied;
+        uint index = state->values.char_buffer.occupied;
         if (index >= CHAR_BUFFER_SIZE*24) {
             render_chars(state);
             index = 0;
         }
-        state->values.vertex_buffer.chars_occupied += 24;
-        state->values.vertex_buffer.vertex_buffer[index + 0] = q.x0;
-        state->values.vertex_buffer.vertex_buffer[index + 1] = q.y1-yoff;
-        state->values.vertex_buffer.vertex_buffer[index + 2] = q.s0;
-        state->values.vertex_buffer.vertex_buffer[index + 3] = q.t0;
-        state->values.vertex_buffer.vertex_buffer[index + 4] = q.x0;
-        state->values.vertex_buffer.vertex_buffer[index + 5] = q.y0-yoff;
-        state->values.vertex_buffer.vertex_buffer[index + 6] = q.s0;
-        state->values.vertex_buffer.vertex_buffer[index + 7] = q.t1;
-        state->values.vertex_buffer.vertex_buffer[index + 8] = q.x1;
-        state->values.vertex_buffer.vertex_buffer[index + 9] = q.y0-yoff;
-        state->values.vertex_buffer.vertex_buffer[index + 10] = q.s1;
-        state->values.vertex_buffer.vertex_buffer[index + 11] = q.t1;
-        state->values.vertex_buffer.vertex_buffer[index + 12] = q.x0;
-        state->values.vertex_buffer.vertex_buffer[index + 13] = q.y1-yoff;
-        state->values.vertex_buffer.vertex_buffer[index + 14] = q.s0;
-        state->values.vertex_buffer.vertex_buffer[index + 15] = q.t0;
-        state->values.vertex_buffer.vertex_buffer[index + 16] = q.x1;
-        state->values.vertex_buffer.vertex_buffer[index + 17] = q.y0-yoff;
-        state->values.vertex_buffer.vertex_buffer[index + 18] = q.s1;
-        state->values.vertex_buffer.vertex_buffer[index + 19] = q.t1;
-        state->values.vertex_buffer.vertex_buffer[index + 20] = q.x1;
-        state->values.vertex_buffer.vertex_buffer[index + 21] = q.y1-yoff;
-        state->values.vertex_buffer.vertex_buffer[index + 22] = q.s1;
-        state->values.vertex_buffer.vertex_buffer[index + 23] = q.t0;
-        /*
-        state->values.vertex_buffer.vertex_buffer[index + 0] = 0.0;
-        state->values.vertex_buffer.vertex_buffer[index + 1] = WINDOW_HEIGHT;
-        state->values.vertex_buffer.vertex_buffer[index + 2] = 0.0;
-        state->values.vertex_buffer.vertex_buffer[index + 3] = 0.0;
-        
-        state->values.vertex_buffer.vertex_buffer[index + 4] = 0.0;
-        state->values.vertex_buffer.vertex_buffer[index + 5] = 0.0;
-        state->values.vertex_buffer.vertex_buffer[index + 6] = 0.0;
-        state->values.vertex_buffer.vertex_buffer[index + 7] = 1.0;
-        
-        state->values.vertex_buffer.vertex_buffer[index + 8] = WINDOW_WIDTH;
-        state->values.vertex_buffer.vertex_buffer[index + 9] = 0.0;
-        state->values.vertex_buffer.vertex_buffer[index + 10] = 1.0;
-        state->values.vertex_buffer.vertex_buffer[index + 11] = 1.0;
-        
-        state->values.vertex_buffer.vertex_buffer[index + 12] = 0.0;
-        state->values.vertex_buffer.vertex_buffer[index + 13] = WINDOW_HEIGHT;
-        state->values.vertex_buffer.vertex_buffer[index + 14] = 0.0;
-        state->values.vertex_buffer.vertex_buffer[index + 15] = 0.0;
-        
-        state->values.vertex_buffer.vertex_buffer[index + 16] = WINDOW_WIDTH;
-        state->values.vertex_buffer.vertex_buffer[index + 17] = 0.0;
-        state->values.vertex_buffer.vertex_buffer[index + 18] = 1.0;
-        state->values.vertex_buffer.vertex_buffer[index + 19] = 1.0;
-        
-        state->values.vertex_buffer.vertex_buffer[index + 20] = WINDOW_WIDTH;
-        state->values.vertex_buffer.vertex_buffer[index + 21] = WINDOW_HEIGHT;
-        state->values.vertex_buffer.vertex_buffer[index + 22] = 1.0;
-        state->values.vertex_buffer.vertex_buffer[index + 23] = 0.0;
-        */
-        //x += (current.advance >> 6);
+        state->values.char_buffer.occupied += 24;
+        state->values.char_buffer.vertex_buffer[index + 0] = q.x0;
+        state->values.char_buffer.vertex_buffer[index + 1] = q.y1-yoff;
+        state->values.char_buffer.vertex_buffer[index + 2] = q.s0;
+        state->values.char_buffer.vertex_buffer[index + 3] = q.t0;
+        state->values.char_buffer.vertex_buffer[index + 4] = q.x0;
+        state->values.char_buffer.vertex_buffer[index + 5] = q.y0-yoff;
+        state->values.char_buffer.vertex_buffer[index + 6] = q.s0;
+        state->values.char_buffer.vertex_buffer[index + 7] = q.t1;
+        state->values.char_buffer.vertex_buffer[index + 8] = q.x1;
+        state->values.char_buffer.vertex_buffer[index + 9] = q.y0-yoff;
+        state->values.char_buffer.vertex_buffer[index + 10] = q.s1;
+        state->values.char_buffer.vertex_buffer[index + 11] = q.t1;
+        state->values.char_buffer.vertex_buffer[index + 12] = q.x0;
+        state->values.char_buffer.vertex_buffer[index + 13] = q.y1-yoff;
+        state->values.char_buffer.vertex_buffer[index + 14] = q.s0;
+        state->values.char_buffer.vertex_buffer[index + 15] = q.t0;
+        state->values.char_buffer.vertex_buffer[index + 16] = q.x1;
+        state->values.char_buffer.vertex_buffer[index + 17] = q.y0-yoff;
+        state->values.char_buffer.vertex_buffer[index + 18] = q.s1;
+        state->values.char_buffer.vertex_buffer[index + 19] = q.t1;
+        state->values.char_buffer.vertex_buffer[index + 20] = q.x1;
+        state->values.char_buffer.vertex_buffer[index + 21] = q.y1-yoff;
+        state->values.char_buffer.vertex_buffer[index + 22] = q.s1;
+        state->values.char_buffer.vertex_buffer[index + 23] = q.t0;
     }
     return 0;
 }
@@ -364,3 +370,8 @@ int cb_render_window(cb_ui_state* state, cb_window* window) {
     return 0;
 }
 
+int render_ui(cb_ui_state* state) {
+    render_rectangles(state);
+    render_chars(state);
+    return 0;
+}

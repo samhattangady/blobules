@@ -246,8 +246,8 @@ int update_vertex_buffer(renderer* r, world* w) {
 
 int render_game_scene(renderer* r, world* w) {
     update_vertex_buffer(r, w);
-    glUseProgram(r->shader.shader_program);
     glLinkProgram(r->shader.shader_program);
+    glUseProgram(r->shader.shader_program);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, r->shader.texture);
     glBindVertexArray(r->shader.vao);

@@ -112,6 +112,10 @@ typedef struct {
 } main_menu_struct;
 
 typedef struct {
+    
+} level_select_struct;
+
+typedef struct {
     uint size;
     uint x_size;
     uint y_size;

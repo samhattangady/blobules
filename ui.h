@@ -21,9 +21,9 @@ typedef struct ft_char {
 } ft_char;
 
 typedef struct {
-    uint chars_occupied;
+    uint occupied;
     float* vertex_buffer;
-} char_vertex_buffer_data;
+} vertex_buffer_data;
 
 typedef struct gl_values {
     uint vao;
@@ -31,7 +31,8 @@ typedef struct gl_values {
     uint vertex_shader;
     uint fragment_shader;
     uint shader_program;
-    char_vertex_buffer_data vertex_buffer;
+    vertex_buffer_data rect_buffer;
+    vertex_buffer_data char_buffer;
 } gl_values;
 
 typedef enum {
@@ -93,5 +94,6 @@ int new_line(cb_ui_state* state, cb_window* window, bool padding);
 int vert_spacer(cb_ui_state* state, cb_window* window, bool padding);
 int cb_render_window(cb_ui_state* state, cb_window* window);
 int render_chars(cb_ui_state* state);
+int render_ui(cb_ui_state* state);
 
 #endif

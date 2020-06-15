@@ -17,14 +17,14 @@ int main(int argc, char** argv) {
     renderer r;
     init_renderer(&r, "blobules");
     cb_ui_state ui_state;
-    
+
     printf("initting ui\n");
     init_ui(&ui_state);
     printf("initted ui\n");
     w.editor.ui_state = &ui_state;
-    
+
     uint frame = 0;
-    
+
     //struct timeval start_time;
     //struct timeval current_time;
     clock_t clock_time;
@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
     float seconds = 0.0;
     //gettimeofday(&start_time, NULL);
     double mouse_x, mouse_y;
-    
+
     uint window_pos[2] = {20, 40};
     uint window_size[2] = {UI_WIDTH, WINDOW_HEIGHT};
     init_cb_window(&w.editor.ui_window, "Level Editor", window_pos, window_size);
@@ -50,6 +50,8 @@ int main(int argc, char** argv) {
         process_inputs(r.window, &w, seconds);
         render_scene(&r, &w);
         if (w.editor.editor_enabled) {
+            // TODO (15 Jun 2020 sam): Move this method to some other file. It's too much
+            // of a mess here...
             char active_z_level[32];
             add_text(&ui_state, &w.editor.ui_window, w.levels.levels[w.current_level].text, true);
             sprintf(active_z_level, "z_level: %i", w.editor.z_level);
@@ -120,7 +122,6 @@ int main(int argc, char** argv) {
                 change_world_ysize(&w, -1, 1);
             }
             vert_spacer(&ui_state, &w.editor.ui_window, true);
-            
             if (add_button(&ui_state, &w.editor.ui_window, "del row bottom", true)) {
                 change_world_ysize(&w, -1, -1);
             }
@@ -140,10 +141,10 @@ int main(int argc, char** argv) {
         cb_ui_render_text(&ui_state, fps_counter, WINDOW_WIDTH-100, 20);
         cb_ui_render_text(&ui_state, cps_counter, WINDOW_WIDTH-100, 40);
         //printf("%f cps\n", cps_counter);
-        render_chars(&ui_state);
+        render_ui(&ui_state);
+        // Sleep(1000);
         glfwSwapBuffers(r.window);
     }
-    
     // TODO (05 Apr 2020 sam): Run all the closing and exit things...
     return 0;
 }
