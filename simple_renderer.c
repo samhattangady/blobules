@@ -60,7 +60,7 @@ int init_renderer(renderer* r, char* window_name) {
     int window_height = WINDOW_HEIGHT;
     int window_width = WINDOW_WIDTH;
     printf("trying to create window\n");
-    
+
     window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, window_name, NULL, NULL);
     if (!window) {
         printf("GLFW could not create a window...\n");
@@ -68,30 +68,30 @@ int init_renderer(renderer* r, char* window_name) {
         return -1;
     }
     glfwMakeContextCurrent(window);
-    
+
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
         printf("GLEW could not initiate.\n");
         return -1;
     }
-    
+
     glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
+
     uint vao;
     uint vbo;
     uint vertex_shader;
     uint fragment_shader;
     uint shader_program;
-    
+
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
     glGenBuffers(1, &vbo);
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     shader_program = glCreateProgram();
-    
+
     int width, height, nrChannels;
     // set the texture wrapping/filtering options (on the currently bound texture object)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);

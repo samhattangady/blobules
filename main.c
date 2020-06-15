@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
             // TODO (15 Jun 2020 sam): Move this method to some other file. It's too much
             // of a mess here...
             char active_z_level[32];
-            add_text(&ui_state, &w.editor.ui_window, w.levels.levels[w.current_level].text, true);
+            add_text(&ui_state, &w.editor.ui_window, w.level_select.levels[w.level_select.current_level].name.text, true);
             sprintf(active_z_level, "z_level: %i", w.editor.z_level);
             add_text(&ui_state, &w.editor.ui_window, active_z_level, true);
             char active_block[48];

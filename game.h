@@ -112,7 +112,22 @@ typedef struct {
 } main_menu_struct;
 
 typedef struct {
-    
+    string name;
+    // TODO (15 Jun 2020 sam): This is unused. Currently we still load data from file.
+    string data;
+    float xpos;
+    float ypos;
+    // uint index;
+    int up_index;
+    int down_index;
+    int left_index;
+    int right_index;
+} level_option;
+
+typedef struct {
+    level_option* levels;
+    uint current_level;
+    uint total_levels;
 } level_select_struct;
 
 typedef struct {
@@ -122,6 +137,7 @@ typedef struct {
     uint z_size;
     world_mode active_mode;
     main_menu_struct main_menu;
+    level_select_struct level_select;
     bool animating;
     uint entities_occupied;
     uint animations_occupied;
@@ -136,8 +152,8 @@ typedef struct {
     vec3i player_position;
     player_input input;
     player_state player;
-    uint current_level;
-    levels_list levels;
+    // uint current_level;
+    // levels_list levels;
     float seconds;
     editor_data editor;
     world_history history;

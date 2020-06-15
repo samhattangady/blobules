@@ -161,25 +161,26 @@ char get_entity_char(entity_type et) {
     return ' ';
 }
 
-levels_list load_levels_list() {
+int load_levels_list(level_select_struct* l) {
+    printf("mallocing... load_levels_list\n");
+    level_option* levels = (level_option*) malloc(sizeof(level_option)*TOTAL_NUM_LEVELS);
+    string levels_data = read_file(LEVEL_LISTING);
     // TODO (15 Apr 2020 sam): PERFORMANCE. Looping through string twice
-    string levels = read_file(LEVEL_LISTING);
     uint n = 0;
     char c;
     for (int i=0; true; i++) {
-        if (levels.text[i] == '\n')
+        if (levels_data.text[i] == '\n')
             n++;
-        if (levels.text[i] == '\0')
+        if (levels_data.text[i] == '\0')
             break;
     }
-    printf("mallocing... load_leves_list\n");
-    string* l = (string*) malloc(sizeof(string) * n);
     string tmp = empty_string();
     n = 0;
     for (int i=0; true; i++) {
-        c = levels.text[i];
+        c = levels_data.text[i];
         if (c == '\n') {
-            l[n] = string_from(tmp.text);
+            level_option lev = {string_from(tmp.text), empty_string(), 0.0, 0.0, -1, -1, -1, -1};
+            levels[n] = lev;
             n++;
             clear_string(&tmp);
         }
@@ -188,9 +189,11 @@ levels_list load_levels_list() {
         else
             append_sprintf(&tmp, "%c", c);
     }
-    levels_list list = {n, l};
+    l->total_levels = n;
+    l->levels = levels;
+    l->current_level = 0;
 	printf("got levels\n");
-    return list;
+    return 0;
 }
 
 int init_entities(world* w) {
@@ -224,8 +227,7 @@ int load_level(world* w) {
     int x, y, z;
     char c = ' ';
     printf("getting level name\n");
-    char* level_name = w->levels.levels[w->current_level].text;
-    //level_name = "C:/Users/user/blobules/031.txt";
+    char* level_name = w->level_select.levels[w->level_select.current_level].name.text;
     printf("loading level %s\n", level_name);
     FILE* level_file = fopen(level_name, "r");
     fscanf(level_file, "%i %i %i\n", &x, &y, &z);
@@ -259,7 +261,7 @@ int save_level(world* w) {
     int x, y, z;
     int index;
     char c = ' ';
-    char* level_name = w->levels.levels[w->current_level].text;
+    char* level_name = w->level_select.levels[w->level_select.current_level].name.text;
     printf("saving level %s\n", level_name);
     FILE* level_file = fopen(level_name, "w");
     fprintf(level_file, "%i %i %i\n", w->x_size, w->y_size, w->z_size);
@@ -279,29 +281,28 @@ int save_level(world* w) {
 }
 
 int load_next_level(world* w) {
-    w->current_level++;
-    if (w->current_level == w->levels.size)
-        w->current_level = 0;
+    w->level_select.current_level++;
+    if (w->level_select.current_level == w->level_select.total_levels)
+        w->level_select.current_level = 0;
     load_level(w);
     return 0;
 }
 
 int load_previous_level(world* w) {
-    w->current_level--;
-    if (w->current_level == -1)
-        w->current_level = w->levels.size-1;
+    w->level_select.current_level--;
+    if (w->level_select.current_level == -1)
+        w->level_select.current_level = w->level_select.total_levels-1;
     load_level(w);
     return 0;
 }
 
 int init_world(world* w, uint number) {
     player_input input = {NO_INPUT, 0.0};
-    levels_list list = load_levels_list();
     world_freezeframe* frames = (world_freezeframe*) malloc(HISTORY_STEPS * sizeof(world_freezeframe));
     world_history history = {0, frames};
     main_menu_struct main_menu;
-    // world tmp = {0, 0, 0, 0, false, 0, 0, {}, {}, {}, {0, 0, 0}, input, ALIVE, 0, list,
-    //   0.0, {false, 0, GROUND, {false, false, 0.0, 0.0}, NULL, {}}, history};
+    level_select_struct level_select;
+    load_levels_list(&level_select);
     mouse_state mouse = {false, false, 0.0, 0.0};
     world tmp;
     // TODO (12 Jun 2020 sam): See whether there is a cleaner way to set this all to 0;
@@ -309,12 +310,13 @@ int init_world(world* w, uint number) {
     tmp.input = input;
     tmp.active_mode = MAIN_MENU;
     tmp.main_menu = main_menu;
+    tmp.level_select = level_select;
     init_main_menu(&tmp);
     tmp.player = ALIVE;
     tmp.editor.editor_enabled = false;
     tmp.editor.mouse = mouse;
-    tmp.current_level=0;
-    tmp.levels = list;
+    // tmp.current_level=0;
+    // tmp.levels = list;
     tmp.history = history;
     *w = tmp;
     load_level(w);
@@ -624,11 +626,11 @@ int save_freezeframe(world* w) {
         w->history.index = num;
     }
     index = w->history.index;
-    w->history.history[index].current_level = w->current_level;
+    w->history.history[index].current_level = w->level_select.current_level;
     for (i=0; i<w->size; i++)
         w->history.history[index].entities[i] = get_entity_char(get_entity_at(w, i));
     // Prevent save if there was no change in the world
-    if (index > 0 && w->history.history[index-1].current_level==w->current_level) {
+    if (index > 0 && w->history.history[index-1].current_level==w->level_select.current_level) {
         bool same = true;
         for (int i=0; i<w->size; i++) {
             if (w->history.history[index-1].entities[i] !=
@@ -648,10 +650,10 @@ int load_previous_freezeframe(world* w) {
     if (w->history.index <= 1) return 0;
     w->history.index--;
     index = w->history.index;
-    if (w->history.history[index].current_level != w->current_level) {
+    if (w->history.history[index].current_level != w->level_select.current_level) {
         // TODO (27 Apr 2020 sam): Changing level requires us to press z twice?
         // Bug needs to be found and fixed.
-        w->current_level = w->history.history[index].current_level;
+        w->level_select.current_level = w->history.history[index].current_level;
         load_level(w);
     }
     init_entities(w);
