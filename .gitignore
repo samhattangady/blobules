@@ -3,6 +3,10 @@ prof_output
 **/*.png~
 *.kra
 *.kra~
+*.*~
+*.lib
+*.obj
+*.pdb
 
 # symlinked libraries
 # cb_string.*

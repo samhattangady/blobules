@@ -1,0 +1,59 @@
+13 Jun 2020
+So yeah just a place for some notes. Would need to set up vimwiki here as
+well to make sure the things are alright. Apart from that I think its largely
+all good.
+
+Umm, now the game has been set up on windows as well, so that is good I
+assume. Would have to set up some of the vimrc stuff here as well, but should
+be fairly straightforward for the most part I guess.
+
+Okay, in terms of plan of action, I'm not sure what I should work on next. I
+remember the "priority was to get a working overall structure of the program
+in place, which essentilly means that we need to set up the main menu as well
+as the
+
+
+Okay, yeah, so I need to start implementing the main menu stuff right? I think
+I should start off with that immediately?
+
+14 Jun 2020
+Okay, again, really need to spend some time and just start putting the work in
+really. (Narrator: And then he spent the next 4 hours on Youtube ¯\_(?)_/¯ )
+
+Alright so main menu. I think lets do that. Actually fps.
+
+So one thing that we currently have is that the ui.c file is what does the text
+rendering. There are two things that we can do in order to do the menu rendering
+Either we give the simple renderer some functionality to do text rendering as well,
+call into ui.c from the renderer. Yeah I think those are the two options that we
+have. I think we should start off with using the existing ui.c code. 
+
+Actually, anyway we are going to have to rewrite large,
+no, use it as it is right now. Let's see what we can do later.
+
+Yeah, alright, implemented the whole menu functionality. (Narrator: yeah
+"WHOLE FUNCTIONALITY")
+There's a bit more to be done there, but for the most part, I think the
+structure is good.
+
+Alright. I guess we could work on the level select screen next? Since the idea
+that I do have is the node based idea, we should prototype some simple version
+of that I guess.
+
+15 Jun 2020
+Agian, I can feel the laziness creeping in, and honestly, it doesn't feel so
+super, I do have to admit. I need to figure out some mechanism that allows me
+to circumvent this same thought spiral.
+
+Largely, I think I really need to get used to the idea that this is _all_
+about delayed gratification. I think at some level I am just not able to
+appreciate that to a large enough extent, and that is the cause of the
+constant distractions and all the other rubbish.
+
+Okay, we also have to figure out how to store and load the levels then right?
+It might be quite a bit of a hassle to do it all in text files. But I guess we
+still should be doing that in any case? At least whike starting off. Later on,
+we can probably move on to make some sort of toolset that would allow us to do
+that. But that's later right. Right now we only need to implement the simplest
+version of that. And I think that everything that we need to have in that
+version has already been covered in the level_select_struct.
