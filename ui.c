@@ -114,7 +114,7 @@ int render_chars(cb_ui_state* state) {
     glBindBuffer(GL_ARRAY_BUFFER, state->values.vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float)*CHAR_BUFFER_SIZE*24, state->values.char_buffer.vertex_buffer, GL_DYNAMIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, state->values.char_buffer.occupied*6);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
     state->values.char_buffer.occupied = 0;
@@ -128,13 +128,14 @@ int render_rectangles(cb_ui_state* state) {
     glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), WINDOW_WIDTH, WINDOW_HEIGHT);
     glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 0.2, 0.2, 0.23, 0.2);
     glUniform1i(glGetUniformLocation(state->values.shader_program, "mode"), 2);
-    glActiveTexture(GL_TEXTURE0);
+    glEnable(GL_TEXTURE_2D);
+    // glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(state->values.vao);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    // glBindTexture(GL_TEXTURE_2D, 0);
     glBindBuffer(GL_ARRAY_BUFFER, state->values.vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float)*CHAR_BUFFER_SIZE*24, state->values.rect_buffer.vertex_buffer, GL_DYNAMIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, state->values.rect_buffer.occupied*6);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
     state->values.rect_buffer.occupied = 0;
@@ -160,15 +161,6 @@ int cb_ui_render_rectangle(cb_ui_state* state, float xpos, float ypos, float w, 
         render_rectangles(state);
         index = 0;
     }
-    // GLfloat ui_vertices[6][4] = {
-    //     { xpos,   ypos,   0.0, 0.0 },
-    //     { xpos,   ypos-h,       1.0, 1.0 },
-    //     { xpos+w, ypos,   1.0, 0.0 },
-    //
-    //     { xpos,   ypos-h,       1.0, 1.0 },
-    //     { xpos+w,   ypos-h,   0.0, 0.0 },
-    //     { xpos+w, ypos,   0.0, 1.0 },
-    // };
     state->values.rect_buffer.occupied += 24;
     state->values.rect_buffer.vertex_buffer[index +  0] = xpos;
     state->values.rect_buffer.vertex_buffer[index +  1] = ypos;
@@ -204,6 +196,8 @@ int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y) {
     for (int i=0; i<strlen(text); i++) {
         char c = text[i];
         float yoff = state->glyphs[c].yoff;
+        // TODO (17 Jun 2020 sam): Move to stb_tt release version. GetBakedQuad is meant
+        // for test/dev. They have some other sets of API for release versions.
         stbtt_aligned_quad q;
         stbtt_GetBakedQuad(state->glyphs, 512,512, c, &x, &y, &q, 1);
         /*
@@ -363,7 +357,7 @@ int cb_render_window(cb_ui_state* state, cb_window* window) {
         }
         cb_ui_render_text(state, w.title, text_x, text_y);
     }
-    render_chars(state);
+    // render_chars(state);
     clear_window(state, window);
     state->mouse.l_released = false;
     state->mouse.r_released = false;

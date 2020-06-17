@@ -278,6 +278,17 @@ int render_menu_scene(renderer* r, world* w) {
     return 0;
 }
 
+int render_level_select(renderer* r, world* w) {
+    // TODO (14 Jun 2020 sam): Keep the ui state in a more accessible location
+    for (int i=0; i<w->level_select.total_levels; i++) {
+        level_option level = w->level_select.levels[i];
+        cb_ui_render_text(w->editor.ui_state, level.name.text, level.xpos, level.ypos);
+    }
+    level_option active_level = w->level_select.levels[w->level_select.current_level];
+    cb_ui_render_rectangle(w->editor.ui_state, active_level.xpos-10, active_level.ypos-5, 200, 21, 0.5);
+    return 0;
+}
+
 int render_scene(renderer* r, world* w) {
     glClearColor(0.1, 0.1, 0.101, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -285,4 +296,6 @@ int render_scene(renderer* r, world* w) {
         render_game_scene(r, w);
     if (w->active_mode == MAIN_MENU)
         render_menu_scene(r, w);
+    if (w->active_mode == LEVEL_SELECT)
+        render_level_select(r, w);
 }

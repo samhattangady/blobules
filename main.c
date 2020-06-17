@@ -140,9 +140,9 @@ int main(int argc, char** argv) {
         sprintf(cps_counter, "%.2f cps", 1.0/((double)clock_time/CLOCKS_PER_SEC));
         cb_ui_render_text(&ui_state, fps_counter, WINDOW_WIDTH-100, 20);
         cb_ui_render_text(&ui_state, cps_counter, WINDOW_WIDTH-100, 40);
-        //printf("%f cps\n", cps_counter);
+        // printf("%f cps\n", cps_counter);
         render_ui(&ui_state);
-        // Sleep(1000);
+        // Sleep(100);
         glfwSwapBuffers(r.window);
     }
     // TODO (05 Apr 2020 sam): Run all the closing and exit things...

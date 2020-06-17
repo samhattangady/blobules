@@ -176,12 +176,31 @@ int load_levels_list(level_select_struct* l) {
     }
     string tmp = empty_string();
     n = 0;
+    int index = 0;
+    level_option lev;
     for (int i=0; true; i++) {
         c = levels_data.text[i];
-        if (c == '\n') {
-            level_option lev = {string_from(tmp.text), empty_string(), 0.0, 0.0, -1, -1, -1, -1};
+        if (c == ' ') {
+            if (index == 0)
+                lev.name = string_from(tmp.text);
+            else if (index == 1)
+                lev.xpos = (float) atof(tmp.text);
+            else if (index == 2)
+                lev.ypos = (float) atof(tmp.text);
+            else if (index == 3)
+                lev.up_index = atoi(tmp.text);
+            else if (index == 4)
+                lev.down_index = atoi(tmp.text);
+            else if (index == 5)
+                lev.left_index = atoi(tmp.text);
+            else if (index == 6)
+                lev.right_index = atoi(tmp.text);
+            index++;
+            clear_string(&tmp);
+        } else if (c == '\n') {
             levels[n] = lev;
             n++;
+            index = 0;
             clear_string(&tmp);
         }
         else if (c == '\0')
@@ -308,7 +327,7 @@ int init_world(world* w, uint number) {
     // TODO (12 Jun 2020 sam): See whether there is a cleaner way to set this all to 0;
     memset(&tmp, 0, sizeof(world));
     tmp.input = input;
-    tmp.active_mode = MAIN_MENU;
+    tmp.active_mode = LEVEL_SELECT;
     tmp.main_menu = main_menu;
     tmp.level_select = level_select;
     init_main_menu(&tmp);
@@ -708,6 +727,8 @@ int set_input(world* w, input_type it, float seconds) {
 void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (global_w->animating)
         return;
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
+        go_to_level_select(global_w);
     if (key == GLFW_KEY_R && action == GLFW_PRESS)
         set_input(global_w, RESTART_LEVEL, global_seconds);
     if (key == GLFW_KEY_N && action == GLFW_PRESS)
@@ -764,24 +785,62 @@ void main_menu_key_callback(GLFWwindow* window, int key, int scancode, int actio
         next_option(global_w);
     if (key == GLFW_KEY_ENTER && (action == GLFW_PRESS || action == GLFW_REPEAT))
         select_active_option(global_w);
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
 int select_active_option(world* w) {
     // TODO (14 Jun 2020 sam): Figure out better way to link option with action?
     if (w->main_menu.active_option == 0)
-	w->active_mode = IN_GAME;
+	    w->active_mode = LEVEL_SELECT;
     if (w->main_menu.active_option == 1)
-	w->active_mode = EXIT;
+	    w->active_mode = EXIT;
+}
+
+int go_to_main_menu(world* w) {
+    printf("goint to main menu\n");
+    w->active_mode = MAIN_MENU;
+}
+int go_to_level_select(world* w) {
+    printf("goint to level select\n");
+    w->active_mode = LEVEL_SELECT;
+}
+
+void level_select_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        set_up_level(global_w);
+    if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        set_down_level(global_w);
+    if (key == GLFW_KEY_ENTER && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        enter_active_level(global_w);
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
+        go_to_main_menu(global_w);
+}
+
+int set_up_level(world* w) {
+    int next = w->level_select.levels[w->level_select.current_level].up_index;
+    if (next != -1)
+        w->level_select.current_level = next;
+}
+
+int set_down_level(world* w) {
+    int next = w->level_select.levels[w->level_select.current_level].down_index;
+    if (next != -1)
+        w->level_select.current_level = next;
+}
+
+int enter_active_level(world* w) {
+    load_level(w);
+    w->active_mode = IN_GAME;
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GL_TRUE);
     if (global_w->active_mode == IN_GAME)
         in_game_key_callback(window, key, scancode, action, mods);
     if (global_w->active_mode == MAIN_MENU)
         main_menu_key_callback(window, key, scancode, action, mods);
-    
+    if (global_w->active_mode == LEVEL_SELECT)
+        level_select_key_callback(window, key, scancode, action, mods);
 }
 
 void add_entity_at_mouse(world* w) {

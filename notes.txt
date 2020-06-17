@@ -57,3 +57,15 @@ we can probably move on to make some sort of toolset that would allow us to do
 that. But that's later right. Right now we only need to implement the simplest
 version of that. And I think that everything that we need to have in that
 version has already been covered in the level_select_struct.
+
+17 Jun 2020
+So yeah, I think that one of the things that I really need to work on is to
+get really into the whole develpmnet stuff. So I _know_ that when I really get
+into it, I enjoy the process, but everyday, I'd just much rather be dreaming
+about getting successful amd all the interviews and podcasts that Id do and
+rubbish, but never about actually doing the actual deed. So that's fairly
+annoying atleast right now. And even just then, I go out and start watching
+some more fucking youtube,,,
+
+Okay, so whats the next step really? I think it must be implementing the level
+select screen right? Yeah, that makes sense right now.

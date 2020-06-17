@@ -1,40 +1,40 @@
-levels/031.txt
-levels/032.txt
-levels/033.txt
-levels/034.txt
-levels/035.txt
-levels/036.txt
-levels/037.txt
-levels/038.txt
-levels/039.txt
-levels/040.txt
-levels/002.txt
-levels/001.txt
-levels/003.txt
-levels/004.txt
-levels/005.txt
-levels/006.txt
-levels/007.txt
-levels/008.txt
-levels/009.txt
-levels/010.txt
-levels/011.txt
-levels/012.txt
-levels/013.txt
-levels/014.txt
-levels/015.txt
-levels/018.txt
-levels/016.txt
-levels/019.txt
-levels/017.txt
-levels/020.txt
-levels/021.txt
-levels/022.txt
-levels/023.txt
-levels/026.txt
-levels/024.txt
-levels/025.txt
-levels/027.txt
-levels/028.txt
-levels/029.txt
-levels/030.txt
+levels/031.txt 100.0 100.0 -1 1 -1 -1
+levels/032.txt 100.0 120.0 0 2 -1 -1
+levels/033.txt 100.0 140.0 1 3 -1 -1
+levels/034.txt 100.0 160.0 2 4 -1 -1
+levels/035.txt 100.0 180.0 3 5 -1 -1
+levels/036.txt 100.0 200.0 4 6 -1 -1
+levels/037.txt 100.0 220.0 5 7 -1 -1
+levels/038.txt 100.0 240.0 6 8 -1 -1
+levels/039.txt 100.0 260.0 7 9 -1 -1
+levels/040.txt 100.0 280.0 8 10 -1 -1
+levels/002.txt 100.0 300.0 9 11 -1 -1
+levels/001.txt 100.0 320.0 10 12 -1 -1
+levels/003.txt 100.0 340.0 11 13 -1 -1
+levels/004.txt 100.0 360.0 12 14 -1 -1
+levels/005.txt 100.0 380.0 13 15 -1 -1
+levels/006.txt 100.0 400.0 14 16 -1 -1
+levels/007.txt 100.0 420.0 15 17 -1 -1
+levels/008.txt 100.0 440.0 16 18 -1 -1
+levels/009.txt 100.0 460.0 17 19 -1 -1
+levels/010.txt 100.0 480.0 18 20 -1 -1
+levels/011.txt 100.0 500.0 19 21 -1 -1
+levels/012.txt 100.0 520.0 20 22 -1 -1
+levels/013.txt 100.0 540.0 21 23 -1 -1
+levels/014.txt 100.0 560.0 22 24 -1 -1
+levels/015.txt 100.0 580.0 23 25 -1 -1
+levels/018.txt 100.0 600.0 24 26 -1 -1
+levels/016.txt 100.0 620.0 25 27 -1 -1
+levels/019.txt 100.0 640.0 26 28 -1 -1
+levels/017.txt 100.0 660.0 27 29 -1 -1
+levels/020.txt 100.0 680.0 28 30 -1 -1
+levels/021.txt 100.0 700.0 29 31 -1 -1
+levels/022.txt 100.0 720.0 30 32 -1 -1
+levels/023.txt 100.0 740.0 31 33 -1 -1
+levels/026.txt 100.0 760.0 32 34 -1 -1
+levels/024.txt 100.0 780.0 33 35 -1 -1
+levels/025.txt 100.0 800.0 34 36 -1 -1
+levels/027.txt 100.0 820.0 35 37 -1 -1
+levels/028.txt 100.0 840.0 36 38 -1 -1
+levels/029.txt 100.0 860.0 37 39 -1 -1
+levels/030.txt 100.0 880.0 38 -1 -1 -1
