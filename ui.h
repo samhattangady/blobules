@@ -26,8 +26,10 @@ typedef struct {
 } vertex_buffer_data;
 
 typedef struct gl_values {
-    uint vao;
-    uint vbo;
+    uint char_vao;
+    uint char_vbo;
+    uint rect_vao;
+    uint rect_vbo;
     uint vertex_shader;
     uint fragment_shader;
     uint shader_program;

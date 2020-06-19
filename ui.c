@@ -7,7 +7,11 @@
 #define DEFAULT_WIDGET_NUMBER 64
 #define PIXEL_SIZE 16
 #define BUTTON_PADDING 4
-#define CHAR_BUFFER_SIZE 512
+// TODO (19 Jun 2020 sam): There is a lot of confusion in the code here in the code.
+// CHAR_BUFFER_SIZE is the number of chars I want to have in the buffer. But each char
+// needs 24 floats. So there tends to be a bunch of confusion about that. Needs to be
+// standardized.
+#define CHAR_BUFFER_SIZE 2048
 
 int cb_ui_test_shader_compilation(uint shader, char* type) {
     int status;
@@ -45,15 +49,33 @@ int compile_and_link_text_shader(uint* vertex_shader, uint* fragment_shader, uin
     return 0;
 }
 
+int clear_buffers(cb_ui_state* state) {
+    state->values.rect_buffer.occupied = 0;
+    memset(state->values.rect_buffer.vertex_buffer, 0, sizeof(float)*CHAR_BUFFER_SIZE*24);
+    state->values.char_buffer.occupied = 0;
+    memset(state->values.char_buffer.vertex_buffer, 0, sizeof(float)*CHAR_BUFFER_SIZE*24);
+    return 0;
+}
+
 int init_gl_values(cb_ui_state* state) {
     glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    uint VAO, VBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    uint char_vao, char_vbo, rect_vao, rect_vbo;
+
+    glGenVertexArrays(1, &rect_vao);
+    glBindVertexArray(rect_vao);
+    glGenBuffers(1, &rect_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, rect_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4 * CHAR_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glGenVertexArrays(1, &char_vao);
+    glBindVertexArray(char_vao);
+    glGenBuffers(1, &char_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, char_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4 * CHAR_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
@@ -68,8 +90,9 @@ int init_gl_values(cb_ui_state* state) {
     vertex_buffer_data char_buffer = {0, cb};
     float* rb = (float*) malloc(sizeof(float) * CHAR_BUFFER_SIZE * 24);
     vertex_buffer_data rect_buffer = {0, rb};
-    gl_values values = {VAO, VBO, text_vertex_shader, text_fragment_shader, text_shader_program, rect_buffer, char_buffer};
+    gl_values values = {char_vao, char_vbo, rect_vao, rect_vbo, text_vertex_shader, text_fragment_shader, text_shader_program, rect_buffer, char_buffer};
     state->values = values;
+    clear_buffers(state);
     return 0;
 }
 
@@ -77,7 +100,6 @@ int init_character_glyphs(cb_ui_state* state) {
     printf("initting character glyphs...\t");
     unsigned char* ttf_buffer = (unsigned char*) malloc(150000);
     unsigned char* temp_bitmap = (unsigned char*) malloc(512*512);
-    printf("1...\t");
     FILE* handler = fopen("fonts/mono.ttf", "rb");
     if (!handler)
         printf("error opening font file I guess...\n");
@@ -86,17 +108,15 @@ int init_character_glyphs(cb_ui_state* state) {
     // TODO (12 May 2020 sam): Don't load from 0 to 128. Figure out the correct
     // range for all chars. Note that you will also have to load the correct char
     // accordingly.
-    printf("2... \t");
-    int loaded = stbtt_BakeFontBitmap(ttf_buffer,0, 16.0, temp_bitmap,512,512, 0,126, state->glyphs);
-    
-    printf("loaded bitmap = %i...\t", loaded);
+    // TODO (18 Jun 2020 sam): Look into the stbtt docs and see what the recommended
+    // way to load fonts is. Because it's not this.
+    stbtt_BakeFontBitmap(ttf_buffer,0, 16.4, temp_bitmap, 512, 512, 0,128, state->glyphs);
     uint font_texture;
     glGenTextures(1, &font_texture);
     glBindTexture(GL_TEXTURE_2D, font_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 512,512, 0, GL_RED, GL_UNSIGNED_BYTE, temp_bitmap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 512, 512, 0, GL_RED, GL_UNSIGNED_BYTE, temp_bitmap);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     state->font_texture = font_texture;
-    // state->glyphs = cdata;
     free(ttf_buffer);
     free(temp_bitmap);
     return 0;
@@ -109,12 +129,14 @@ int render_chars(cb_ui_state* state) {
     glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 1, 1, 1, 1);
     glUniform1i(glGetUniformLocation(state->values.shader_program, "mode"), 1);
     glEnable(GL_TEXTURE_2D);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, state->font_texture);
-    glBindVertexArray(state->values.vao);
-    glBindBuffer(GL_ARRAY_BUFFER, state->values.vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*CHAR_BUFFER_SIZE*24, state->values.char_buffer.vertex_buffer, GL_DYNAMIC_DRAW);
+    glBindVertexArray(state->values.char_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, state->values.char_vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float)*CHAR_BUFFER_SIZE*24, state->values.char_buffer.vertex_buffer);
+    printf("draw chars\t");
     glDrawArrays(GL_TRIANGLES, 0, state->values.char_buffer.occupied*6);
-    // glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
     state->values.char_buffer.occupied = 0;
@@ -129,13 +151,14 @@ int render_rectangles(cb_ui_state* state) {
     glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 0.2, 0.2, 0.23, 0.2);
     glUniform1i(glGetUniformLocation(state->values.shader_program, "mode"), 2);
     glEnable(GL_TEXTURE_2D);
-    // glActiveTexture(GL_TEXTURE0);
-    glBindVertexArray(state->values.vao);
-    // glBindTexture(GL_TEXTURE_2D, 0);
-    glBindBuffer(GL_ARRAY_BUFFER, state->values.vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*CHAR_BUFFER_SIZE*24, state->values.rect_buffer.vertex_buffer, GL_DYNAMIC_DRAW);
+    glActiveTexture(GL_TEXTURE0);
+    glBindVertexArray(state->values.rect_vao);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, state->values.rect_vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float)*CHAR_BUFFER_SIZE*24, state->values.rect_buffer.vertex_buffer);
+    printf("draw rects\t");
     glDrawArrays(GL_TRIANGLES, 0, state->values.rect_buffer.occupied*6);
-    // glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
     state->values.rect_buffer.occupied = 0;
@@ -152,8 +175,8 @@ int init_ui(cb_ui_state* state) {
 }
 
 int cb_ui_render_rectangle(cb_ui_state* state, float xpos, float ypos, float w, float h, float opacity) {
-    // TODO (12 May 2020 sam): Don't use multiple draw calls for each rect. Add it to
-    // the same buffer as the chars if required.
+    // TODO (18 Jun 2020 sam): We have removed the opacity functionality when we started
+    // batch drawing the rectangles. Might need to be fixed.
     // we want text coordinates to be passed with top left of window as (0,0)
     ypos = WINDOW_HEIGHT-ypos;
     uint index = state->values.rect_buffer.occupied;
@@ -357,7 +380,6 @@ int cb_render_window(cb_ui_state* state, cb_window* window) {
         }
         cb_ui_render_text(state, w.title, text_x, text_y);
     }
-    // render_chars(state);
     clear_window(state, window);
     state->mouse.l_released = false;
     state->mouse.r_released = false;
@@ -367,5 +389,6 @@ int cb_render_window(cb_ui_state* state, cb_window* window) {
 int render_ui(cb_ui_state* state) {
     render_rectangles(state);
     render_chars(state);
+    clear_buffers(state);
     return 0;
 }

@@ -88,6 +88,7 @@ int init_renderer(renderer* r, char* window_name) {
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
     glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     shader_program = glCreateProgram();
@@ -111,6 +112,7 @@ int init_renderer(renderer* r, char* window_name) {
         0, NULL };
     *r = r_;
     r->buffer_size = get_buffer_size();
+    glBufferData(GL_ARRAY_BUFFER, r->buffer_size, NULL, GL_DYNAMIC_DRAW);
     printf("mallocing... vertex_buffer\n");
     r->vertex_buffer = (float*) malloc(r->buffer_size);
     load_shaders(r);
@@ -252,7 +254,7 @@ int render_game_scene(renderer* r, world* w) {
     glBindTexture(GL_TEXTURE_2D, r->shader.texture);
     glBindVertexArray(r->shader.vao);
     glBindBuffer(GL_ARRAY_BUFFER, r->shader.vbo);
-    glBufferData(GL_ARRAY_BUFFER, r->buffer_size, r->vertex_buffer, GL_DYNAMIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, r->buffer_size, r->vertex_buffer);
     int position_attribute = glGetAttribLocation(r->shader.shader_program, "position");
     glEnableVertexAttribArray(position_attribute);
     glVertexAttribPointer(position_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
@@ -264,7 +266,11 @@ int render_game_scene(renderer* r, world* w) {
     glUniform1f(uni_ybyx, WINDOW_HEIGHT*1.0/WINDOW_WIDTH);
     glUniform1f(uni_time, w->seconds);
     glViewport(0, 0, r->size[0], r->size[1]);
+    printf("draw scene\t");
     glDrawArrays(GL_TRIANGLES, 0, w->size*6);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
     return 0;
 }
 
