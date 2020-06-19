@@ -61,6 +61,8 @@ int init_gl_values(cb_ui_state* state) {
     glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // TODO (19 Jun 2020 sam): I'm not sure if we need 2 vaos here. But when I tried to use just
+    // one, the rects stopped working. So I'm not entirely sure what should be done in that case.
     uint char_vao, char_vbo, rect_vao, rect_vbo;
 
     glGenVertexArrays(1, &rect_vao);
@@ -134,7 +136,6 @@ int render_chars(cb_ui_state* state) {
     glBindVertexArray(state->values.char_vao);
     glBindBuffer(GL_ARRAY_BUFFER, state->values.char_vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float)*CHAR_BUFFER_SIZE*24, state->values.char_buffer.vertex_buffer);
-    printf("draw chars\t");
     glDrawArrays(GL_TRIANGLES, 0, state->values.char_buffer.occupied*6);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -156,7 +157,6 @@ int render_rectangles(cb_ui_state* state) {
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindBuffer(GL_ARRAY_BUFFER, state->values.rect_vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float)*CHAR_BUFFER_SIZE*24, state->values.rect_buffer.vertex_buffer);
-    printf("draw rects\t");
     glDrawArrays(GL_TRIANGLES, 0, state->values.rect_buffer.occupied*6);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);

@@ -40,7 +40,6 @@ int main(int argc, char** argv) {
     printf("starting game loop\n");
     while (!glfwWindowShouldClose(r.window) && w.active_mode != EXIT) {
         frame += 1;
-        printf("\nFrame Number: %i\t", frame);
         // gettimeofday(&current_time, NULL);
         clock_time = clock();
 		frame_time = 1.0/60.0;

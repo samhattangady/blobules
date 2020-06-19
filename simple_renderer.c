@@ -266,7 +266,6 @@ int render_game_scene(renderer* r, world* w) {
     glUniform1f(uni_ybyx, WINDOW_HEIGHT*1.0/WINDOW_WIDTH);
     glUniform1f(uni_time, w->seconds);
     glViewport(0, 0, r->size[0], r->size[1]);
-    printf("draw scene\t");
     glDrawArrays(GL_TRIANGLES, 0, w->size*6);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
