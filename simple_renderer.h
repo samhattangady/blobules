@@ -23,6 +23,7 @@ typedef struct {
     int size[2];
     shader_data shader;
     uint buffer_size;
+    uint buffer_occupied;
     float* vertex_buffer;
 } renderer;
 

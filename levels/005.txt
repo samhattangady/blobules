@@ -1,10 +1,9 @@
 8 7 2
-
-.....oo.
-.oooooo.
+....ooo.
+.ooooooo
 .~ooooo.
 .~ooooo.
-.~~~ooT.
+o~~~ooTo
 .oooooo.
 ........
 
@@ -15,3 +14,4 @@
 B...I..B
 .B....B.
 ........
+

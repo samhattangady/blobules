@@ -334,6 +334,8 @@ int init_world(world* w, uint number) {
     tmp.player = ALIVE;
     tmp.editor.editor_enabled = false;
     tmp.editor.mouse = mouse;
+    tmp.editor.z_level = 0;
+    tmp.editor.active_type = GROUND;
     // tmp.current_level=0;
     // tmp.levels = list;
     tmp.history = history;

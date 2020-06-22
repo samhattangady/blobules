@@ -112,6 +112,7 @@ int init_renderer(renderer* r, char* window_name) {
         0, NULL };
     *r = r_;
     r->buffer_size = get_buffer_size();
+    r->buffer_occupied = 0;
     glBufferData(GL_ARRAY_BUFFER, r->buffer_size, NULL, GL_DYNAMIC_DRAW);
     printf("mallocing... vertex_buffer\n");
     r->vertex_buffer = (float*) malloc(r->buffer_size);
@@ -147,6 +148,8 @@ float get_entity_material(entity_type type) {
 }
 
 float get_block_size_x(entity_type type) {
+    if (type==SLIPPERY_GROUND)
+        return 1.0;
     // if (type == PLAYER)
     //     return 0.8;
     // if (type == CUBE)
@@ -159,6 +162,8 @@ float get_block_size_x(entity_type type) {
 float get_block_size_y(entity_type type) {
     if (type == NONE)
         return 1.0;
+    // if (type==SLIPPERY_GROUND)
+    //     return 1.0;
     if (type == GROUND || type == SLIPPERY_GROUND)
         return 1.0;
     return 2.0;
@@ -193,53 +198,74 @@ int get_vertex_buffer_index(world* w, int x, int y, int z) {
     return (z * w->x_size *w-> y_size) + ((w->y_size-1-y) *w->x_size) + x;
 }
 
-int update_vertex_buffer(renderer* r, world* w) {
+bool draw_ground_under(entity_type et) {
+    return (et == SLIPPERY_GROUND || et == HOT_TARGET || et == COLD_TARGET);
+}
+
+void add_vertex_to_buffer(renderer* r, world* w, entity_type et, int x, int y, int z) {
+    if (et == NONE)
+        return;
+    // TODO (20 Jun 2020 sam): See the performance implications of blockx and blocky
+    // This needs to be calculated for every single vertex added to the buffer.
+    // But it's such a simple calculation that I don't know whether the memory overhead
+    // more or less performant...
     float blockx = BLOCK_SIZE*1.0 / WINDOW_WIDTH*1.0;
-    float blocky = blockx * r->size[0] / r->size[1] * 1.0;
+    float blocky = blockx * r->size[0] / r->size[1];
+    int i = get_position_index(w, x, y, z);
+    int j = r->buffer_occupied;
+    r->buffer_occupied++;
+    float material = get_entity_material(et);
+    float x_size = get_block_size_x(et);
+    float y_size = get_block_size_y(et);
+    r->vertex_buffer[(36*j)+ 0] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
+    r->vertex_buffer[(36*j)+ 1] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
+    r->vertex_buffer[(36*j)+ 2] = material;
+    r->vertex_buffer[(36*j)+ 3] = 0.0;
+    r->vertex_buffer[(36*j)+ 4] = 0.0;
+    r->vertex_buffer[(36*j)+ 5] = 1.0;
+    r->vertex_buffer[(36*j)+ 6] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
+    r->vertex_buffer[(36*j)+ 7] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
+    r->vertex_buffer[(36*j)+ 8] = material;
+    r->vertex_buffer[(36*j)+ 9] = 1.0;
+    r->vertex_buffer[(36*j)+10] = 0.0;
+    r->vertex_buffer[(36*j)+11] = 1.0;
+    r->vertex_buffer[(36*j)+12] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
+    r->vertex_buffer[(36*j)+13] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
+    r->vertex_buffer[(36*j)+14] = material;
+    r->vertex_buffer[(36*j)+15] = 0.0;
+    r->vertex_buffer[(36*j)+16] = 1.0;
+    r->vertex_buffer[(36*j)+17] = 1.0;
+    r->vertex_buffer[(36*j)+18] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
+    r->vertex_buffer[(36*j)+19] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
+    r->vertex_buffer[(36*j)+20] = material;
+    r->vertex_buffer[(36*j)+21] = 0.0;
+    r->vertex_buffer[(36*j)+22] = 1.0;
+    r->vertex_buffer[(36*j)+23] = 1.0;
+    r->vertex_buffer[(36*j)+24] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
+    r->vertex_buffer[(36*j)+25] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
+    r->vertex_buffer[(36*j)+26] = material;
+    r->vertex_buffer[(36*j)+27] = 1.0;
+    r->vertex_buffer[(36*j)+28] = 0.0;
+    r->vertex_buffer[(36*j)+29] = 1.0;
+    r->vertex_buffer[(36*j)+30] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
+    r->vertex_buffer[(36*j)+31] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
+    r->vertex_buffer[(36*j)+32] = material;
+    r->vertex_buffer[(36*j)+33] = 1.0;
+    r->vertex_buffer[(36*j)+34] = 1.0;
+    r->vertex_buffer[(36*j)+35] = 1.0;
+}
+
+int update_vertex_buffer(renderer* r, world* w) {
     for (int z=0; z<w->z_size; z++) {
-        for (int y=0; y<w->y_size; y++) {
+        for (int y=w->y_size-1; y>=0; y--) {
             for (int x=0; x<w->x_size; x++) {
-                int i = get_position_index(w, x, y, z);
-                int j = get_vertex_buffer_index(w, x, y, z);
-                float material = get_entity_material(get_entity_at(w, i));
-                float x_size = get_block_size_x(get_entity_at(w, i));
-                float y_size = get_block_size_y(get_entity_at(w, i));
-                r->vertex_buffer[(36*j)+ 0] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
-                r->vertex_buffer[(36*j)+ 1] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
-                r->vertex_buffer[(36*j)+ 2] = material;
-                r->vertex_buffer[(36*j)+ 3] = 0.0;
-                r->vertex_buffer[(36*j)+ 4] = 0.0;
-                r->vertex_buffer[(36*j)+ 5] = 1.0;
-                r->vertex_buffer[(36*j)+ 6] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
-                r->vertex_buffer[(36*j)+ 7] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
-                r->vertex_buffer[(36*j)+ 8] = material;
-                r->vertex_buffer[(36*j)+ 9] = 1.0;
-                r->vertex_buffer[(36*j)+10] = 0.0;
-                r->vertex_buffer[(36*j)+11] = 1.0;
-                r->vertex_buffer[(36*j)+12] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
-                r->vertex_buffer[(36*j)+13] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
-                r->vertex_buffer[(36*j)+14] = material;
-                r->vertex_buffer[(36*j)+15] = 0.0;
-                r->vertex_buffer[(36*j)+16] = 1.0;
-                r->vertex_buffer[(36*j)+17] = 1.0;
-                r->vertex_buffer[(36*j)+18] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
-                r->vertex_buffer[(36*j)+19] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
-                r->vertex_buffer[(36*j)+20] = material;
-                r->vertex_buffer[(36*j)+21] = 0.0;
-                r->vertex_buffer[(36*j)+22] = 1.0;
-                r->vertex_buffer[(36*j)+23] = 1.0;
-                r->vertex_buffer[(36*j)+24] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
-                r->vertex_buffer[(36*j)+25] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
-                r->vertex_buffer[(36*j)+26] = material;
-                r->vertex_buffer[(36*j)+27] = 1.0;
-                r->vertex_buffer[(36*j)+28] = 0.0;
-                r->vertex_buffer[(36*j)+29] = 1.0;
-                r->vertex_buffer[(36*j)+30] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
-                r->vertex_buffer[(36*j)+31] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
-                r->vertex_buffer[(36*j)+32] = material;
-                r->vertex_buffer[(36*j)+33] = 1.0;
-                r->vertex_buffer[(36*j)+34] = 1.0;
-                r->vertex_buffer[(36*j)+35] = 1.0;
+                entity_type et = get_entity_at(w, get_position_index(w, x, y, z));
+                // TODO (20 Jun 2020 sam): Note that we need to work such that hot and cold
+                // target are actually drawn at the z=1 level as well, which is currently
+                // not really supported.
+                if (z==0 && draw_ground_under(et))
+                    add_vertex_to_buffer(r, w, GROUND, x, y, z);
+                add_vertex_to_buffer(r, w, et, x, y, z);
             }
         }
     }
@@ -266,10 +292,12 @@ int render_game_scene(renderer* r, world* w) {
     glUniform1f(uni_ybyx, WINDOW_HEIGHT*1.0/WINDOW_WIDTH);
     glUniform1f(uni_time, w->seconds);
     glViewport(0, 0, r->size[0], r->size[1]);
-    glDrawArrays(GL_TRIANGLES, 0, w->size*6);
+    glDrawArrays(GL_TRIANGLES, 0, r->buffer_size);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
+    memset(r->vertex_buffer, 0, r->buffer_size);
+    r->buffer_occupied = 0;
     return 0;
 }
 

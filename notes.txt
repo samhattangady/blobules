@@ -69,3 +69,50 @@ some more fucking youtube,,,
 
 Okay, so whats the next step really? I think it must be implementing the level
 select screen right? Yeah, that makes sense right now.
+
+19 Jun 2020
+Okay, so I need to do some work today. But to be honest, I'm _really_ happy
+with the progress over the past few days. Sure, it doesn't really look/seem
+like much, but sortwed out all the weird issues, like the flickering and
+things. And yeah, I think that's definitely a good thing. So I think the next
+thing we should probably be working on is getting sound effects into the game?
+I think that may be kinda important.
+
+So okay, I guess some of the things that we need to really get into the game
+would have to be the sounds and the animations. The animation system is
+something that we would have to really figure out from scratch almost I guess.
+Sounds should just be mostly adding some sort of sound controller I guess
+
+APart from that I am just thinking what else really needs to be done. I may be
+missing some very basic elements, but at this point in time, I really am not
+sure what those would be.
+Maybe I could also spend some time on the visual elements of the whole thing.
+Specifically, a grayscale "implementation" of all the elements to get a decent
+grasp of what is really necessary to be developed, and secondly, a demo of
+what we want the main character to look like, with all the shader work and all
+of that done as well. I think if we can start getting all of that done, it
+would definitely be ideal.
+
+20 Jun 2020
+Okay, so what should I be aiming to get done today? I played a demo of the
+monster expedition game, and that looked kinda cool. It has a few more
+elements that I do, but honestly, not exactly looking to compete I don't
+think. So yeah, I think honestly, we are *way* behind on the artwork. I have
+all the tools required now also, so no real good excuses anymore I don't think
+
+Okay. Spend some time on the artwork now then.
+
+22 Jun 2020
+So I think at some point, I reverted to drawing the sprites from the bottom
+left corner. Actually, we should be drawing them from the center so that the
+stuff gets easily overlapped whatever aaaaaa,.
+Now I think I remember why I would have switched to the bottom left version.
+It was because we wanted to draw sprites that were 2 units tall, and in that
+case the corners would be different.
+
+Okay, so what are the important things that need to be worked on right now?
+I'm just trying to get a grasp on that. So we need the better ground tile
+selection stuff. Then the actual krita processing scripts. Some animation
+rendering stuff? Okay, pick one and get to work. I think the krita script is
+the important one. Until we get that, working on the other stuff would require
+a bunch of busywork, which I'm not so keen on doing really.
