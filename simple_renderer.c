@@ -121,35 +121,70 @@ int init_renderer(renderer* r, char* window_name) {
     return 0;
 }
 
-float get_entity_material(entity_type type) {
-    if (type == PLAYER)
+float get_slippery_sprite_position(world* w, int x, int y, int z) {
+    // TODO (23 Jun 2020 sam): I don't know the best way to do something like this really
+    bool top = get_entity_at(w, get_position_index(w, x, y+1, z)) == SLIPPERY_GROUND;
+    bool bottom = get_entity_at(w, get_position_index(w, x, y-1, z)) == SLIPPERY_GROUND;
+    bool left = get_entity_at(w, get_position_index(w, x-1, y, z)) == SLIPPERY_GROUND;
+    bool right = get_entity_at(w, get_position_index(w, x+1, y, z)) == SLIPPERY_GROUND;
+    if (!top && !bottom && !left && !right)
+        return 0.0;
+    if ( top && !bottom && !left && !right)
         return 1.0;
-    if (type == CUBE)
+    if (!top &&  bottom && !left && !right)
         return 2.0;
-    if (type == WALL)
+    if (!top && !bottom && !left &&  right)
         return 3.0;
-    if (type == GROUND)
+    if (!top && !bottom &&  left && !right)
         return 4.0;
-    if (type == NONE)
+    if ( top &&  bottom && !left && !right)
         return 5.0;
-    if (type == SLIPPERY_GROUND)
+    if (!top && !bottom &&  left &&  right)
         return 6.0;
-    if (type == HOT_TARGET)
+    if ( top && !bottom &&  left && !right)
         return 7.0;
-    if (type == COLD_TARGET)
+    if ( top && !bottom && !left &&  right)
         return 8.0;
-    if (type == FURNITURE)
+    if (!top &&  bottom &&  left && !right)
         return 9.0;
-    if (type == DESTROYED_TARGET)
+    if (!top &&  bottom && !left &&  right)
         return 10.0;
-    if (type == REFLECTOR)
+    if ( top &&  bottom &&  left && !right)
         return 11.0;
-    return 0;
+    if ( top &&  bottom && !left &&  right)
+        return 12.0;
+    if ( top && !bottom &&  left &&  right)
+        return 13.0;
+    if (!top &&  bottom &&  left &&  right)
+        return 14.0;
+    if ( top &&  bottom &&  left &&  right)
+        return 15.0;
+    return 0.0;
+}
+
+float get_entity_sprite_position(entity_type type, world* w, int x, int y, int z) {
+    if (type == PLAYER)
+        return 0.0;
+    if (type == CUBE)
+        return 1.0;
+    if (type == WALL)
+        return 2.0;
+    if (type == GROUND)
+        return 3.0;
+    if (type == SLIPPERY_GROUND)
+        return 8.0+get_slippery_sprite_position(w, x, y, z);
+    if (type == HOT_TARGET)
+        return 4.0;
+    if (type == COLD_TARGET)
+        return 5.0;
+    if (type == FURNITURE)
+        return 6.0;
+    if (type == REFLECTOR)
+        return 7.0;
+    return -1.0;
 }
 
 float get_block_size_x(entity_type type) {
-    if (type==SLIPPERY_GROUND)
-        return 1.0;
     // if (type == PLAYER)
     //     return 0.8;
     // if (type == CUBE)
@@ -209,47 +244,49 @@ void add_vertex_to_buffer(renderer* r, world* w, entity_type et, int x, int y, i
     // This needs to be calculated for every single vertex added to the buffer.
     // But it's such a simple calculation that I don't know whether the memory overhead
     // more or less performant...
-    float blockx = BLOCK_SIZE*1.0 / WINDOW_WIDTH*1.0;
-    float blocky = blockx * r->size[0] / r->size[1];
+    float blockx = BLOCK_WIDTH*1.0 / WINDOW_WIDTH*1.0;
+    float blocky = BLOCK_HEIGHT*1.0 / WINDOW_HEIGHT*1.0;
     int i = get_position_index(w, x, y, z);
     int j = r->buffer_occupied;
     r->buffer_occupied++;
-    float material = get_entity_material(et);
+    float sprite_position = get_entity_sprite_position(et, w, x, y, z);
+    if (sprite_position < 0.0)
+        return;
     float x_size = get_block_size_x(et);
     float y_size = get_block_size_y(et);
     r->vertex_buffer[(36*j)+ 0] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
     r->vertex_buffer[(36*j)+ 1] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
-    r->vertex_buffer[(36*j)+ 2] = material;
+    r->vertex_buffer[(36*j)+ 2] = sprite_position;
     r->vertex_buffer[(36*j)+ 3] = 0.0;
     r->vertex_buffer[(36*j)+ 4] = 0.0;
     r->vertex_buffer[(36*j)+ 5] = 1.0;
     r->vertex_buffer[(36*j)+ 6] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
     r->vertex_buffer[(36*j)+ 7] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
-    r->vertex_buffer[(36*j)+ 8] = material;
+    r->vertex_buffer[(36*j)+ 8] = sprite_position;
     r->vertex_buffer[(36*j)+ 9] = 1.0;
     r->vertex_buffer[(36*j)+10] = 0.0;
     r->vertex_buffer[(36*j)+11] = 1.0;
     r->vertex_buffer[(36*j)+12] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
     r->vertex_buffer[(36*j)+13] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
-    r->vertex_buffer[(36*j)+14] = material;
+    r->vertex_buffer[(36*j)+14] = sprite_position;
     r->vertex_buffer[(36*j)+15] = 0.0;
     r->vertex_buffer[(36*j)+16] = 1.0;
     r->vertex_buffer[(36*j)+17] = 1.0;
     r->vertex_buffer[(36*j)+18] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
     r->vertex_buffer[(36*j)+19] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
-    r->vertex_buffer[(36*j)+20] = material;
+    r->vertex_buffer[(36*j)+20] = sprite_position;
     r->vertex_buffer[(36*j)+21] = 0.0;
     r->vertex_buffer[(36*j)+22] = 1.0;
     r->vertex_buffer[(36*j)+23] = 1.0;
     r->vertex_buffer[(36*j)+24] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
     r->vertex_buffer[(36*j)+25] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
-    r->vertex_buffer[(36*j)+26] = material;
+    r->vertex_buffer[(36*j)+26] = sprite_position;
     r->vertex_buffer[(36*j)+27] = 1.0;
     r->vertex_buffer[(36*j)+28] = 0.0;
     r->vertex_buffer[(36*j)+29] = 1.0;
     r->vertex_buffer[(36*j)+30] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
     r->vertex_buffer[(36*j)+31] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
-    r->vertex_buffer[(36*j)+32] = material;
+    r->vertex_buffer[(36*j)+32] = sprite_position;
     r->vertex_buffer[(36*j)+33] = 1.0;
     r->vertex_buffer[(36*j)+34] = 1.0;
     r->vertex_buffer[(36*j)+35] = 1.0;

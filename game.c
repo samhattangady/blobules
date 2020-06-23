@@ -839,9 +839,9 @@ int enter_active_level(world* w) {
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (global_w->active_mode == IN_GAME)
         in_game_key_callback(window, key, scancode, action, mods);
-    if (global_w->active_mode == MAIN_MENU)
+    else if (global_w->active_mode == MAIN_MENU)
         main_menu_key_callback(window, key, scancode, action, mods);
-    if (global_w->active_mode == LEVEL_SELECT)
+    else if (global_w->active_mode == LEVEL_SELECT)
         level_select_key_callback(window, key, scancode, action, mods);
 }
 
@@ -880,14 +880,14 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 int get_world_x(world* w) {
     double xpos = global_w->editor.mouse.xpos;
     return (int) (((xpos - (X_PADDING*WINDOW_WIDTH/2.0) - (WINDOW_WIDTH/2.0)) /
-                   (BLOCK_SIZE/2.0))
+                   (BLOCK_WIDTH/2.0))
                   );
 }
 
 int get_world_y(world* w) {
     double ypos = global_w->editor.mouse.ypos;
     return (int) (0.0 - ((ypos+ (Y_PADDING*WINDOW_HEIGHT/2.0) - WINDOW_HEIGHT/2.0) /
-                         (BLOCK_SIZE/2.0))
+                         (BLOCK_HEIGHT/2.0))
                   );
 }
 

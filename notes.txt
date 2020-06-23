@@ -108,11 +108,31 @@ left corner. Actually, we should be drawing them from the center so that the
 stuff gets easily overlapped whatever aaaaaa,.
 Now I think I remember why I would have switched to the bottom left version.
 It was because we wanted to draw sprites that were 2 units tall, and in that
-case the corners would be different.
-
+case the corners would be different
 Okay, so what are the important things that need to be worked on right now?
 I'm just trying to get a grasp on that. So we need the better ground tile
 selection stuff. Then the actual krita processing scripts. Some animation
 rendering stuff? Okay, pick one and get to work. I think the krita script is
 the important one. Until we get that, working on the other stuff would require
 a bunch of busywork, which I'm not so keen on doing really.
+
+23 Jun 2020
+Okay, what should I be working on today? I somehow managed to get the stuff
+set up with krita and all yesterday. It's an annoyance, but it works for now I
+guess, and maybe at some point in the future we will have to do a _lot_ of
+work with it, but atleast for now, I think we can happily move on.
+
+But the real quesion, is, move on to what?
+Hmm. There is the ground and slippery rendering that will need some amount of
+work. That would be worth working on. Apart from that, the animation stuff
+definitely. Otherwise there is the screen shifting. The input handling. The
+sounds. Oh man there are honestly so many things that would need to be done
+wow.
+
+Okay took care of the input stuff. Really interesting solution if you ask me.
+So now on to the ground rendering I think. Actually the slippery ice
+rendering. So I think we actually have some data for that? I mean we have a
+"material" index that we pass. No reason why we can't improve on that. Or
+atleast, use that to figure out which sprite should be drawn. So I did the
+calculations yesterday. I figure I will need 22 sprites to represent all of
+the possibilities. Maybe it's just 17 then... Î
