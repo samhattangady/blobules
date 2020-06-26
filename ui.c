@@ -125,6 +125,7 @@ int init_character_glyphs(cb_ui_state* state) {
 }
 
 int render_chars(cb_ui_state* state) {
+    glDisable(GL_DEPTH_TEST);
     glLinkProgram(state->values.shader_program);
     glUseProgram(state->values.shader_program);
     glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -146,6 +147,8 @@ int render_chars(cb_ui_state* state) {
 }
 
 int render_rectangles(cb_ui_state* state) {
+    glDisable(GL_DEPTH_TEST);
+    glDepthFunc(GL_GEQUAL);
     glLinkProgram(state->values.shader_program);
     glUseProgram(state->values.shader_program);
     glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), WINDOW_WIDTH, WINDOW_HEIGHT);

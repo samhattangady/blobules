@@ -136,3 +136,66 @@ rendering. So I think we actually have some data for that? I mean we have a
 atleast, use that to figure out which sprite should be drawn. So I did the
 calculations yesterday. I figure I will need 22 sprites to represent all of
 the possibilities. Maybe it's just 17 then... Î
+
+24 Jun 2020
+Okay, I don't really know what to work on next... Maybe the island/ground
+stuff? But I just spent a bunch of time on the yesterday, so not too keen on
+doing that again today. Apart from that maybe the sounds? Yeah I haven't done
+anything with the sounds. Also, I think we need to get away from the idea that
+only some of the things will be animated. As long as it's not NONE it should
+have an animation entry so that we can fade that stuff in as neccessary?
+
+25 Jun 2020
+Man the audio stuff is actually really complex. I'm struggling to get a decent
+grasp of how it all works. So lets spend some more time in doing that today.
+Always remember that the reason that you're really doing all of this is to
+really learn stuff. Sure, audio is complex, but so was gl when we started off,
+and look at us now. Cool? Cool. oKAY. sTOP WITH THE YOUTIBE THEN i GIESS?
+Aaaah man. I spent a lot of time on it yesterday. And I'm a little scared to
+jump back in today man. Damn.
+
+Maybe I should move to something else and then come back to this later.
+There's no real point in dreading the thing for the rest of my life. Might as
+well move on and see how the other things pan out.
+
+Okay, there are two things that I need to work on, one is the slides that
+delete an object end up just disappearing. That might be quite a deep issue.
+Because when you think about the way the renderer works right now, if the
+thing is not in the world, then we don't know that we have to draw it. I think
+it is reaching a point where we need to start drawing things not from the
+entities object. Might be a bit of a refactor, but I think it makes sense to
+start moving in that direction, especially now that we see all the issues that
+it has been throwing up.
+
+The other major problem that still has to be resolve is the ground getting
+animated as the ice passes over it. Now that I think about it, I think doing
+the previous step will take care of this as well.
+
+Oh man, I've not spent any time on this section of the code in so long, that I
+really don't even remember all the things that are happening exactly, and I
+don't think my current approach of just randomly fiddling around over there
+makes all that much sense. Maybe I should be sitting and doing it "correctly",
+but then again who do you think I am?
+
+Okay, so O have the set up the animation data to have the z index as well. But
+I don't really know how the depth buffer stuff would work. I think that's the
+biggest thing that I don't really know how to do. Also, maybe it's time to
+rethink the whole animation_struct stuff. Now that we're going to be moving to
+animated sprites, maybe it isn't the best idea to continue using the same
+basic interpolation stuff. Okay, but what exactly do we need to do in order to
+redesign that stuff?
+
+Okay. So the system that I would like definitely probably includes some kind
+of depth buffer testing. So if I want to do passes over the rendering, then
+having support for a much larger vertex buffer and a depth buffer sensitive
+graphics api would be very useful. My biggest concern right now is the way
+that we are writing to the buffer may mean that we might have an annoying task
+of including the data for the vertex buffer / edpth.
+
+Okay, I think we really need to introduce some kind of entity index that
+stores the positions of the entities as well. The biggest issue really would
+be in keeping that in sync with the grid data. But to be completely honest,
+we're already kinda struggling with that in some sense. Maybe we can do that
+once, and then update all entities based on their grid positions every frame
+before we render? I think that could actually work out decently well for us.
+Hmm... Interesting;

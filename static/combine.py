@@ -7,6 +7,7 @@ for i in range(16):
 spritesheet = Image.new('RGBA', (200*24,300), (0,0,0,0))
 
 for i, image in enumerate(images):
+    print(f'adding {image}')
     sprite = Image.open(image)
     if sprite.size[1] ==150 or 'slippery' in image:
         sprite=sprite.resize((200, 300))

@@ -78,6 +78,7 @@ int init_renderer(renderer* r, char* window_name) {
     glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
 
     uint vao;
     uint vbo;
@@ -123,10 +124,25 @@ int init_renderer(renderer* r, char* window_name) {
 
 float get_slippery_sprite_position(world* w, int x, int y, int z) {
     // TODO (23 Jun 2020 sam): I don't know the best way to do something like this really
+    // TODO (23 Jun 2020 sam): Logic is a little hard here. Don't know if we can do it
+    // procedurally. I want it to look like the ice is pushed off the board, but in many
+    // places the logic of checking none as well makes it look messed up. We probably will
+    // have to manually decide what each one should be in some way.
+    // TODO (23 Jun 2020 sam): Need to add checks for top_right, top_left etc as well.
+    // Right now if there is a bunch of blocks together, they dont combine, and create
+    // an ugly grid shape. Yuck. But that might need upto 64(?) more sprites.
     bool top = get_entity_at(w, get_position_index(w, x, y+1, z)) == SLIPPERY_GROUND;
     bool bottom = get_entity_at(w, get_position_index(w, x, y-1, z)) == SLIPPERY_GROUND;
     bool left = get_entity_at(w, get_position_index(w, x-1, y, z)) == SLIPPERY_GROUND;
     bool right = get_entity_at(w, get_position_index(w, x+1, y, z)) == SLIPPERY_GROUND;
+    // bool top = (get_entity_at(w, get_position_index(w, x, y+1, z)) == SLIPPERY_GROUND) ||
+    //            (get_entity_at(w, get_position_index(w, x, y+1, z)) == NONE);
+    // bool bottom = (get_entity_at(w, get_position_index(w, x, y-1, z)) == SLIPPERY_GROUND) ||
+    //             (get_entity_at(w, get_position_index(w, x, y-1, z)) == NONE);
+    // bool left = (get_entity_at(w, get_position_index(w, x-1, y, z)) == SLIPPERY_GROUND) ||
+    //             (get_entity_at(w, get_position_index(w, x-1, y, z)) == NONE);
+    // bool right = (get_entity_at(w, get_position_index(w, x+1, y, z)) == SLIPPERY_GROUND) ||
+    //             (get_entity_at(w, get_position_index(w, x+1, y, z)) == NONE);
     if (!top && !bottom && !left && !right)
         return 0.0;
     if ( top && !bottom && !left && !right)
@@ -162,7 +178,8 @@ float get_slippery_sprite_position(world* w, int x, int y, int z) {
     return 0.0;
 }
 
-float get_entity_sprite_position(entity_type type, world* w, int x, int y, int z) {
+float get_entity_sprite_position(entity_data ed, world* w) {
+    entity_type type = ed.type;
     if (type == PLAYER)
         return 0.0;
     if (type == CUBE)
@@ -172,7 +189,7 @@ float get_entity_sprite_position(entity_type type, world* w, int x, int y, int z
     if (type == GROUND)
         return 3.0;
     if (type == SLIPPERY_GROUND)
-        return 8.0+get_slippery_sprite_position(w, x, y, z);
+        return 8.0 +get_slippery_sprite_position(w, ed.x, ed.y, ed.z);
     if (type == HOT_TARGET)
         return 4.0;
     if (type == COLD_TARGET)
@@ -205,23 +222,21 @@ float get_block_size_y(entity_type type) {
 }
 
 
-float get_x_pos(world* w, int x, int y, int z) {
+float get_x_pos(world* w, entity_data ed) {
     if (!w->animating)
-        return x;
-    int i = get_position_index(w, x, y, z);
-    int anim_index = get_entity_anim_index(w, i);
+        return ed.x;
+    int anim_index = ed.anim_index;
     if (!w->animations[anim_index].animating)
-        return x;
+        return ed.x;
     return w->animations[anim_index].x;
 }
 
-float get_y_pos(world* w, int x, int y, int z) {
+float get_y_pos(world* w, entity_data ed) {
     if (!w->animating)
-        return y;
-    int i = get_position_index(w, x, y, z);
-    int anim_index = get_entity_anim_index(w, i);
+        return ed.y;
+    int anim_index = ed.anim_index;
     if (!w->animations[anim_index].animating)
-        return y;
+        return ed.y;
     return w->animations[anim_index].y;
 }
 
@@ -237,74 +252,93 @@ bool draw_ground_under(entity_type et) {
     return (et == SLIPPERY_GROUND || et == HOT_TARGET || et == COLD_TARGET);
 }
 
-void add_vertex_to_buffer(renderer* r, world* w, entity_type et, int x, int y, int z) {
+void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x_size, float y_size, float depth, float sprite_position) {
+    float blockx = BLOCK_WIDTH*1.0 / WINDOW_WIDTH*1.0;
+    float blocky = BLOCK_HEIGHT*1.0 / WINDOW_HEIGHT*1.0;
+    int j = r->buffer_occupied;
+    r->buffer_occupied++;
+    r->vertex_buffer[(36*j)+ 0] = X_PADDING + (blockx * xpos);
+    r->vertex_buffer[(36*j)+ 1] = Y_PADDING + (blocky * ypos);
+    r->vertex_buffer[(36*j)+ 2] = depth;
+    r->vertex_buffer[(36*j)+ 3] = 0.0;
+    r->vertex_buffer[(36*j)+ 4] = 0.0;
+    r->vertex_buffer[(36*j)+ 5] = sprite_position;
+    r->vertex_buffer[(36*j)+ 6] = X_PADDING + (blockx * xpos) + (x_size*blockx);
+    r->vertex_buffer[(36*j)+ 7] = Y_PADDING + (blocky * ypos);
+    r->vertex_buffer[(36*j)+ 8] = depth;
+    r->vertex_buffer[(36*j)+ 9] = 1.0;
+    r->vertex_buffer[(36*j)+10] = 0.0;
+    r->vertex_buffer[(36*j)+11] = sprite_position;
+    r->vertex_buffer[(36*j)+12] = X_PADDING + (blockx * xpos);
+    r->vertex_buffer[(36*j)+13] = Y_PADDING + (blocky * ypos) + (y_size*blocky);
+    r->vertex_buffer[(36*j)+14] = depth;
+    r->vertex_buffer[(36*j)+15] = 0.0;
+    r->vertex_buffer[(36*j)+16] = 1.0;
+    r->vertex_buffer[(36*j)+17] = sprite_position;
+    r->vertex_buffer[(36*j)+18] = X_PADDING + (blockx * xpos);
+    r->vertex_buffer[(36*j)+19] = Y_PADDING + (blocky * ypos) + (y_size*blocky);
+    r->vertex_buffer[(36*j)+20] = depth;
+    r->vertex_buffer[(36*j)+21] = 0.0;
+    r->vertex_buffer[(36*j)+22] = 1.0;
+    r->vertex_buffer[(36*j)+23] = sprite_position;
+    r->vertex_buffer[(36*j)+24] = X_PADDING + (blockx * xpos) + (x_size*blockx);
+    r->vertex_buffer[(36*j)+25] = Y_PADDING + (blocky * ypos);
+    r->vertex_buffer[(36*j)+26] = depth;
+    r->vertex_buffer[(36*j)+27] = 1.0;
+    r->vertex_buffer[(36*j)+28] = 0.0;
+    r->vertex_buffer[(36*j)+29] = sprite_position;
+    r->vertex_buffer[(36*j)+30] = X_PADDING + (blockx * xpos) + (x_size*blockx);
+    r->vertex_buffer[(36*j)+31] = Y_PADDING + (blocky * ypos) + (y_size*blocky);
+    r->vertex_buffer[(36*j)+32] = depth;
+    r->vertex_buffer[(36*j)+33] = 1.0;
+    r->vertex_buffer[(36*j)+34] = 1.0;
+    r->vertex_buffer[(36*j)+35] = sprite_position;
+}
+
+void add_ground_at_pos(renderer* r, world* w, int x, int y) {
+    float depth = 0;    
+    depth += (float) y/100.0;
+    float xpos = x;
+    float ypos = y;
+    float x_size = get_block_size_x(GROUND);
+    float y_size = get_block_size_y(GROUND);
+    // FIXME (26 Jun 2020 sam): Hardcoded value. Fix.
+    float sprite_position = 3.0;
+    add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position);
+} 
+
+void render_entity(renderer* r, world* w, entity_data ed) {
+    entity_type et = ed.type;
     if (et == NONE)
         return;
     // TODO (20 Jun 2020 sam): See the performance implications of blockx and blocky
     // This needs to be calculated for every single vertex added to the buffer.
     // But it's such a simple calculation that I don't know whether the memory overhead
     // more or less performant...
-    float blockx = BLOCK_WIDTH*1.0 / WINDOW_WIDTH*1.0;
-    float blocky = BLOCK_HEIGHT*1.0 / WINDOW_HEIGHT*1.0;
-    int i = get_position_index(w, x, y, z);
-    int j = r->buffer_occupied;
-    r->buffer_occupied++;
-    float sprite_position = get_entity_sprite_position(et, w, x, y, z);
+    float depth = (float)-ed.z;
+    // we want the depth buffer to include some data about the y position as well so that
+    // things closer to us are drawn first.
+    depth += (float) ed.y/100.0;
+    if (et==SLIPPERY_GROUND)
+        depth -= 0.1;
+    if (et==HOT_TARGET || et==COLD_TARGET)
+        depth -= 1.0;
+    float sprite_position = get_entity_sprite_position(ed, w);
     if (sprite_position < 0.0)
         return;
     float x_size = get_block_size_x(et);
     float y_size = get_block_size_y(et);
-    r->vertex_buffer[(36*j)+ 0] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
-    r->vertex_buffer[(36*j)+ 1] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
-    r->vertex_buffer[(36*j)+ 2] = sprite_position;
-    r->vertex_buffer[(36*j)+ 3] = 0.0;
-    r->vertex_buffer[(36*j)+ 4] = 0.0;
-    r->vertex_buffer[(36*j)+ 5] = 1.0;
-    r->vertex_buffer[(36*j)+ 6] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
-    r->vertex_buffer[(36*j)+ 7] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
-    r->vertex_buffer[(36*j)+ 8] = sprite_position;
-    r->vertex_buffer[(36*j)+ 9] = 1.0;
-    r->vertex_buffer[(36*j)+10] = 0.0;
-    r->vertex_buffer[(36*j)+11] = 1.0;
-    r->vertex_buffer[(36*j)+12] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
-    r->vertex_buffer[(36*j)+13] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
-    r->vertex_buffer[(36*j)+14] = sprite_position;
-    r->vertex_buffer[(36*j)+15] = 0.0;
-    r->vertex_buffer[(36*j)+16] = 1.0;
-    r->vertex_buffer[(36*j)+17] = 1.0;
-    r->vertex_buffer[(36*j)+18] = X_PADDING + (blockx * get_x_pos(w, x, y, z));
-    r->vertex_buffer[(36*j)+19] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
-    r->vertex_buffer[(36*j)+20] = sprite_position;
-    r->vertex_buffer[(36*j)+21] = 0.0;
-    r->vertex_buffer[(36*j)+22] = 1.0;
-    r->vertex_buffer[(36*j)+23] = 1.0;
-    r->vertex_buffer[(36*j)+24] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
-    r->vertex_buffer[(36*j)+25] = Y_PADDING + (blocky * get_y_pos(w, x, y, z));
-    r->vertex_buffer[(36*j)+26] = sprite_position;
-    r->vertex_buffer[(36*j)+27] = 1.0;
-    r->vertex_buffer[(36*j)+28] = 0.0;
-    r->vertex_buffer[(36*j)+29] = 1.0;
-    r->vertex_buffer[(36*j)+30] = X_PADDING + (blockx * get_x_pos(w, x, y, z)) + (x_size*blockx);
-    r->vertex_buffer[(36*j)+31] = Y_PADDING + (blocky * get_y_pos(w, x, y, z)) + (y_size*blocky);
-    r->vertex_buffer[(36*j)+32] = sprite_position;
-    r->vertex_buffer[(36*j)+33] = 1.0;
-    r->vertex_buffer[(36*j)+34] = 1.0;
-    r->vertex_buffer[(36*j)+35] = 1.0;
+    float xpos = get_x_pos(w, ed);
+    float ypos = get_y_pos(w, ed);
+    add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position);
 }
 
 int update_vertex_buffer(renderer* r, world* w) {
-    for (int z=0; z<w->z_size; z++) {
-        for (int y=w->y_size-1; y>=0; y--) {
-            for (int x=0; x<w->x_size; x++) {
-                entity_type et = get_entity_at(w, get_position_index(w, x, y, z));
-                // TODO (20 Jun 2020 sam): Note that we need to work such that hot and cold
-                // target are actually drawn at the z=1 level as well, which is currently
-                // not really supported.
-                if (z==0 && draw_ground_under(et))
-                    add_vertex_to_buffer(r, w, GROUND, x, y, z);
-                add_vertex_to_buffer(r, w, et, x, y, z);
-            }
-        }
+    for (int i=0; i<w->entities_occupied; i++) {
+        entity_data ed = w->entities[i];
+        if (ed.z==0 && draw_ground_under(ed.type))
+            add_ground_at_pos(r, w, ed.x, ed.y);
+        render_entity(r, w, ed);
     }
     return 0;
 }
@@ -361,7 +395,9 @@ int render_level_select(renderer* r, world* w) {
 
 int render_scene(renderer* r, world* w) {
     glClearColor(0.1, 0.1, 0.101, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
     if (w->active_mode == IN_GAME)
         render_game_scene(r, w);
     if (w->active_mode == MAIN_MENU)
@@ -369,3 +405,4 @@ int render_scene(renderer* r, world* w) {
     if (w->active_mode == LEVEL_SELECT)
         render_level_select(r, w);
 }
+

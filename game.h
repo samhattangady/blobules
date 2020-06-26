@@ -82,6 +82,7 @@ typedef struct {
     float duration;
     float x;
     float y;
+    float z;
     int start_x;
     int start_y;
     int dx;
@@ -92,6 +93,9 @@ typedef struct {
     entity_type type;
     uint anim_index;
     uint data;
+    int x;
+    int y;
+    int z;
 } entity_data;
 
 typedef enum {
@@ -148,7 +152,7 @@ typedef struct {
     // struct.
     uint grid_data[MAX_WORLD_ENTITIES];
     entity_data entities[MAX_WORLD_ENTITIES];
-    animation_state animations[MAX_WORLD_ENTITIES/16];
+    animation_state animations[MAX_WORLD_ENTITIES];
     vec3i player_position;
     player_input input;
     player_state player;

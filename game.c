@@ -47,23 +47,10 @@ char* as_text(entity_type e) {
     return "INVALID";
 }
 
-int set_none(world* w, int index) {
-    w->grid_data[index] = 0;
-    return 0;
-}
-int set_ground(world* w, int index) {
-    w->grid_data[index] = 1;
-    return 0;
-}
-int set_slippery(world* w, int index) {
-    w->grid_data[index] = 2;
-    return 0;
-}
-int set_cold_target(world* w, int index) {
-    w->grid_data[index] = 4;
-    return 0;
-}
 bool has_animations(entity_type et) {
+    return true;
+    // TODO (25 Jun 2020 sam): See what all need to be here. Should it
+    // just be everything? Is there any benefit in not having all
     return (et==PLAYER || et==CUBE || et==FURNITURE || et==REFLECTOR);
 }
 
@@ -76,19 +63,24 @@ int add_entity(world* w, entity_type e, int x, int y, int z) {
     int entity_index;
     if (e == NONE)
         entity_index = 0;
-    else if (e == GROUND)
-        entity_index = 1;
-    else if (e == SLIPPERY_GROUND)
-        entity_index = 2;
+    // else if (e == GROUND)
+    //     entity_index = 1;
+    // else if (e == SLIPPERY_GROUND)
+    //     entity_index = 2;
     else {
         entity_index = w->entities_occupied;
         int anim_index = 0;
         if (has_animations(e)) {
             anim_index = w->animations_occupied;
             w->animations[anim_index].animating = false;
+            w->animations[anim_index].x = (float)x;
+            w->animations[anim_index].y = (float)y;
+            w->animations[anim_index].z = (float)z;
+            w->animations[anim_index].start_x = x;
+            w->animations[anim_index].start_y = y;
             w->animations_occupied++;
         }
-        entity_data ed = {e, anim_index, 0};
+        entity_data ed = {e, anim_index, 0, x, y, z};
         // if (e == REFLECTOR)
         //     ed.data = 1;
         w->entities[entity_index] = ed;
@@ -99,6 +91,19 @@ int add_entity(world* w, entity_type e, int x, int y, int z) {
         vec3i pos = {x, y, z};
         w->player_position = pos;
     }
+    return 0;
+}
+
+int set_none(world* w, int index) {
+    w->grid_data[index] = 0;
+    return 0;
+}
+int set_slippery(world* w, int x, int y, int z) {
+    add_entity(w, SLIPPERY_GROUND, x, y, z);
+    return 0;
+}
+int set_cold_target(world* w, int x, int y, int z) {
+    add_entity(w, COLD_TARGET, x, y, z);
     return 0;
 }
 
@@ -216,23 +221,20 @@ int load_levels_list(level_select_struct* l) {
 }
 
 int init_entities(world* w) {
+    // TODO (25 Jun 2020 sam): This had all been initialised to nonzero values. I'm not sure
+    // that is actually required. Except for maybe the set_none?
     // Initialise all the entities that will not have additional data
     // or which can have only one instance
-    w->entities_occupied = 5;
+    w->entities_occupied = 1;
     // This is initialised at 1 so index 0 has all the unanimated entities
     w->animations_occupied = 1;
     entity_data ed;
     ed.anim_index = 0;
     ed.type = NONE;
+    ed.x = 0;
+    ed.y = 0;
+    ed.z = 0;
     w->entities[0] = ed;
-    ed.type = GROUND;
-    w->entities[1] = ed;
-    ed.type = SLIPPERY_GROUND;
-    w->entities[2] = ed;
-    ed.type = HOT_TARGET;
-    w->entities[3] = ed;
-    ed.type = COLD_TARGET;
-    w->entities[4] = ed;
     return 0;
 }
 
@@ -383,7 +385,14 @@ int can_stop_cube_slide(entity_type et) {
     return false;
 }
 
-int add_interpolation(world* w, uint index, int x, int y, int dx, int dy, int depth) {
+int set_entity_position(world* w, uint index, int x, int y, int z) {
+    w->entities[index].x = x;
+    w->entities[index].y = y;
+    w->entities[index].z = z;
+    return 0;
+}
+
+int add_interpolation(world* w, uint index, int x, int y, int z, int dx, int dy, int depth) {
     w->animating = true;
     if (w->animations[w->entities[index].anim_index].animating) {
         w->animations[w->entities[index].anim_index].duration += ANIMATION_SINGLE_STEP_TIME;
@@ -394,7 +403,7 @@ int add_interpolation(world* w, uint index, int x, int y, int dx, int dy, int de
             true,
             w->seconds+(depth*ANIMATION_SINGLE_STEP_TIME),
             ANIMATION_SINGLE_STEP_TIME,
-            x, y, x, y, dx, dy};
+            x, y, z, x, y, dx, dy};
         w->animations[w->entities[index].anim_index] = move_animation;
     }
     return 0;
@@ -439,7 +448,7 @@ int maybe_reflect_cube(world* w, int ogx, int ogy, int x, int y, int z, int dx, 
 int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int depth) {
     int on_index = get_position_index(w, x, y, z-1);
     if (get_entity_at(w, on_index) != HOT_TARGET)
-        set_slippery(w, on_index);
+        set_slippery(w, x, y, z-1);
     int index = get_position_index(w, x, y, z);
     if ((x+dx < 0 || x+dx > w->x_size-1) ||
         (y+dy < 0 || y+dy > w->y_size-1) ||
@@ -463,7 +472,7 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
             // check if win.
             if (get_entity_at(w, on_index) == HOT_TARGET) {
                 set_none(w, index);
-                set_cold_target(w, on_index);
+                set_cold_target(w, x, y, z-1);
             }
             return 1;
         }
@@ -474,13 +483,16 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
         // remove cube
         // TODO (07 May 2020 sam): Figure out how to handle animations here?
         printf("removing cube because no support\n");
+        int cube_index = w->grid_data[index];
+        add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
+        set_entity_position(w, cube_index, x+dx, y+dy, z+dz);
         set_none(w, index);
         return -2;
     }
     int cube_index = w->grid_data[index];
     w->grid_data[target_pos_index] = cube_index;
     set_none(w, index);
-    add_interpolation(w, cube_index, x, y, dx, dy, depth);
+    add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
     maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1);
     return 0;
 }
@@ -515,7 +527,7 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, 
     int furniture_index = w->grid_data[index];
     w->grid_data[target_pos_index] = furniture_index;
     set_none(w, index);
-    add_interpolation(w, furniture_index, x, y, dx, dy, depth);
+    add_interpolation(w, furniture_index, x, y, z, dx, dy, depth);
     if (get_entity_at(w, target_on_index) == SLIPPERY_GROUND)
         maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1);
     return 0;
@@ -554,7 +566,7 @@ int maybe_move_reflector(world* w, int x, int y, int z, int dx, int dy, int dz, 
     int reflector_index = w->grid_data[index];
     w->grid_data[target_pos_index] = reflector_index;
     set_none(w, index);
-    add_interpolation(w, reflector_index, x, y, dx, dy, depth);
+    add_interpolation(w, reflector_index, x, y, z, dx, dy, depth);
     if (get_entity_at(w, target_on_index) == SLIPPERY_GROUND)
         maybe_move_reflector(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1);
     return 0;
@@ -581,7 +593,7 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
         (pos.y+dy < 0 || pos.y+dy > w->y_size-1) ||
         (pos.z+dz < 0 || pos.z+dz > w->z_size-1)) {
         if (force) {
-            add_interpolation(w, player_index, pos.x, pos.y, dx, dy, depth);
+            add_interpolation(w, player_index, pos.x, pos.y, pos.z, dx, dy, depth);
             w->player = DEAD;
             w->player_position.x += dx;
             w->player_position.y += dy;
@@ -608,7 +620,7 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     // check if can stand
     if (!can_support_player(get_entity_at(w, target_ground_index))) {
         if (force) {
-            add_interpolation(w, player_index, pos.x, pos.y, dx, dy, depth);
+            add_interpolation(w, player_index, pos.x, pos.y, pos.z, dx, dy, depth);
             w->player = DEAD;
             w->player_position.x += dx;
             w->player_position.y += dy;
@@ -622,7 +634,7 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
         return 0;
     w->grid_data[target_index] = player_index;
     set_none(w, position_index);
-    add_interpolation(w, player_index, pos.x, pos.y, dx, dy, depth);
+    add_interpolation(w, player_index, pos.x, pos.y, pos.z, dx, dy, depth);
     w->player_position.x += dx;
     w->player_position.y += dy;
     w->player_position.z += dz;
@@ -631,6 +643,21 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     if (get_entity_at(w, target_ground_index) == COLD_TARGET)
         w->player = WIN;
     return 0;
+}
+
+int copy_grid_data_to_entities(world* w) {
+    // Rather than trying to keep everything in sync, we explicitly update the position
+    // values of all the entities every frame.
+    for (int z=0; z<w->z_size; z++) {
+        for (int y=0; y<w->y_size; y++) {
+            for (int x=0; x<w->x_size; x++) {
+                int index = get_position_index(w, x, y, z);
+                w->entities[w->grid_data[index]].x = x;
+                w->entities[w->grid_data[index]].y = y;
+                w->entities[w->grid_data[index]].z = z;
+            }
+        }
+    }
 }
 
 int save_freezeframe(world* w) {
@@ -800,11 +827,12 @@ int select_active_option(world* w) {
 }
 
 int go_to_main_menu(world* w) {
-    printf("goint to main menu\n");
+    printf("going to main menu\n");
     w->active_mode = MAIN_MENU;
 }
 int go_to_level_select(world* w) {
-    printf("goint to level select\n");
+    printf("going to level select\n");
+    w->editor.editor_enabled = false;
     w->active_mode = LEVEL_SELECT;
 }
 
@@ -863,6 +891,7 @@ void remove_entity_at_mouse(world* w) {
         if (et != NONE)
             w->editor.active_type = et;
         add_entity(w, NONE, x, y, w->editor.z_level);
+        save_freezeframe(w);
     }
 }
 
@@ -935,6 +964,7 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
+    copy_grid_data_to_entities(w);
     return 0;
 }
 

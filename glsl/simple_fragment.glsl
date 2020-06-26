@@ -48,42 +48,9 @@ float pNoise(vec2 p, int res, float f){
 }
 
 void main() {
-    fragColor = texture(spritesheet, vec2((fragCoord.z/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
+    vec4 col = texture(spritesheet, vec2((texCoord.z/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
+    if (col.a < 0.2)
+        discard;
+    fragColor = col;
     return;
-    if (int(fragCoord.z) == 1) {
-        fragColor = texture(spritesheet, vec2((0.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
-        return;
-    }
-    if (int(fragCoord.z) == 2) {
-        fragColor = texture(spritesheet, vec2((1.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
-        return;
-    }
-    if (int(fragCoord.z) == 3) {
-        fragColor = texture(spritesheet, vec2((2.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
-        return;
-    }
-    if (int(fragCoord.z) == 4) {
-        fragColor = texture(spritesheet, vec2((3.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y/2.0));
-        return;
-    }
-    if (int(fragCoord.z) == 6) {
-        fragColor = texture(spritesheet, vec2((4.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y/2.0));
-        return;
-    }
-    if (int(fragCoord.z) == 7) {
-        fragColor = texture(spritesheet, vec2((5.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
-        return;
-    }
-    if (int(fragCoord.z) == 8) {
-        fragColor = texture(spritesheet, vec2((6.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
-        return;
-    }
-    if (int(fragCoord.z) == 9) {
-        fragColor = texture(spritesheet, vec2((7.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
-        return;
-    }
-    if (int(fragCoord.z) == 11) {
-        fragColor = texture(spritesheet, vec2((8.0/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
-        return;
-    }
 }

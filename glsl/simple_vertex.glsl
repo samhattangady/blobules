@@ -9,5 +9,5 @@ uniform float time;
 void main() {
     fragCoord = position;
     texCoord = tex;
-    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(position.x, position.y, position.z, 1.0);
 }
