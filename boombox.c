@@ -24,6 +24,7 @@ void boombox_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_
 }
 
 int init_boombox(boombox* b) {
+    ma_result result;
     char* sound_files[SOUNDS_COUNT] = {"static/sound1.wav", "static/toto.wav"};
     sound_data* sounds = (sound_data*) malloc(sizeof(sound_data) * SOUNDS_COUNT);
     for (int i=0; i<SOUNDS_COUNT; i++) {
@@ -42,7 +43,11 @@ int init_boombox(boombox* b) {
         memset(buffer, 0, sizeof(char)*(file_size));
         fread(buffer, sizeof(char), file_size, handler);
         fclose(handler);
-        ma_decoder_init_file(sound_files[i], NULL, &decoder);
+        result = ma_decoder_init_file(sound_files[i], NULL, &decoder);
+        if (result != MA_SUCCESS) {
+            printf("could not init file %s.\n", sound_files[i]);
+            return -2;
+        }
         decoder_config = ma_decoder_config_init(decoder.outputFormat, decoder.outputChannels,
                                                 decoder.outputSampleRate);
         sound_data s = {i, buffer, file_size, decoder_config};
@@ -58,6 +63,7 @@ int init_boombox(boombox* b) {
 }
 
 int play_sound(boombox* b, sound_type sound, bool is_looping) {
+    ma_result result;
     int track_index = -1;
     for (int i=0; i<b->total_tracks; i++) {
         if (!b->tracks[i].is_busy) {
@@ -75,13 +81,22 @@ int play_sound(boombox* b, sound_type sound, bool is_looping) {
     ma_device_config device_config;
     ma_device device;
     track_data track;
-    ma_decoder_init_memory(s.buffer, s.size, &s.decoder_config, &decoder);
+    result = ma_decoder_init_memory(s.buffer, s.size, &s.decoder_config, &decoder);
+    if (result != MA_SUCCESS) {
+        printf("could not init from memory...\n");
+        return -2;
+    }
+    device_config = ma_device_config_init(ma_device_type_playback);
     device_config.playback.format   = decoder.outputFormat;
     device_config.playback.channels = decoder.outputChannels;
     device_config.sampleRate        = decoder.outputSampleRate;
     device_config.dataCallback      = boombox_callback;
     device_config.pUserData         = &track;
-    ma_device_init(NULL, &device_config, &device);
+    result = ma_device_init(NULL, &device_config, &device);
+    if (result != MA_SUCCESS) {
+        printf("could not init device...\n");
+        return -2;
+    }
     track.is_busy = true;
     track.is_looping = is_looping;
     track.decoder = decoder;
@@ -89,6 +104,10 @@ int play_sound(boombox* b, sound_type sound, bool is_looping) {
     track.total_frames = ma_decoder_get_length_in_pcm_frames(&decoder);
     track.current_frames = 0;
     track.start_seconds = 0.0;
-    ma_device_start(&device);
+    result = ma_device_start(&device);
+    if (result != MA_SUCCESS) {
+        printf("could not start device...\n");
+        return -2;
+    }
     return 0;
 }
