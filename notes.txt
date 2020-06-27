@@ -284,3 +284,16 @@ had simply assumed that the decoder could be reused. Now that I created
 multiple decoders, it's all woking fine. Cool. The next step is probably to
 figure out how the device is supposed to know that it's done (so that we can
 figure out how to actually implement that into the game? Sure makes sense.)
+
+where did he come from where did he go?
+where did he come from cotton eye joe?
+
+Okay, so I think the way that miniaudio works just clicked for me right now,
+and I am in kind of a funny headspace. There is so much excitement at all the
+ideas of how the boombox can be implemented, but also there seems to be a
+sense of dread. Okay not dread, but at least resistance. I think it's because
+right now, in this moment, it's all in my head, and it's perfect, and it's
+exciting. But once I start actually implementing it, then all the
+imperfections and annoyances will start to arise. So yeah there is that. But
+anyway, I think actually recognising the feeling for what it is will help get
+me over the bump.
