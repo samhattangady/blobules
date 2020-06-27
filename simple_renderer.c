@@ -221,23 +221,22 @@ float get_block_size_y(entity_type type) {
     return 2.0;
 }
 
-
 float get_x_pos(world* w, entity_data ed) {
-    if (!w->animating)
+    if (!w->currently_moving)
         return ed.x;
     int anim_index = ed.anim_index;
-    if (!w->animations[anim_index].animating)
+    if (!w->movements[anim_index].currently_moving)
         return ed.x;
-    return w->animations[anim_index].x;
+    return w->movements[anim_index].x;
 }
 
 float get_y_pos(world* w, entity_data ed) {
-    if (!w->animating)
+    if (!w->currently_moving)
         return ed.y;
     int anim_index = ed.anim_index;
-    if (!w->animations[anim_index].animating)
+    if (!w->movements[anim_index].currently_moving)
         return ed.y;
-    return w->animations[anim_index].y;
+    return w->movements[anim_index].y;
 }
 
 int get_vertex_buffer_index(world* w, int x, int y, int z) {

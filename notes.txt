@@ -199,3 +199,88 @@ we're already kinda struggling with that in some sense. Maybe we can do that
 once, and then update all entities based on their grid positions every frame
 before we render? I think that could actually work out decently well for us.
 Hmm... Interesting;
+
+26 Jun 2020
+Oh yeah, bunch of work was completed today. So I have the ice sliding off the
+map correctly now. WIll have to implement that for all the other objects as
+well, but that should be fairly straightforward. About the ice, I really don't
+have any good ideas as to how I want it to look. Maybe make it such that when
+the cube is completely over a block that's when it shifts, but the
+surroindiung stuff with still look kinda bad there. I wonder what the best
+move to make in that situation is really.
+
+Apart from that, ofcourse there is the sounds. Damn that's going to be hard I
+fear. So yeah. There's the animations as well. And also the whole level select
+screen. I need to put some amount of thought into that as well. I think
+because I have a very abstract idea of what I want, and I don't know what's
+the best thing...
+
+27 Jun 2020
+So what should we be working on today? A little unclear. We can sit and do the
+falling animation? Also at some point we will have to rework the sprite
+rendering as once we get animated sprites, they will likely be wider than a
+single block, and at that point we might want to have a smarter use of the
+spritesheet. When I say smarter, I guess what I really mean is more
+traditional method. ¯\_(?)_/¯. Haha. I somehow always manage to procrastinate.
+For some reason, when I make a batch script to copy to clipboard, it doesn't
+properly paste in vim.  <shrug>.
+But I think that will come later, once I have some of the stuff prepared. For
+now, it doesn't make sense to die over that. Also the falling animation, I
+think, for now we can just set scale and try that and see if it works.
+
+Okay, so now that I think about it, we actually have to add a bit of
+functionality. Apart from just the interpolation, we also have to have the
+ability to queue up the animations. That would be required if we want multiple
+animations to play on "demand". And we *definitely* need that. That's how the
+mouse will slide and then hit a wall or whatever. I am wondering whether we
+need to update what the animation struct would look like. Radically at that.
+
+For some reason I can't use SHIFT+BACKSPACE on windows in vim. So fucking
+annoying. Okay now I have shifted to gVim. It might be a little more
+comfortable. SOme of the tab changing shortcuts still work, so thats nice. But
+for the most part it's just more procrastination if we're being completely
+honest.
+
+Okay, now back to the point. We were trying to figure out how we are going to
+structure tha animation data so that it supports the things that we want it to
+support. Basically, it should allow for queued animations. Which means that
+there needs to be some kind of list. And then we have to pop the top of the
+list to get the next item, and stuff like that. So the list itself would also
+need to contain some stuff. But what?
+
+Aargh. Now I remember why I was procrastinating instead of working. This
+decision seems like it is really hard, and I'd much rather do something else
+that sit and make this work. But the truth is that once I get into it, I know
+that I will actively enjoy working on it. I don't know why I can't actually
+get into it. But I must sit here at the lap of the teacher, and be obedient,
+and eventually, I will reap my rewards.
+
+So umm, what we really need in these scenarios is basically a . What I'm
+really trying to think about is whether the best way to do this is to use a
+list of some sort, or whether we can have a more clever way of doing this. Or
+no. A list is probably the simplest way to approach the problem.
+
+So I really think that I need to separate out the animations from the
+movement. Basically the animation just needs to have a series of frames, where
+as the motion is separate entrirely. So I think I can just convert the
+animation state to motion state or something like that for now. I also have to
+figure out how to not always move the items linearly. Actually, maybe I can do
+that right now, and see how that works out.
+
+Yup, that was fairly straightforward for the most part. Now back to the actual
+task that we had to do? If you don't mind? And lunch break? lunch break.
+Bloody
+
+Yeah, so the ease in out works. How do we do the other stuffs though. Start
+off with the easy shit. Rename it to be movement state or some rubbish like
+that. Alright. Easy shit done. Now one issue for the animations is that I
+don't really have any sprites to work with as such. Okay so now what was the
+hard stuff that we had to work on? Maybe start trying to work on audio again?
+That honestly makes sense. We should have a lot more time today to actually
+put the work in and see if things work out.
+
+Okay wow I got it. I had made a pretty stupid mistake if I'm being honest. I
+had simply assumed that the decoder could be reused. Now that I created
+multiple decoders, it's all woking fine. Cool. The next step is probably to
+figure out how the device is supposed to know that it's done (so that we can
+figure out how to actually implement that into the game? Sure makes sense.)

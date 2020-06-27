@@ -71,14 +71,14 @@ int add_entity(world* w, entity_type e, int x, int y, int z) {
         entity_index = w->entities_occupied;
         int anim_index = 0;
         if (has_animations(e)) {
-            anim_index = w->animations_occupied;
-            w->animations[anim_index].animating = false;
-            w->animations[anim_index].x = (float)x;
-            w->animations[anim_index].y = (float)y;
-            w->animations[anim_index].z = (float)z;
-            w->animations[anim_index].start_x = x;
-            w->animations[anim_index].start_y = y;
-            w->animations_occupied++;
+            anim_index = w->movements_occupied;
+            w->movements[anim_index].currently_moving = false;
+            w->movements[anim_index].x = (float)x;
+            w->movements[anim_index].y = (float)y;
+            w->movements[anim_index].z = (float)z;
+            w->movements[anim_index].start_x = x;
+            w->movements[anim_index].start_y = y;
+            w->movements_occupied++;
         }
         entity_data ed = {e, anim_index, 0, x, y, z};
         // if (e == REFLECTOR)
@@ -227,7 +227,7 @@ int init_entities(world* w) {
     // or which can have only one instance
     w->entities_occupied = 1;
     // This is initialised at 1 so index 0 has all the unanimated entities
-    w->animations_occupied = 1;
+    w->movements_occupied = 1;
     entity_data ed;
     ed.anim_index = 0;
     ed.type = NONE;
@@ -242,7 +242,7 @@ int load_level(world* w) {
     printf("setting player alive \n");
     w->player = ALIVE;
     printf("setting player animations \n");
-    w->animating = false;
+    w->currently_moving = false;
     init_entities(w);
     printf("initted entities \n");
     int x, y, z;
@@ -393,18 +393,18 @@ int set_entity_position(world* w, uint index, int x, int y, int z) {
 }
 
 int add_interpolation(world* w, uint index, int x, int y, int z, int dx, int dy, int depth) {
-    w->animating = true;
-    if (w->animations[w->entities[index].anim_index].animating) {
-        w->animations[w->entities[index].anim_index].duration += ANIMATION_SINGLE_STEP_TIME;
-        w->animations[w->entities[index].anim_index].dx += dx;
-        w->animations[w->entities[index].anim_index].dy += dy;
+    w->currently_moving = true;
+    if (w->movements[w->entities[index].anim_index].currently_moving) {
+        w->movements[w->entities[index].anim_index].duration += ANIMATION_SINGLE_STEP_TIME;
+        w->movements[w->entities[index].anim_index].dx += dx;
+        w->movements[w->entities[index].anim_index].dy += dy;
     } else {
-        animation_state move_animation = {
+        movement_state move_animation = {
             true,
             w->seconds+(depth*ANIMATION_SINGLE_STEP_TIME),
             ANIMATION_SINGLE_STEP_TIME,
             x, y, z, x, y, dx, dy};
-        w->animations[w->entities[index].anim_index] = move_animation;
+        w->movements[w->entities[index].anim_index] = move_animation;
     }
     return 0;
 }
@@ -754,7 +754,7 @@ int set_input(world* w, input_type it, float seconds) {
 }
 
 void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (global_w->animating)
+    if (global_w->currently_moving)
         return;
     if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
         go_to_level_select(global_w);
@@ -938,6 +938,15 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         remove_entity_at_mouse(global_w);
 }
 
+float get_ease_in_out_progress(float time_elapsed) {
+    // formulae from https://github.com/nicolausYes/easing-functions/blob/master/src/easing.cpp
+    // we are using the easeInOutQuad
+    // return t < 0.5 ? 2 * t * t : t * (4 - 2 * t) - 1;
+    if (time_elapsed < 0.5)
+        return 2 * time_elapsed * time_elapsed;
+    return time_elapsed * (4 - 2*time_elapsed)-1;
+}
+
 int process_inputs(GLFWwindow* window, world* w, float seconds) {
     if (w->player == WIN)
         load_next_level(w);
@@ -945,21 +954,22 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
     //     load_level(w);
     global_seconds = seconds;
     w->seconds = seconds;
-    if (w->animating) {
-        bool still_animating = false;
-        for (int i=0; i<w->animations_occupied; i++) {
-            if (!w->animations[i].animating)
+    if (w->currently_moving) {
+        bool still_moving = false;
+        for (int i=0; i<w->movements_occupied; i++) {
+            if (!w->movements[i].currently_moving)
                 continue;
-            float elapsed = (seconds-w->animations[i].start_time) / w->animations[i].duration;
+            float elapsed = (seconds-w->movements[i].start_time) / w->movements[i].duration;
             if (elapsed < 0.0)
                 elapsed = 0.0;
             if (elapsed > 1.0)
-                w->animations[i].animating = false;
-            still_animating = still_animating || w->animations[i].animating;
-            w->animations[i].x = w->animations[i].start_x + elapsed*w->animations[i].dx;
-            w->animations[i].y = w->animations[i].start_y + elapsed*w->animations[i].dy;
+                w->movements[i].currently_moving = false;
+            still_moving = still_moving || w->movements[i].currently_moving;
+            float progress = get_ease_in_out_progress(elapsed);
+            w->movements[i].x = w->movements[i].start_x + progress*w->movements[i].dx;
+            w->movements[i].y = w->movements[i].start_y + progress*w->movements[i].dy;
         }
-        w->animating = still_animating;
+        w->currently_moving = still_moving;
     }
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);

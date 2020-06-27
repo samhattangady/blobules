@@ -77,7 +77,7 @@ typedef struct {
 
 typedef struct {
     // okay what is required here?
-    bool animating;
+    bool currently_moving;
     float start_time;
     float duration;
     float x;
@@ -87,7 +87,7 @@ typedef struct {
     int start_y;
     int dx;
     int dy;
-} animation_state;
+} movement_state;
 
 typedef struct {
     entity_type type;
@@ -142,9 +142,9 @@ typedef struct {
     world_mode active_mode;
     main_menu_struct main_menu;
     level_select_struct level_select;
-    bool animating;
+    bool currently_moving;
     uint entities_occupied;
-    uint animations_occupied;
+    uint movements_occupied;
     // TODO (14 Jun 2020 sam): Figure out whether this stuff should actually
     // be on the heap... I had moved it onto the stack at some point, but I
     // don't really know whether that is more efficient/performant. Also, this
@@ -152,7 +152,7 @@ typedef struct {
     // struct.
     uint grid_data[MAX_WORLD_ENTITIES];
     entity_data entities[MAX_WORLD_ENTITIES];
-    animation_state animations[MAX_WORLD_ENTITIES];
+    movement_state movements[MAX_WORLD_ENTITIES];
     vec3i player_position;
     player_input input;
     player_state player;
