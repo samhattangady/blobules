@@ -3,7 +3,7 @@
 //#include <sys/time.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#include "simple_renderer.h"
+#include "renderer.h"
 #include "game_settings.h"
 
 

@@ -3,7 +3,7 @@
 #include <time.h>
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "ui.h"
-#include "simple_renderer.h"
+#include "renderer.h"
 #include "cb_lib/cb_string.h"
 #include "game.h"
 #include "game_settings.h"
