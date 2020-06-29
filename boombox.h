@@ -1,5 +1,5 @@
 #ifndef BOOMBOX_DEFINED
-#define BOOMBOX
+#define BOOMBOX_DEFINED
 
 #include "cb_lib/cb_types.h"
 #include <stdbool.h>
@@ -20,22 +20,24 @@ typedef struct {
 } sound_data;
 
 typedef struct {
+    sound_type sound;
     bool is_busy;
     bool is_looping;
-    ma_decoder decoder;
-    ma_device device;
-    ma_uint64 total_frames;
-    ma_uint64 current_frames;
+    bool is_playing;
+    ma_decoder* decoder;
     float start_seconds;
 } track_data;
 
 typedef struct {
+    ma_device device;
+    bool is_playing;
     sound_data* sounds;
     uint total_tracks;
     track_data* tracks;
 } boombox;
 
 int init_boombox(boombox* b);
-int play_sound(boombox* b, sound_type sound, bool is_looping);
+int play_sound(boombox* b, sound_type sound, bool is_looping, float start_seconds);
+int update_boombox(boombox* b, float seconds);
 
 #endif

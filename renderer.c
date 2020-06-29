@@ -108,9 +108,9 @@ int init_renderer(renderer* r, char* window_name) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     stbi_image_free(data);
     glGenerateMipmap(GL_TEXTURE_2D);
-    renderer r_ = { window, { WINDOW_WIDTH, WINDOW_HEIGHT },
+    renderer r_ = { window, { (int)WINDOW_WIDTH, (int)WINDOW_HEIGHT },
         { vao, vbo, vertex_shader, fragment_shader, shader_program, texture},
-        0, NULL };
+        0, 0, NULL };
     *r = r_;
     r->buffer_size = get_buffer_size();
     r->buffer_occupied = 0;
@@ -356,7 +356,7 @@ int render_game_scene(renderer* r, world* w) {
     glVertexAttribPointer(position_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
     int tex_attribute = glGetAttribLocation(r->shader.shader_program, "tex");
     glEnableVertexAttribArray(tex_attribute);
-    glVertexAttribPointer(tex_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 3*sizeof(float));
+    glVertexAttribPointer(tex_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*) (3*sizeof(float)));
     int uni_ybyx = glGetUniformLocation(r->shader.shader_program, "ybyx");
     int uni_time = glGetUniformLocation(r->shader.shader_program, "time");
     glUniform1f(uni_ybyx, WINDOW_HEIGHT*1.0/WINDOW_WIDTH);
@@ -403,5 +403,6 @@ int render_scene(renderer* r, world* w) {
         render_menu_scene(r, w);
     if (w->active_mode == LEVEL_SELECT)
         render_level_select(r, w);
+    return 0;
 }
 

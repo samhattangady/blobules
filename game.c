@@ -4,6 +4,7 @@
 #include "cb_lib/cb_types.h"
 #include "cb_lib/cb_string.h"
 #include "game.h"
+#include "boombox.h"
 #include "game_settings.h"
 
 #define INPUT_LAG 0.05
@@ -321,7 +322,6 @@ int init_world(world* w, uint number) {
     player_input input = {NO_INPUT, 0.0};
     world_freezeframe* frames = (world_freezeframe*) malloc(HISTORY_STEPS * sizeof(world_freezeframe));
     world_history history = {0, frames};
-    main_menu_struct main_menu;
     level_select_struct level_select;
     load_levels_list(&level_select);
     mouse_state mouse = {false, false, 0.0, 0.0};
@@ -330,7 +330,6 @@ int init_world(world* w, uint number) {
     memset(&tmp, 0, sizeof(world));
     tmp.input = input;
     tmp.active_mode = LEVEL_SELECT;
-    tmp.main_menu = main_menu;
     tmp.level_select = level_select;
     init_main_menu(&tmp);
     tmp.player = ALIVE;
@@ -658,6 +657,7 @@ int copy_grid_data_to_entities(world* w) {
             }
         }
     }
+    return 0;
 }
 
 int save_freezeframe(world* w) {
@@ -750,6 +750,7 @@ int set_input(world* w, input_type it, float seconds) {
         if (it != UNDO_MOVE)
             save_freezeframe(w);
     }
+    play_sound(w->boom, BEEP, false, w->seconds);
     return 0;
 }
 
@@ -824,16 +825,19 @@ int select_active_option(world* w) {
 	    w->active_mode = LEVEL_SELECT;
     if (w->main_menu.active_option == 1)
 	    w->active_mode = EXIT;
+    return 0;
 }
 
 int go_to_main_menu(world* w) {
     printf("going to main menu\n");
     w->active_mode = MAIN_MENU;
+    return 0;
 }
 int go_to_level_select(world* w) {
     printf("going to level select\n");
     w->editor.editor_enabled = false;
     w->active_mode = LEVEL_SELECT;
+    return 0;
 }
 
 void level_select_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -851,17 +855,20 @@ int set_up_level(world* w) {
     int next = w->level_select.levels[w->level_select.current_level].up_index;
     if (next != -1)
         w->level_select.current_level = next;
+    return 0;
 }
 
 int set_down_level(world* w) {
     int next = w->level_select.levels[w->level_select.current_level].down_index;
     if (next != -1)
         w->level_select.current_level = next;
+    return 0;
 }
 
 int enter_active_level(world* w) {
     load_level(w);
     w->active_mode = IN_GAME;
+    return 0;
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {

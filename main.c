@@ -2,10 +2,12 @@
 #include <stdbool.h>
 #include <time.h>
 #define STB_TRUETYPE_IMPLEMENTATION
+#define MINIAUDIO_IMPLEMENTATION
 #include "ui.h"
 #include "renderer.h"
 #include "cb_lib/cb_string.h"
 #include "game.h"
+#include "boombox.h"
 #include "game_settings.h"
 
 
@@ -16,6 +18,10 @@ int main(int argc, char** argv) {
     printf("initted world\n");
     renderer r;
     init_renderer(&r, "blobules");
+    boombox b;
+    init_boombox(&b);
+    w.boom = &b;
+    play_sound(&b, MUSIC, false, 5.0);
     cb_ui_state ui_state;
 
     printf("initting ui\n");
@@ -27,6 +33,7 @@ int main(int argc, char** argv) {
 
     //struct timeval start_time;
     //struct timeval current_time;
+    clock_t start_time;
     clock_t clock_time;
     float frame_time;
     float frame_cycles;
@@ -37,16 +44,16 @@ int main(int argc, char** argv) {
     uint window_pos[2] = {20, 40};
     uint window_size[2] = {UI_WIDTH, WINDOW_HEIGHT};
     init_cb_window(&w.editor.ui_window, "Level Editor", window_pos, window_size);
+    start_time = clock();
     printf("starting game loop\n");
     while (!glfwWindowShouldClose(r.window) && w.active_mode != EXIT) {
         frame += 1;
-        // gettimeofday(&current_time, NULL);
-        clock_time = clock();
-		frame_time = 1.0/60.0;
-        // frame_time = (current_time.tv_sec - start_time.tv_sec) + ((current_time.tv_usec - start_time.tv_usec) / 1000000.0);
-        // start_time = current_time;
-        seconds += frame_time;
         glfwPollEvents();
+        clock_time = clock();
+        frame_time = ((double)clock_time-(double)start_time)/CLOCKS_PER_SEC;
+        start_time = clock_time;
+        seconds += frame_time;
+        update_boombox(&b, seconds);
         process_inputs(r.window, &w, seconds);
         render_scene(&r, &w);
         if (w.editor.editor_enabled) {

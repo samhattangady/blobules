@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "cb_lib/cb_types.h"
 #include "ui.h"
+#include "boombox.h"
 #include "game_settings.h"
 
 typedef enum {
@@ -145,6 +146,7 @@ typedef struct {
     bool currently_moving;
     uint entities_occupied;
     uint movements_occupied;
+    boombox* boom;
     // TODO (14 Jun 2020 sam): Figure out whether this stuff should actually
     // be on the heap... I had moved it onto the stack at some point, but I
     // don't really know whether that is more efficient/performant. Also, this
