@@ -90,13 +90,36 @@ typedef struct {
     int dy;
 } movement_state;
 
+typedef enum {
+    STATIC,
+    MOVING,
+} animations;
+
+typedef struct {
+    bool looping;
+    uint length;
+    uint index;
+    int frame_list[NUM_ANIMATION_FRAMES];
+} animation_frames_data;
+
+typedef struct {
+    // TODO (01 Jul 2020 sam): We might need to add a next animation, or somehow queue animations
+    bool currently_animating;    
+    uint current_animation_index;
+    uint default_animation_index;
+    animation_frames_data animation_data[ENTITY_NUM_ANIMATIONS];
+} animation_state;
+
 typedef struct {
     entity_type type;
-    uint anim_index;
+    // TODO (01 Jul 2020 sam): rename to movement_index
+    uint movement_index;
+    uint animation_index;
     uint data;
     int x;
     int y;
     int z;
+    float removal_time;
 } entity_data;
 
 typedef enum {
@@ -146,21 +169,20 @@ typedef struct {
     bool currently_moving;
     uint entities_occupied;
     uint movements_occupied;
+    uint animations_occupied;
     boombox* boom;
-    // TODO (14 Jun 2020 sam): Figure out whether this stuff should actually
-    // be on the heap... I had moved it onto the stack at some point, but I
-    // don't really know whether that is more efficient/performant. Also, this
-    // whole system might need to be redesigned, and ideally put into a single
-    // struct.
-    uint grid_data[MAX_WORLD_ENTITIES];
-    entity_data entities[MAX_WORLD_ENTITIES];
-    movement_state movements[MAX_WORLD_ENTITIES];
+    void* data;
+    uint* grid_data;
+    entity_data* entities;
+    movement_state* movements;
+    animation_state* animations;
     vec3i player_position;
     player_input input;
     player_state player;
     // uint current_level;
     // levels_list levels;
     float seconds;
+    float animation_seconds_update;
     editor_data editor;
     world_history history;
 } world;

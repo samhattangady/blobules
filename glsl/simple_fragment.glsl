@@ -7,7 +7,7 @@ uniform sampler2D spritesheet;
 
 uniform float time;
 float PI = 3.141596;
-float NUMBER_OF_SPRITES = 24.0;
+float NUMBER_OF_SPRITES = 32.0;
 float STROKE_THICKNESS = 4.0;
 
 float rand(vec2 c) {

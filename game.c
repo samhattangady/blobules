@@ -48,11 +48,33 @@ char* as_text(entity_type e) {
     return "INVALID";
 }
 
-bool has_animations(entity_type et) {
+bool has_movements(entity_type et) {
     return true;
     // TODO (25 Jun 2020 sam): See what all need to be here. Should it
     // just be everything? Is there any benefit in not having all
     return (et==PLAYER || et==CUBE || et==FURNITURE || et==REFLECTOR);
+}
+
+bool has_animations(entity_type et) {
+    return (et==PLAYER);
+}
+
+int load_entity_animations(world* w, entity_type et, uint anim_index) {
+    if (et==PLAYER) {
+        // static animation;
+        w->animations[anim_index].animation_data[0].length = 1; 
+        w->animations[anim_index].animation_data[0].index = 0; 
+        w->animations[anim_index].animation_data[0].looping = true; 
+        for (int i=0; i<2; i++)
+            w->animations[anim_index].animation_data[0].frame_list[i] = i; 
+        // move / jump animation
+        w->animations[anim_index].animation_data[1].length = 9; 
+        w->animations[anim_index].animation_data[1].index = 0; 
+        w->animations[anim_index].animation_data[1].looping = false; 
+        for (int i=0; i<9; i++)
+            w->animations[anim_index].animation_data[1].frame_list[i] = i; 
+    }
+    return 0;
 }
 
 int add_entity(world* w, entity_type e, int x, int y, int z) {
@@ -70,18 +92,27 @@ int add_entity(world* w, entity_type e, int x, int y, int z) {
     //     entity_index = 2;
     else {
         entity_index = w->entities_occupied;
-        int anim_index = 0;
-        if (has_animations(e)) {
-            anim_index = w->movements_occupied;
-            w->movements[anim_index].currently_moving = false;
-            w->movements[anim_index].x = (float)x;
-            w->movements[anim_index].y = (float)y;
-            w->movements[anim_index].z = (float)z;
-            w->movements[anim_index].start_x = x;
-            w->movements[anim_index].start_y = y;
+        int movement_index = 0;
+        if (has_movements(e)) {
+            movement_index = w->movements_occupied;
+            w->movements[movement_index].currently_moving = false;
+            w->movements[movement_index].x = (float)x;
+            w->movements[movement_index].y = (float)y;
+            w->movements[movement_index].z = (float)z;
+            w->movements[movement_index].start_x = x;
+            w->movements[movement_index].start_y = y;
             w->movements_occupied++;
         }
-        entity_data ed = {e, anim_index, 0, x, y, z};
+        int animation_index = 0;
+        if (has_animations(e)) {
+            animation_index = w->animations_occupied;
+            w->animations[animation_index].currently_animating = true;
+            w->animations[animation_index].current_animation_index = 0;
+            w->animations[animation_index].default_animation_index = 0;
+            load_entity_animations(w, e, animation_index);
+            w->animations_occupied++;
+        }
+        entity_data ed = {e, movement_index, animation_index, x, y, z, -1.0};
         // if (e == REFLECTOR)
         //     ed.data = 1;
         w->entities[entity_index] = ed;
@@ -111,8 +142,8 @@ int set_cold_target(world* w, int x, int y, int z) {
 entity_type get_entity_at(world* w, int index) {
     return w->entities[w->grid_data[index]].type;
 }
-uint get_entity_anim_index(world* w, int index) {
-    return w->entities[w->grid_data[index]].anim_index;
+uint get_entity_movement_index(world* w, int index) {
+    return w->entities[w->grid_data[index]].movement_index;
 }
 
 entity_type get_entity_type(char c) {
@@ -229,8 +260,11 @@ int init_entities(world* w) {
     w->entities_occupied = 1;
     // This is initialised at 1 so index 0 has all the unanimated entities
     w->movements_occupied = 1;
+    w->movements[0].currently_moving = false;
+    w->animations_occupied = 1;
+    w->animations[0].currently_animating = false;
     entity_data ed;
-    ed.anim_index = 0;
+    ed.movement_index = 0;
     ed.type = NONE;
     ed.x = 0;
     ed.y = 0;
@@ -341,6 +375,17 @@ int init_world(world* w, uint number) {
     // tmp.levels = list;
     tmp.history = history;
     *w = tmp;
+    uint grid_data_size = sizeof(uint) * MAX_WORLD_ENTITIES;
+    uint entity_data_size = sizeof(entity_data) * MAX_WORLD_ENTITIES;
+    uint movement_data_size = sizeof(movement_state) * MAX_WORLD_ENTITIES;
+    uint animation_data_size = sizeof(animation_state) * MAX_WORLD_ENTITIES;
+    w->data = (void*) malloc(grid_data_size+entity_data_size+movement_data_size+animation_data_size);
+    memset(w->data, 0, grid_data_size+entity_data_size+movement_data_size+animation_data_size);
+    w->grid_data = w->data;
+    w->entities = (char*)w->data+grid_data_size;
+    w->movements = (char*)w->data+(grid_data_size+entity_data_size);
+    w->animations = (char*)w->data+(grid_data_size+entity_data_size+movement_data_size);
+    w->animation_seconds_update = 0.0;
     load_level(w);
     return 0;
 }
@@ -391,19 +436,24 @@ int set_entity_position(world* w, uint index, int x, int y, int z) {
     return 0;
 }
 
+int schedule_entity_removal(world*w, uint index, int depth) {
+    w->entities[index].removal_time = w->seconds + (2+depth)*ANIMATION_SINGLE_STEP_TIME;
+    return 0;
+}
+
 int add_interpolation(world* w, uint index, int x, int y, int z, int dx, int dy, int depth) {
     w->currently_moving = true;
-    if (w->movements[w->entities[index].anim_index].currently_moving) {
-        w->movements[w->entities[index].anim_index].duration += ANIMATION_SINGLE_STEP_TIME;
-        w->movements[w->entities[index].anim_index].dx += dx;
-        w->movements[w->entities[index].anim_index].dy += dy;
+    if (w->movements[w->entities[index].movement_index].currently_moving) {
+        w->movements[w->entities[index].movement_index].duration += ANIMATION_SINGLE_STEP_TIME;
+        w->movements[w->entities[index].movement_index].dx += dx;
+        w->movements[w->entities[index].movement_index].dy += dy;
     } else {
         movement_state move_animation = {
             true,
             w->seconds+(depth*ANIMATION_SINGLE_STEP_TIME),
             ANIMATION_SINGLE_STEP_TIME,
             x, y, z, x, y, dx, dy};
-        w->movements[w->entities[index].anim_index] = move_animation;
+        w->movements[w->entities[index].movement_index] = move_animation;
     }
     return 0;
 }
@@ -449,12 +499,16 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
     if (get_entity_at(w, on_index) != HOT_TARGET)
         set_slippery(w, x, y, z-1);
     int index = get_position_index(w, x, y, z);
+    int cube_index = w->grid_data[index];
     if ((x+dx < 0 || x+dx > w->x_size-1) ||
         (y+dy < 0 || y+dy > w->y_size-1) ||
         (z+dz < 0 || z+dz > w->z_size-1)) {
         // remove cube
         // TODO (07 May 2020 sam): Figure out how to handle animations here?
         printf("removing cube because oob\n");
+        add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
+        set_entity_position(w, cube_index, x+dx, y+dy, z+dz);
+        schedule_entity_removal(w, cube_index, depth);
         set_none(w, index);
         return -1;
     }
@@ -470,6 +524,8 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
                 maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth);
             // check if win.
             if (get_entity_at(w, on_index) == HOT_TARGET) {
+                schedule_entity_removal(w, cube_index, depth);
+                set_entity_position(w, cube_index, x, y, z);
                 set_none(w, index);
                 set_cold_target(w, x, y, z-1);
             }
@@ -482,13 +538,12 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
         // remove cube
         // TODO (07 May 2020 sam): Figure out how to handle animations here?
         printf("removing cube because no support\n");
-        int cube_index = w->grid_data[index];
+        schedule_entity_removal(w, cube_index, depth);
         add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
         set_entity_position(w, cube_index, x+dx, y+dy, z+dz);
         set_none(w, index);
         return -2;
     }
-    int cube_index = w->grid_data[index];
     w->grid_data[target_pos_index] = cube_index;
     set_none(w, index);
     add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
@@ -499,10 +554,14 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
 int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, int depth) {
     int on_index = get_position_index(w, x, y, z-1);
     int index = get_position_index(w, x, y, z);
+    int furniture_index = w->grid_data[index];
     if ((x+dx < 0 || x+dx > w->x_size-1) ||
         (y+dy < 0 || y+dy > w->y_size-1) ||
         (z+dz < 0 || z+dz > w->z_size-1)) {
         printf("removing furniture because oob\n");
+        add_interpolation(w, furniture_index, x, y, z, dx, dy, depth);
+        set_entity_position(w, furniture_index, x+dx, y+dy, z+dz);
+        schedule_entity_removal(w, furniture_index, depth);
         set_none(w, index);
         return -1;
     }
@@ -520,10 +579,12 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, 
     int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);
     if (!can_support_furniture(get_entity_at(w, target_on_index))) {
         printf("removing furniture because no support\n");
+        add_interpolation(w, furniture_index, x, y, z, dx, dy, depth);
+        set_entity_position(w, furniture_index, x+dx, y+dy, z+dz);
+        schedule_entity_removal(w, furniture_index, depth);
         set_none(w, index);
         return -2;
     }
-    int furniture_index = w->grid_data[index];
     w->grid_data[target_pos_index] = furniture_index;
     set_none(w, index);
     add_interpolation(w, furniture_index, x, y, z, dx, dy, depth);
@@ -535,10 +596,14 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, 
 int maybe_move_reflector(world* w, int x, int y, int z, int dx, int dy, int dz, int depth) {
     int on_index = get_position_index(w, x, y, z-1);
     int index = get_position_index(w, x, y, z);
+    int reflector_index = w->grid_data[index];
     if ((x+dx < 0 || x+dx > w->x_size-1) ||
         (y+dy < 0 || y+dy > w->y_size-1) ||
         (z+dz < 0 || z+dz > w->z_size-1)) {
         printf("removing reflector because oob\n");
+        add_interpolation(w, reflector_index, x, y, z, dx, dy, depth);
+        schedule_entity_removal(w, reflector_index, depth);
+        set_entity_position(w, reflector_index, x+dx, y+dy, z+dz);
         set_none(w, index);
         return -1;
     }
@@ -559,10 +624,12 @@ int maybe_move_reflector(world* w, int x, int y, int z, int dx, int dy, int dz, 
     int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);
     if (!can_support_reflector(get_entity_at(w, target_on_index))) {
         printf("removing reflector because no support\n");
+        add_interpolation(w, reflector_index, x, y, z, dx, dy, depth);
+        set_entity_position(w, reflector_index, x+dx, y+dy, z+dz);
+        schedule_entity_removal(w, reflector_index, depth);
         set_none(w, index);
         return -2;
     }
-    int reflector_index = w->grid_data[index];
     w->grid_data[target_pos_index] = reflector_index;
     set_none(w, index);
     add_interpolation(w, reflector_index, x, y, z, dx, dy, depth);
@@ -578,6 +645,15 @@ bool can_push_player_back(entity_type et) {
         et == WALL)
         return true;
     return false;
+}
+
+int set_player_animation(world* w, uint index, animations a) {
+    // reset current playing animation to frame 0
+    animation_state as = w->animations[a];
+    as.animation_data[as.current_animation_index].index = 0;
+    as.current_animation_index = a;
+    w->animations[a] = as;
+    return 0;
 }
 
 int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
@@ -597,6 +673,9 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
             w->player_position.x += dx;
             w->player_position.y += dy;
             w->player_position.z += dz;
+            add_interpolation(w, player_index, pos.x, pos.y, pos.z, dx, dy, depth);
+            set_entity_position(w, player_index, pos.x+dx, pos.y+dy, pos.z+dz);
+            schedule_entity_removal(w, player_index, depth);
             set_none(w, position_index);
             return 0;
         }
@@ -624,6 +703,8 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
             w->player_position.x += dx;
             w->player_position.y += dy;
             w->player_position.z += dz;
+            set_entity_position(w, player_index, pos.x+dx, pos.y+dy, pos.z+dz);
+            schedule_entity_removal(w, player_index, depth);
             set_none(w, position_index);
             return 0;
         }
@@ -634,6 +715,7 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     w->grid_data[target_index] = player_index;
     set_none(w, position_index);
     add_interpolation(w, player_index, pos.x, pos.y, pos.z, dx, dy, depth);
+    set_player_animation(w, player_index, MOVING);
     w->player_position.x += dx;
     w->player_position.y += dy;
     w->player_position.z += dz;
@@ -658,6 +740,13 @@ int copy_grid_data_to_entities(world* w) {
         }
     }
     return 0;
+}
+
+int remove_scheduled_entities(world* w) {
+    for (int i=0; i<MAX_WORLD_ENTITIES; i++) {
+        if (w->entities[i].removal_time > 0.0 && w->seconds > w->entities[i].removal_time)
+            w->entities[i].type = NONE;
+    }
 }
 
 int save_freezeframe(world* w) {
@@ -978,10 +1067,28 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
         }
         w->currently_moving = still_moving;
     }
+    if (w->seconds - w->animation_seconds_update > 1.0 / (float) ANIMATION_FRAMES_PER_SECOND) {
+        w->animation_seconds_update = w->seconds;
+        for (int i=0; i<w->animations_occupied; i++) {
+            if (w->animations[i].currently_animating) {
+                // TODO (01 Jul 2020 sam): What the fuck is this? Needs to be simplified and rewritten?
+                animation_state as = w->animations[1];
+                as.animation_data[as.current_animation_index].index++;
+                if (as.animation_data[as.current_animation_index].index ==
+                        as.animation_data[as.current_animation_index].length) {
+                    as.animation_data[as.current_animation_index].index = 0;
+                    if (!as.animation_data[as.current_animation_index].looping)
+                        as.current_animation_index = as.default_animation_index; 
+                }
+                w->animations[i] = as;
+            }
+        }
+    }
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     copy_grid_data_to_entities(w);
+    remove_scheduled_entities(w);
     return 0;
 }
 

@@ -1,10 +1,12 @@
 from PIL import Image
 
-images = ['player.png', 'cube.png', 'wall.png', 'ground.png', 'hot.png', 'cold.png', 'furn.png', 'player.png']
+images = ['cube.png', 'wall.png', 'ground.png', 'hot.png', 'cold.png', 'furn.png', 'player.png']
+for i in range(9):
+    images.append(f'player_{i}.png')
 for i in range(16):
     images.append(f'slippery_{i}.png')
 
-spritesheet = Image.new('RGBA', (200*24,300), (0,0,0,0))
+spritesheet = Image.new('RGBA', (200*len(images),300), (0,0,0,0))
 
 for i, image in enumerate(images):
     print(f'adding {image}')

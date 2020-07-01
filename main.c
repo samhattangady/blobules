@@ -1,3 +1,4 @@
+#include <windows.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <time.h>
@@ -21,7 +22,7 @@ int main(int argc, char** argv) {
     boombox b;
     init_boombox(&b);
     w.boom = &b;
-    play_sound(&b, MUSIC, false, 5.0);
+    play_sound(&b, MUSIC, false, 0.0);
     cb_ui_state ui_state;
 
     printf("initting ui\n");

@@ -297,3 +297,39 @@ exciting. But once I start actually implementing it, then all the
 imperfections and annoyances will start to arise. So yeah there is that. But
 anyway, I think actually recognising the feeling for what it is will help get
 me over the bump.
+
+01 Jul 2020
+Okay. I feel like I've not put in much work over the last few days, but I
+think that's mostly a lie. I'm pretty sure I did all the audio stuff on
+Monday... So just tuesday that I didn't work, but work was crazy, so I think
+that's fine. Really tired today too. But I think I want to atleast put in some
+time today. Wow, this cursor has quite a wierd blinking pattern. Just
+realised.
+
+Okay, the thing is also now crashing because of the miniaudio. It's also not
+consistent, so I don't know what that is about. Yeah as expected it was my
+mistake. I had not set is_playing as false while initting the tracks.
+
+Okay, there is a task that I've been putting off for a while. After
+implementing the entity based rendering, I've not bothered to actually umm
+complete the entire task.
+- Add the interpolation stuff for all instances of the entities falling off/
+  changing state in any way
+- Remove / gifure out how to remove the entities once they no longer need to
+  be drawn. Can just set to NONE if convenient. But note that they will have
+  to be "animatable" in their disappearance.
+
+Okay yeah, that's done. Fairly straightforward. The removal I'm not sure
+whether to do that now, or whether to do that after the animation. No I think
+we should do now, and redo later. Otherwise, there is a lot of commotion right
+now.
+
+Okay, that was fairly straightforward. I really think the next thing to work
+on should be animation. So let's go?
+
+Okay, the more complexity we add, the more we have to start figuring out how
+to handle other parts of the code. For instance, with the animations dat stuff
+that I am loading now, it will begin to impact how things like UNDO etc should
+be handled as well. Right now undo is fairly naive, and it essentially loads
+the whole world again. Maybe at some point that may not be the best decision.
+

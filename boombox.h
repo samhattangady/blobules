@@ -1,10 +1,9 @@
 #ifndef BOOMBOX_DEFINED
 #define BOOMBOX_DEFINED
 
-#include "cb_lib/cb_types.h"
 #include <stdbool.h>
-
 #include "miniaudio.h"
+#include "cb_lib/cb_types.h"
 
 typedef enum {
     BEEP,
@@ -16,7 +15,6 @@ typedef struct {
     sound_type sound;
     void* buffer;
     size_t size;
-    ma_decoder_config decoder_config;
 } sound_data;
 
 typedef struct {
@@ -24,12 +22,13 @@ typedef struct {
     bool is_busy;
     bool is_looping;
     bool is_playing;
-    ma_decoder* decoder;
+    ma_decoder decoder;
     float start_seconds;
 } track_data;
 
 typedef struct {
     ma_device device;
+    ma_decoder_config decoder_config;
     bool is_playing;
     sound_data* sounds;
     uint total_tracks;

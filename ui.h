@@ -2,9 +2,9 @@
 #define CHAPLIBOY_UI_DEFINED
 
 #define GLEW_STATIC
+#include <stdbool.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <stdbool.h>
 #include "stb_truetype.h"
 #include "cb_lib/cb_types.h"
 

@@ -178,26 +178,34 @@ float get_slippery_sprite_position(world* w, int x, int y, int z) {
     return 0.0;
 }
 
+float get_player_animation_frame(world* w, entity_data ed) {
+    uint anim_index = ed.animation_index;
+    animation_state as = w->animations[anim_index];
+    animation_frames_data afd = as.animation_data[as.current_animation_index];
+    int f = afd.frame_list[afd.index];
+    return (float) f;
+}
+
 float get_entity_sprite_position(entity_data ed, world* w) {
     entity_type type = ed.type;
     if (type == PLAYER)
-        return 0.0;
+        return 7.0 + get_player_animation_frame(w, ed);
     if (type == CUBE)
-        return 1.0;
+        return 0.0;
     if (type == WALL)
-        return 2.0;
+        return 1.0;
     if (type == GROUND)
-        return 3.0;
+        return 2.0;
     if (type == SLIPPERY_GROUND)
-        return 8.0 +get_slippery_sprite_position(w, ed.x, ed.y, ed.z);
+        return 16.0 +get_slippery_sprite_position(w, ed.x, ed.y, ed.z);
     if (type == HOT_TARGET)
-        return 4.0;
+        return 3.0;
     if (type == COLD_TARGET)
-        return 5.0;
+        return 4.0;
     if (type == FURNITURE)
-        return 6.0;
+        return 5.0;
     if (type == REFLECTOR)
-        return 7.0;
+        return 6.0;
     return -1.0;
 }
 
@@ -224,19 +232,19 @@ float get_block_size_y(entity_type type) {
 float get_x_pos(world* w, entity_data ed) {
     if (!w->currently_moving)
         return ed.x;
-    int anim_index = ed.anim_index;
-    if (!w->movements[anim_index].currently_moving)
+    int movement_index = ed.movement_index;
+    if (!w->movements[movement_index].currently_moving)
         return ed.x;
-    return w->movements[anim_index].x;
+    return w->movements[movement_index].x;
 }
 
 float get_y_pos(world* w, entity_data ed) {
     if (!w->currently_moving)
         return ed.y;
-    int anim_index = ed.anim_index;
-    if (!w->movements[anim_index].currently_moving)
+    int movement_index = ed.movement_index;
+    if (!w->movements[movement_index].currently_moving)
         return ed.y;
-    return w->movements[anim_index].y;
+    return w->movements[movement_index].y;
 }
 
 int get_vertex_buffer_index(world* w, int x, int y, int z) {
@@ -302,7 +310,7 @@ void add_ground_at_pos(renderer* r, world* w, int x, int y) {
     float x_size = get_block_size_x(GROUND);
     float y_size = get_block_size_y(GROUND);
     // FIXME (26 Jun 2020 sam): Hardcoded value. Fix.
-    float sprite_position = 3.0;
+    float sprite_position = 2.0;
     add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position);
 } 
 
