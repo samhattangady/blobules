@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <math.h>
 #include "cb_lib/cb_types.h"
 #include "cb_lib/cb_string.h"
 #include "game.h"
@@ -269,6 +270,7 @@ int init_entities(world* w) {
     ed.x = 0;
     ed.y = 0;
     ed.z = 0;
+    ed.removal_time = -1.0;
     w->entities[0] = ed;
     return 0;
 }
@@ -358,7 +360,9 @@ int init_world(world* w, uint number) {
     world_history history = {0, frames};
     level_select_struct level_select;
     load_levels_list(&level_select);
-    mouse_state mouse = {false, false, 0.0, 0.0};
+    mouse_data mouse;
+    mouse.l_pressed = false;
+    mouse.r_pressed = false;
     world tmp;
     // TODO (12 Jun 2020 sam): See whether there is a cleaner way to set this all to 0;
     memset(&tmp, 0, sizeof(world));
@@ -368,7 +372,7 @@ int init_world(world* w, uint number) {
     init_main_menu(&tmp);
     tmp.player = ALIVE;
     tmp.editor.editor_enabled = false;
-    tmp.editor.mouse = mouse;
+    tmp.mouse = mouse;
     tmp.editor.z_level = 0;
     tmp.editor.active_type = GROUND;
     // tmp.current_level=0;
@@ -382,7 +386,7 @@ int init_world(world* w, uint number) {
     w->data = (void*) malloc(grid_data_size+entity_data_size+movement_data_size+animation_data_size);
     memset(w->data, 0, grid_data_size+entity_data_size+movement_data_size+animation_data_size);
     w->grid_data = w->data;
-    w->entities = (char*)w->data+grid_data_size;
+    w->entities = (char*) w->data+grid_data_size;
     w->movements = (char*)w->data+(grid_data_size+entity_data_size);
     w->animations = (char*)w->data+(grid_data_size+entity_data_size+movement_data_size);
     w->animation_seconds_update = 0.0;
@@ -444,7 +448,7 @@ int schedule_entity_removal(world*w, uint index, int depth) {
 int add_interpolation(world* w, uint index, int x, int y, int z, int dx, int dy, int depth) {
     w->currently_moving = true;
     if (w->movements[w->entities[index].movement_index].currently_moving) {
-        w->movements[w->entities[index].movement_index].duration += ANIMATION_SINGLE_STEP_TIME;
+        w->movements[w->entities[index].movement_index].duration += ANIMATION_SINGLE_STEP_TIME; // *pow(0.8, depth);
         w->movements[w->entities[index].movement_index].dx += dx;
         w->movements[w->entities[index].movement_index].dy += dy;
     } else {
@@ -744,8 +748,10 @@ int copy_grid_data_to_entities(world* w) {
 
 int remove_scheduled_entities(world* w) {
     for (int i=0; i<MAX_WORLD_ENTITIES; i++) {
-        if (w->entities[i].removal_time > 0.0 && w->seconds > w->entities[i].removal_time)
+        if (w->entities[i].removal_time > 0.0 && w->seconds > w->entities[i].removal_time) {
             w->entities[i].type = NONE;
+            w->entities[i].removal_time = -1.0;
+        }
     }
 }
 
@@ -972,66 +978,94 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void add_entity_at_mouse(world* w) {
     int x = get_world_x(w);
     int y = get_world_y(w);
+    if (x < 0 || x >= w->x_size || y < 0 || y >= w->y_size)
+        return;
     // TODO (19 Apr 2020 sam): Add check here to see whether the type is
     // on "correct z level"
-    if (w->editor.editor_enabled)
-        add_entity(w, w->editor.active_type, x, y, w->editor.z_level);
+    // TODO (03 Jul 2020 sam): Check if there is already an entity here
+    // and remove in that case.
+    uint index = get_position_index(w, x, y, w->editor.z_level);
+    entity_type et = get_entity_at(w, index);
+    if (et != NONE)
+        w->entities[w->grid_data[index]].type = NONE;
+    add_entity(w, w->editor.active_type, x, y, w->editor.z_level);
+    // Due to the way entities work now, we need to re initialise the
+    // entities when we remove something. This way of doing it is obviously
+    // not performant, but since this function is only called in the editor,
+    // its fine.
+    change_world_xsize_right(w, 1);
+    change_world_xsize_right(w, -1);
 }
 
 void remove_entity_at_mouse(world* w) {
     int x = get_world_x(w);
     int y = get_world_y(w);
-    if (w->editor.editor_enabled) {
-        uint index = get_position_index(w, x, y, w->editor.z_level);
-        entity_type et = get_entity_at(w, index);
-        if (et != NONE)
-            w->editor.active_type = et;
-        add_entity(w, NONE, x, y, w->editor.z_level);
-        save_freezeframe(w);
+    if (x < 0 || x >= w->x_size || y < 0 || y >= w->y_size)
+        return;
+    uint index = get_position_index(w, x, y, w->editor.z_level);
+    entity_type et = get_entity_at(w, index);
+    if (et != NONE) {
+        w->editor.active_type = et;
+        // TODO (03 Jul 2020 sam): This doesn't immediately get removed
+        // and for some reason, the scheduling removal just acts really
+        // wonky
+        w->entities[w->grid_data[index]].type = NONE;
+        // Due to the way entities work now, we need to re initialise the
+        // entities when we remove something. This way of doing it is obviously
+        // not performant, but since this function is only called in the editor,
+        // its fine.
+        change_world_xsize_right(w, 1);
+        change_world_xsize_right(w, -1);
     }
+    // save_freezeframe(w);
 }
 
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-    global_w->editor.mouse.xpos = xpos;
-    global_w->editor.mouse.ypos = ypos;
-    global_w->editor.ui_state->mouse.current_x = xpos;
-    global_w->editor.ui_state->mouse.current_y = ypos;
-    if (global_w->editor.mouse.l_pressed)
-        add_entity_at_mouse(global_w);
-    if (global_w->editor.mouse.r_pressed)
-        remove_entity_at_mouse(global_w);
+    global_w->mouse.current_x = xpos;
+    global_w->mouse.current_y = ypos;
 }
 
 int get_world_x(world* w) {
-    double xpos = global_w->editor.mouse.xpos;
+    double xpos = global_w->mouse.current_x;
     return (int) (((xpos - (X_PADDING*WINDOW_WIDTH/2.0) - (WINDOW_WIDTH/2.0)) /
                    (BLOCK_WIDTH/2.0))
                   );
 }
 
 int get_world_y(world* w) {
-    double ypos = global_w->editor.mouse.ypos;
+    double ypos = global_w->mouse.current_y;
     return (int) (0.0 - ((ypos+ (Y_PADDING*WINDOW_HEIGHT/2.0) - WINDOW_HEIGHT/2.0) /
                          (BLOCK_HEIGHT/2.0))
                   );
 }
 
+int run_editor_functions(world* w) {
+    if (w->mouse.l_pressed)
+        add_entity_at_mouse(w);
+    else if (w->mouse.r_pressed)
+        remove_entity_at_mouse(w);
+
+}
+
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-    global_w->editor.mouse.l_pressed = (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS);
-    global_w->editor.mouse.r_pressed = (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS);
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        global_w->editor.ui_state->mouse.l_pressed = true;
-        global_w->editor.ui_state->mouse.l_down_x = global_w->editor.ui_state->mouse.current_x;
-        global_w->editor.ui_state->mouse.l_down_y = global_w->editor.ui_state->mouse.current_y;
+        global_w->mouse.l_pressed = true;
+        global_w->mouse.l_down_x = global_w->mouse.current_x;
+        global_w->mouse.l_down_y = global_w->mouse.current_y;
     }
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-        global_w->editor.ui_state->mouse.l_pressed = false;
-        global_w->editor.ui_state->mouse.l_released = true;
+        global_w->mouse.l_pressed = false;
+        global_w->mouse.l_released = true;
     }
-    if (global_w->editor.mouse.l_pressed)
-        add_entity_at_mouse(global_w);
-    if (global_w->editor.mouse.r_pressed)
-        remove_entity_at_mouse(global_w);
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+        global_w->mouse.r_pressed = true;
+        global_w->mouse.r_down_x = global_w->mouse.current_x;
+        global_w->mouse.r_down_y = global_w->mouse.current_y;
+    }
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
+        global_w->mouse.r_pressed = false;
+        global_w->mouse.r_released = true;
+    }
 }
 
 float get_ease_in_out_progress(float time_elapsed) {
@@ -1043,11 +1077,9 @@ float get_ease_in_out_progress(float time_elapsed) {
     return time_elapsed * (4 - 2*time_elapsed)-1;
 }
 
-int process_inputs(GLFWwindow* window, world* w, float seconds) {
+int simulate_world(world* w, float seconds) {
     if (w->player == WIN)
         load_next_level(w);
-    // if (w->player == DEAD)
-    //     load_level(w);
     global_seconds = seconds;
     w->seconds = seconds;
     if (w->currently_moving) {
@@ -1071,7 +1103,6 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
         w->animation_seconds_update = w->seconds;
         for (int i=0; i<w->animations_occupied; i++) {
             if (w->animations[i].currently_animating) {
-                // TODO (01 Jul 2020 sam): What the fuck is this? Needs to be simplified and rewritten?
                 animation_state as = w->animations[1];
                 as.animation_data[as.current_animation_index].index++;
                 if (as.animation_data[as.current_animation_index].index ==
@@ -1084,12 +1115,18 @@ int process_inputs(GLFWwindow* window, world* w, float seconds) {
             }
         }
     }
-    glfwSetKeyCallback(window, key_callback);
-    glfwSetCursorPosCallback(window, cursor_position_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    if (w->editor.editor_enabled)
+        run_editor_functions(w);
     copy_grid_data_to_entities(w);
     remove_scheduled_entities(w);
     return 0;
+}
+
+int reset_inputs(world* w) {
+    // called at the end of each tick to clear out state that was valid for
+    // the length of the tick.
+    w->mouse.l_released = false;
+    w->mouse.r_released = false;
 }
 
 int change_world_xsize_right(world* w, int sign) {
@@ -1214,4 +1251,10 @@ int change_world_ysize(world* w, int direction, int sign) {
     else
         change_world_ysize_bottom(w, sign);
     return 0;
+}
+
+int set_callbacks(GLFWwindow* window) {
+    glfwSetKeyCallback(window, key_callback);
+    glfwSetCursorPosCallback(window, cursor_position_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
 }

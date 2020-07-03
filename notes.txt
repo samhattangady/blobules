@@ -333,3 +333,37 @@ that I am loading now, it will begin to impact how things like UNDO etc should
 be handled as well. Right now undo is fairly naive, and it essentially loads
 the whole world again. Maybe at some point that may not be the best decision.
 
+02 Jul 2020
+Yeah, I goofed up a bit today. Started off with YouTube before schedule, and
+essentially wasted a lot of time. But yeah. I guess that happens sometimes.
+It's almost 10:30 now, and I don't know if I will actually be able to get
+anything done today.
+
+03 Jul 2020
+So I don't know, I spent a lot of the morning almost planning to quit
+immediatlely, and felt that I should be spending a lot more time on actually
+working on the game, but then I've now spent a lot of time not doing that. Its
+a bit of a bitch, and I really don't understand it.
+
+Anyway I really need to start some time building puzzles again. I was doing a
+pretty decent job of it till now, but now I have not really been too
+disciplined about all of that anymore. Because I really think the game will
+live and die by the strength of the puzzles alone. Everything else is just
+polish. It might get people to get into it, but good puzzles is what will get
+people to evangelise. And if we want to sell a thousand copies, we diefinitely
+need people to be evangelising to the maximum extent possible.
+
+Okay, what is the thing that I should be working on today though really? That
+I guess is the question. I don't feel like drawing up more animations right
+now. But one thing that does have to be done is to create the animation
+queuing system. That would be fairly important. yeah but in absence of that,
+what is the thing to actually work on right now? I am not entirely certain.
+Now what though aaaah.
+
+Maybe we should start the level select screen tooling and design. Cool lets
+go. Okay actually its a bit of a problem. Either we can have it all in the
+same file, or we can move it out to another file . I think we should start off
+with it in the same file, and at some point move it out if required.
+
+Oh looks like we need to start off with simplifying the mouse data. Have a
+single source. It looks like we have it in multiple places right now.

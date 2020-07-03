@@ -7,18 +7,7 @@
 #include <GLFW/glfw3.h>
 #include "stb_truetype.h"
 #include "cb_lib/cb_types.h"
-
-typedef struct ft_char {
-    uint size_x;
-    uint size_y;
-    uint bearing_x;
-    uint bearing_y;
-    uint advance;
-    float x;
-    float y;
-    float dx;
-    float dy;
-} ft_char;
+#include "common.h"
 
 typedef struct {
     uint occupied;
@@ -64,24 +53,11 @@ typedef struct {
     cb_widget_array widgets;
 } cb_window;
 
-typedef struct {
-    bool l_pressed;
-    bool l_released;
-    bool r_pressed;
-    bool r_released;
-    float l_down_x;
-    float l_down_y;
-    float r_down_x;
-    float r_down_y;
-    float current_x;
-    float current_y;
-} mouse_state_struct;
-
 typedef struct cb_ui_state {
     gl_values values;
     uint font_texture;
     stbtt_bakedchar glyphs[128];
-    mouse_state_struct mouse;
+    mouse_data mouse;
 } cb_ui_state;
 
 int init_ui(cb_ui_state* state);

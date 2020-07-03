@@ -5,6 +5,7 @@
 #include "ui.h"
 #include "boombox.h"
 #include "game_settings.h"
+#include "common.h"
 
 typedef enum {
     PLAYER,
@@ -49,19 +50,10 @@ typedef struct {
     string* levels;
 } levels_list;
 
-
-typedef struct {
-    bool l_pressed;
-    bool r_pressed;
-    double xpos;
-    double ypos;
-} mouse_state;
-
 typedef struct {
     bool editor_enabled;
     uint z_level;
     entity_type active_type;
-    mouse_state mouse;
     cb_ui_state* ui_state;
     cb_window ui_window;
 } editor_data;
@@ -171,6 +163,7 @@ typedef struct {
     uint movements_occupied;
     uint animations_occupied;
     boombox* boom;
+    mouse_data mouse;
     void* data;
     uint* grid_data;
     entity_data* entities;
@@ -195,11 +188,13 @@ int select_active_option(world* w);
 
 int init_world(world* w, uint number);
 int get_position_index(world* w, int x, int y, int z);
-int process_inputs(GLFWwindow* window, world* w, float seconds);
+int simulate_world(world* w, float seconds);
+int reset_inputs(world* w);
 char* as_text (entity_type et);
 int change_world_xsize(world* w, int direction, int sign);
 int change_world_ysize(world* w, int direction, int sign);
 int save_level(world* w);
+int set_callbacks(GLFWwindow* window);
 entity_type get_entity_at(world* w, int index);
 uint get_entity_anim_index(world* w, int index);
 

@@ -47,6 +47,7 @@ int main(int argc, char** argv) {
     init_cb_window(&w.editor.ui_window, "Level Editor", window_pos, window_size);
     start_time = clock();
     printf("starting game loop\n");
+    set_callbacks(r.window);
     while (!glfwWindowShouldClose(r.window) && w.active_mode != EXIT) {
         frame += 1;
         glfwPollEvents();
@@ -55,7 +56,8 @@ int main(int argc, char** argv) {
         start_time = clock_time;
         seconds += frame_time;
         update_boombox(&b, seconds);
-        process_inputs(r.window, &w, seconds);
+        simulate_world(&w, seconds);
+        ui_state.mouse = w.mouse;
         render_scene(&r, &w);
         if (w.editor.editor_enabled) {
             // TODO (15 Jun 2020 sam): Move this method to some other file. It's too much
@@ -139,7 +141,7 @@ int main(int argc, char** argv) {
             if (add_button(&ui_state, &w.editor.ui_window, "save_level", true)) {
                 save_level(&w);
             }
-            cb_render_window(&ui_state, &w.editor.ui_window);
+            cb_render_window(&ui_state, &w.editor.ui_window, &w.mouse);
         }
         char fps_counter[48];
         char cps_counter[48];
@@ -148,9 +150,8 @@ int main(int argc, char** argv) {
         sprintf(cps_counter, "%.2f cps", 1.0/((double)clock_time/CLOCKS_PER_SEC));
         cb_ui_render_text(&ui_state, fps_counter, WINDOW_WIDTH-100, 20);
         cb_ui_render_text(&ui_state, cps_counter, WINDOW_WIDTH-100, 40);
-        // printf("%f cps\n", cps_counter);
         render_ui(&ui_state);
-        // Sleep(100);
+        reset_inputs(&w);
         glfwSwapBuffers(r.window);
     }
     // TODO (05 Apr 2020 sam): Run all the closing and exit things...

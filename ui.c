@@ -172,8 +172,6 @@ int render_rectangles(cb_ui_state* state) {
 int init_ui(cb_ui_state* state) {
     init_gl_values(state);
     init_character_glyphs(state);
-    mouse_state_struct m = {false, false, false, false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    state->mouse = m;
     return 0;
 }
 
@@ -226,17 +224,6 @@ int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y) {
         // for test/dev. They have some other sets of API for release versions.
         stbtt_aligned_quad q;
         stbtt_GetBakedQuad(state->glyphs, 512,512, c, &x, &y, &q, 1);
-        /*
-                ft_char current = state->glyphs[c];
-                float xpos = x + current.bearing_x;
-                float ypos = y - (current.size_y - current.bearing_y);
-                float w = current.size_x;
-                float h = current.size_y;
-                float l = current.x;
-                float b = current.y;
-                float dx = current.dx;
-                float dy = current.dy;
-        */
         uint index = state->values.char_buffer.occupied;
         if (index >= CHAR_BUFFER_SIZE*24) {
             render_chars(state);
@@ -384,8 +371,6 @@ int cb_render_window(cb_ui_state* state, cb_window* window) {
         cb_ui_render_text(state, w.title, text_x, text_y);
     }
     clear_window(state, window);
-    state->mouse.l_released = false;
-    state->mouse.r_released = false;
     return 0;
 }
 
