@@ -84,7 +84,11 @@ typedef struct {
 
 typedef enum {
     STATIC,
-    MOVING,
+    MOVING_LEFT,
+    MOVING_RIGHT,
+    PUSHING_LEFT,
+    SLIPPING,
+    STOPPING_HARD_LEFT,
 } animations;
 
 typedef struct {
@@ -99,6 +103,8 @@ typedef struct {
     bool currently_animating;    
     uint current_animation_index;
     uint default_animation_index;
+    uint queue_length;
+    animations queue[MAX_QUEUED_ANIMATIONS];
     animation_frames_data animation_data[ENTITY_NUM_ANIMATIONS];
 } animation_state;
 
@@ -144,6 +150,20 @@ typedef struct {
     int right_index;
 } level_option;
 
+typedef enum {
+    NEUTRAL,
+    SET_POSITION,
+    SET_LEFT,
+    SET_RIGHT,
+    SET_TOP,
+    SET_BOTTOM,
+    LEVEL_EDITOR_MODES_COUNT,
+} level_editor_modes;
+
+typedef struct {
+    bool level_editor_enabled;
+} level_editor;
+
 typedef struct {
     level_option* levels;
     uint current_level;
@@ -157,6 +177,7 @@ typedef struct {
     uint z_size;
     world_mode active_mode;
     main_menu_struct main_menu;
+    level_editor_modes level_mode;
     level_select_struct level_select;
     bool currently_moving;
     uint entities_occupied;

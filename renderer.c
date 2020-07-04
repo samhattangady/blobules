@@ -197,7 +197,7 @@ float get_entity_sprite_position(entity_data ed, world* w) {
     if (type == GROUND)
         return 2.0;
     if (type == SLIPPERY_GROUND)
-        return 16.0 +get_slippery_sprite_position(w, ed.x, ed.y, ed.z);
+        return 19.0 +18.0 +get_slippery_sprite_position(w, ed.x, ed.y, ed.z);
     if (type == HOT_TARGET)
         return 3.0;
     if (type == COLD_TARGET)
@@ -389,11 +389,50 @@ int render_menu_scene(renderer* r, world* w) {
     return 0;
 }
 
+char* get_level_mode(world* w) {
+    if (w->level_mode == NEUTRAL)
+        return "level_mode: neutral";
+    if (w->level_mode == SET_POSITION)
+        return "level_mode: set_position";
+    if (w->level_mode == SET_LEFT)
+        return "level_mode: set_left";
+    if (w->level_mode == SET_RIGHT)
+        return "level_mode: set_right";
+    if (w->level_mode == SET_BOTTOM)
+        return "level_mode: set_bottom";
+    if (w->level_mode == SET_TOP)
+        return "level_mode: set_top";
+    return "NA";
+}
+
 int render_level_select(renderer* r, world* w) {
     // TODO (14 Jun 2020 sam): Keep the ui state in a more accessible location
+    cb_ui_render_text(w->editor.ui_state, get_level_mode(w), 20, 20);
     for (int i=0; i<w->level_select.total_levels; i++) {
         level_option level = w->level_select.levels[i];
-        cb_ui_render_text(w->editor.ui_state, level.name.text, level.xpos, level.ypos);
+        cb_ui_render_text(w->editor.ui_state, level.name.text, level.xpos, level.ypos, 1.0);
+        cb_ui_render_rectangle(w->editor.ui_state, level.xpos-10, level.ypos-5, 200, 21, 0.5);
+        int l_index;
+        l_index = w->level_select.levels[i].up_index;
+        if (l_index > 0) {
+            level_option l = w->level_select.levels[l_index];
+            cb_ui_render_line(w->editor.ui_state, level.xpos+95, level.ypos, l.xpos+95, l.ypos, 1.0);
+        }
+        // l_index = w->level_select.levels[i].down_index;
+        // if (l_index > 0) {
+        //     level_option l = w->level_select.levels[l_index];
+        //     cb_ui_render_line(w->editor.ui_state, level.xpos+95, level.ypos+16, l.xpos+95, l.ypos, 1.0);
+        // }
+        l_index = w->level_select.levels[i].left_index;
+        if (l_index > 0) {
+            level_option l = w->level_select.levels[l_index];
+            cb_ui_render_line(w->editor.ui_state, level.xpos, level.ypos, l.xpos, l.ypos, 1.0);
+        }
+        // l_index = w->level_select.levels[i].right_index;
+        // if (l_index > 0) {
+        //     level_option l = w->level_select.levels[l_index];
+        //     cb_ui_render_line(w->editor.ui_state, level.xpos, level.ypos, l.xpos, l.ypos, 1.0);
+        // }
     }
     level_option active_level = w->level_select.levels[w->level_select.current_level];
     cb_ui_render_rectangle(w->editor.ui_state, active_level.xpos-10, active_level.ypos-5, 200, 21, 0.5);

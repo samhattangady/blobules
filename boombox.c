@@ -61,7 +61,7 @@ int init_boombox(boombox* b) {
     b->decoder_config = ma_decoder_config_init(b->device.playback.format, b->device.playback.channels,
                                                b->device.sampleRate);
     char* sound_files[SOUNDS_COUNT] = {"static/sound1.wav", "static/toto.wav"};
-    sound_data* sounds = (sound_data*) malloc(sizeof(sound_data) * SOUNDS_COUNT);
+    sound_data* sounds = (sound_data*) calloc(SOUNDS_COUNT, sizeof(sound_data));
     memset(sounds, 0, sizeof(sound_data)*SOUNDS_COUNT);
     for (int i=0; i<SOUNDS_COUNT; i++) {
         size_t file_size;
@@ -70,8 +70,7 @@ int init_boombox(boombox* b) {
         fseek(handler, 0, SEEK_END);
         file_size = ftell(handler);
         rewind(handler);
-        buffer = (char*) malloc(sizeof(char) * (file_size) );
-        memset(buffer, 0, sizeof(char)*(file_size));
+        buffer = (char*) calloc(file_size, sizeof(char));
         fread(buffer, sizeof(char), file_size, handler);
         fclose(handler);
         sounds[i].sound = i;

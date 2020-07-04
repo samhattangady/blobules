@@ -366,4 +366,102 @@ same file, or we can move it out to another file . I think we should start off
 with it in the same file, and at some point move it out if required.
 
 Oh looks like we need to start off with simplifying the mouse data. Have a
-single source. It looks like we have it in multiple places right now.
+single source. It looks like we have it in multiple places right now. Haha I
+was supposed to start working on the level select, but I just did the mouse
+stuff and now I'm so happy with myself. Ey bugger. Get to work da,.
+
+Okay, so turns out that line rendering can be a bit of a bitch. At this point,
+it feels like it might be simpler to create a texture with a line in it and
+use that to draw rather than anything else. :monkey_see_no_evil:
+
+But to be fair, at some point, we do have to use the same game rendering code
+to render the level select screen i presume. or atleast the same as the main
+menu. So actually, I think the main menu and level select can share. Or maybe
+we should just make three separate? At any given point, we only need to be
+rendering one right? So we can switch I presume. So we can reuse the same
+buffer basically. That's what I was getting at. Let's see?
+
+Okay, so the real question I guess is to see what exactly the main menu would
+be rendering. And the level select. And see whether that can be combined, or
+should be combined with the game. For now, however, maybe we should just be
+focusing on the tools to easily edit it? So the big consideration is how
+exactly we want to have the tool work. It would be fairly straightforward to
+make the tool such that we can just click on a location and that would be the
+placement for the active_level. Drag may not be necessary. The important thing
+however is the linking. How we do that is probably the main question. And then
+the saving of course, but that's honestly quite simple.
+
+Oh man for some reason we had enabled face culling and that was what was
+caising all the bloody problems. Now that we have repmoved that nonsense, the
+line rendering should work fine. 
+
+Okay, I went and played some of the levels again, and honestly, some of them
+are pretty great, I have to admit. So yeah, I guess there's not too much to
+worry about there really. But We do have to keep in mind that that is still
+wehere a lot of effort ought to be going. If we want to make a good game, the
+dev stuff is important sure. But people will probably play a slightly buggy
+amazingly designed game rather than a amazingly devved boring game. So yeah
+
+04 Jul 2020
+So I was just investigating a bit on the key_callback situation, and it may
+not be *exactly* how I'd imagined... Maybe I should read up a bit on that and
+see how excactly it all works. Yeah, it looks okay. Should just keep an eye
+out for now. To the best of my understanding, it recieves all the inputs, and
+then "processes" them together.
+
+Okay, one interesting question that I have to think more about is how the
+links in the level select should work. Till now, I had just assumed that the
+levels would be linked 1:1 in the sense that if 1 had 2 as down_index, then 2
+would have 1 as up_index. While I definitely want to make sure that 1 and 2
+are connected to each other both ways, maybe there is the possibility that the
+don't have to match connections. Considering that this was kind of the theme
+that I was looking for when I started off, I think it suits decently well.
+Also on a wider note, I think we really do have to spend more time figuring
+out exactly how we should be implementing the theme across the game. Widely
+it's about a man's (mouse's) search for meaning. And how that is often a
+roundabout path, and the largest impediment to that is often ourselves.
+
+And on that note, I think I've found a great name for the game. _Arth_. It
+encompasses the theme pretty well. And it has some nice gotchas as well. Arth
+means _meaning_. But it also is one of the pursuits of human life, and in that
+context, it means wealth. Which is a super interesting conundrum. I think we
+should have a tagline as well. Like _The Biggest Puzzle_. Or something like
+that.
+
+I dunno sometimes, I get such HUGE surges of dopamine from really small things
+on the project. Like yesterday it was refactoring the mouse functionality, and
+it made me abysmally happy. Which is super weird right? Today it was a
+combination of finding out that my program has no leaks, and finding a name
+for the game. It just sends me on these elaborate flights of fancy, and it
+takes a certain amount of effort to come back to the ground and start working
+again. So yeah, I dunno. I mean maybe in the long run it is a good thing, that
+things like this give me so much joy, but in the current situation, where I
+need to be spending more time on actually working on the game so that it can
+be completed, I really think it gets to be a bit of a hindrance. Okay, anyway,
+we can either continue working on the level select, or we can sit and work on
+the animations.
+
+And again the question arises. So what do I work on today. I probably should
+spend some time on doing the animations, so that even if the dev work isn't
+completed over the weekend, the art stuff would be, and we would be able to do
+the dev stuff at any point in the future.
+
+Okay, let's make a list of all the animations that need to be done. Ojay, I
+have drawn a few more. I think enough that I can do all the necessary work.
+Should be good enough right now.
+
+Okay yeah, it looks like the whole animation stuff is pretty messed up. I will
+have to go through the whole `maybe_move_player` code to figure out where
+exactly the animation hooks really need to be added. Currently, they're just
+kind sprinkled in there, but we need to be a little more thorough. We also
+might have to rewrite parts of it. Initially, the intention was that it should
+be as elegant as possible and take care of all the cases, which it does, but
+once we add the recursion, it seems like maybe there is a smoother way to do
+it all.
+
+Okay, so we need to rethink how exactly we're handling all of that with an eye
+for queing animations.
+So now, I think that what we need to do is not short circuit out of the
+function. We need to always reach the end, and then queue, and then depending
+on whether there is need for further movement or not, recurse at that point.
+Note that we can short circuit in general, just not to recurse.

@@ -54,16 +54,17 @@ int clear_buffers(cb_ui_state* state) {
     memset(state->values.rect_buffer.vertex_buffer, 0, sizeof(float)*CHAR_BUFFER_SIZE*24);
     state->values.char_buffer.occupied = 0;
     memset(state->values.char_buffer.vertex_buffer, 0, sizeof(float)*CHAR_BUFFER_SIZE*24);
+    state->values.line_buffer.occupied = 0;
+    memset(state->values.line_buffer.vertex_buffer, 0, sizeof(float)*CHAR_BUFFER_SIZE*24);
     return 0;
 }
 
 int init_gl_values(cb_ui_state* state) {
-    glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // TODO (19 Jun 2020 sam): I'm not sure if we need 2 vaos here. But when I tried to use just
     // one, the rects stopped working. So I'm not entirely sure what should be done in that case.
-    uint char_vao, char_vbo, rect_vao, rect_vbo;
+    uint char_vao, char_vbo, rect_vao, rect_vbo, line_vao, line_vbo;
 
     glGenVertexArrays(1, &rect_vao);
     glBindVertexArray(rect_vao);
@@ -82,17 +83,30 @@ int init_gl_values(cb_ui_state* state) {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glGenVertexArrays(1, &line_vao);
+    glBindVertexArray(line_vao);
+    glGenBuffers(1, &line_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, line_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4 * CHAR_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
     glBindVertexArray(0);
     uint text_vertex_shader;
     uint text_fragment_shader;
     uint text_shader_program;
     compile_and_link_text_shader(&text_vertex_shader, &text_fragment_shader, &text_shader_program);
     printf("mallocing... text vertex buffer\n");
+    // TODO (03 Jul 2020 sam): Malloc single contiguous array.
     float* cb = (float*) malloc(sizeof(float) * CHAR_BUFFER_SIZE * 24);
     vertex_buffer_data char_buffer = {0, cb};
     float* rb = (float*) malloc(sizeof(float) * CHAR_BUFFER_SIZE * 24);
     vertex_buffer_data rect_buffer = {0, rb};
-    gl_values values = {char_vao, char_vbo, rect_vao, rect_vbo, text_vertex_shader, text_fragment_shader, text_shader_program, rect_buffer, char_buffer};
+    float* lb = (float*) malloc(sizeof(float) * CHAR_BUFFER_SIZE * 24);
+    vertex_buffer_data line_buffer = {0, lb};
+    gl_values values = {char_vao, char_vbo, rect_vao, rect_vbo, line_vao, line_vbo, text_vertex_shader, text_fragment_shader, text_shader_program, rect_buffer, char_buffer, line_buffer};
     state->values = values;
     clear_buffers(state);
     return 0;
@@ -169,6 +183,30 @@ int render_rectangles(cb_ui_state* state) {
     return 0;
 }
 
+int render_lines(cb_ui_state* state) {
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDepthFunc(GL_GEQUAL);
+    glLinkProgram(state->values.shader_program);
+    glUseProgram(state->values.shader_program);
+    glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), WINDOW_WIDTH, WINDOW_HEIGHT);
+    glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 0.5, 0.5, 0.63, 0.4);
+    glUniform1i(glGetUniformLocation(state->values.shader_program, "mode"), 2);
+    glEnable(GL_TEXTURE_2D);
+    glActiveTexture(GL_TEXTURE0);
+    glBindVertexArray(state->values.line_vao);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, state->values.line_vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float)*CHAR_BUFFER_SIZE*24, state->values.line_buffer.vertex_buffer);
+    glDrawArrays(GL_TRIANGLES, 0, state->values.line_buffer.occupied*6);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    state->values.line_buffer.occupied = 0;
+    memset(state->values.line_buffer.vertex_buffer, 0, sizeof(float)*CHAR_BUFFER_SIZE*24);
+    return 0;
+}
+
 int init_ui(cb_ui_state* state) {
     init_gl_values(state);
     init_character_glyphs(state);
@@ -210,6 +248,58 @@ int cb_ui_render_rectangle(cb_ui_state* state, float xpos, float ypos, float w, 
     state->values.rect_buffer.vertex_buffer[index + 21] = ypos;
     state->values.rect_buffer.vertex_buffer[index + 22] = 0.0;
     state->values.rect_buffer.vertex_buffer[index + 23] = 1.0;
+    return 0;
+}
+
+int cb_ui_render_line(cb_ui_state* state, float xpos1, float ypos1, float xpos2, float ypos2, float opacity) {
+    // TODO (18 Jun 2020 sam): We have removed the opacity functionality when we started
+    // batch drawing the rectangles. Might need to be fixed.
+    // we want text coordinates to be passed with top left of window as (0,0)
+    ypos1 = WINDOW_HEIGHT-ypos1;
+    ypos2 = WINDOW_HEIGHT-ypos2;
+    float x1, y1, x2, y2;
+    if (xpos1>xpos2) {
+        x1 = xpos1;//min(xpos1, xpos2);
+        x2 = xpos2;//max(xpos1, xpos2);
+        y1 = ypos1;//max(ypos1, ypos2);
+        y2 = ypos2;//min(ypos1, ypos2);
+    } else {
+        x2 = xpos1;//min(xpos1, xpos2);
+        x1 = xpos2;//max(xpos1, xpos2);
+        y2 = ypos1;//max(ypos1, ypos2);
+        y1 = ypos2;//min(ypos1, ypos2);
+    }
+    uint index = state->values.line_buffer.occupied;
+    if (index >= CHAR_BUFFER_SIZE*24) {
+        render_lines(state);
+        index = 0;
+    }
+    state->values.line_buffer.occupied += 24;
+    state->values.line_buffer.vertex_buffer[index +  0] = x1;
+    state->values.line_buffer.vertex_buffer[index +  1] = y1;
+    state->values.line_buffer.vertex_buffer[index +  2] = 0.0;
+    state->values.line_buffer.vertex_buffer[index +  3] = 0.0;
+    state->values.line_buffer.vertex_buffer[index +  4] = x1+4.0;
+    state->values.line_buffer.vertex_buffer[index +  5] = y1-4.0;
+    state->values.line_buffer.vertex_buffer[index +  6] = 0.0;
+    state->values.line_buffer.vertex_buffer[index +  7] = 0.0;
+    state->values.line_buffer.vertex_buffer[index +  8] = x2;
+    state->values.line_buffer.vertex_buffer[index +  9] = y2;
+    state->values.line_buffer.vertex_buffer[index + 10] = 0.0;
+    state->values.line_buffer.vertex_buffer[index + 11] = 0.0;
+
+    state->values.line_buffer.vertex_buffer[index + 12] = x1;
+    state->values.line_buffer.vertex_buffer[index + 13] = y1;
+    state->values.line_buffer.vertex_buffer[index + 14] = 0.0;
+    state->values.line_buffer.vertex_buffer[index + 15] = 0.0;
+    state->values.line_buffer.vertex_buffer[index + 16] = x2-4.0;
+    state->values.line_buffer.vertex_buffer[index + 17] = y2+4.0;
+    state->values.line_buffer.vertex_buffer[index + 18] = 0.0;
+    state->values.line_buffer.vertex_buffer[index + 19] = 0.0;
+    state->values.line_buffer.vertex_buffer[index + 20] = x2;
+    state->values.line_buffer.vertex_buffer[index + 21] = y2;
+    state->values.line_buffer.vertex_buffer[index + 22] = 0.0;
+    state->values.line_buffer.vertex_buffer[index + 23] = 0.0;
     return 0;
 }
 
@@ -376,6 +466,7 @@ int cb_render_window(cb_ui_state* state, cb_window* window) {
 
 int render_ui(cb_ui_state* state) {
     render_rectangles(state);
+    render_lines(state);
     render_chars(state);
     clear_buffers(state);
     return 0;

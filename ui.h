@@ -19,11 +19,14 @@ typedef struct gl_values {
     uint char_vbo;
     uint rect_vao;
     uint rect_vbo;
+    uint line_vao;
+    uint line_vbo;
     uint vertex_shader;
     uint fragment_shader;
     uint shader_program;
     vertex_buffer_data rect_buffer;
     vertex_buffer_data char_buffer;
+    vertex_buffer_data line_buffer;
 } gl_values;
 
 typedef enum {
@@ -63,6 +66,7 @@ typedef struct cb_ui_state {
 int init_ui(cb_ui_state* state);
 int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y);
 int cb_ui_render_rectangle(cb_ui_state* state, float xpos, float ypos, float w, float h, float opactity);
+int cb_ui_render_line(cb_ui_state* state, float xpos, float ypos, float w, float h, float opactity);
 int init_gl_values(cb_ui_state* state);
 int init_character_glyphs(cb_ui_state* state);
 int init_cb_window(cb_window* w, char* title, uint position[2], uint size[2]);

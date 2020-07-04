@@ -10,6 +10,9 @@
 #include "game.h"
 #include "boombox.h"
 #include "game_settings.h"
+#define STB_LEAKCHECK_IMPLEMENTATION
+#define STB_LEAKCHECK_SHOWALL
+#include "stb_leakcheck.h"
 
 
 int main(int argc, char** argv) {
@@ -22,7 +25,7 @@ int main(int argc, char** argv) {
     boombox b;
     init_boombox(&b);
     w.boom = &b;
-    play_sound(&b, MUSIC, false, 0.0);
+    // play_sound(&b, MUSIC, false, 0.0);
     cb_ui_state ui_state;
 
     printf("initting ui\n");
@@ -141,7 +144,7 @@ int main(int argc, char** argv) {
             if (add_button(&ui_state, &w.editor.ui_window, "save_level", true)) {
                 save_level(&w);
             }
-            cb_render_window(&ui_state, &w.editor.ui_window, &w.mouse);
+            cb_render_window(&ui_state, &w.editor.ui_window);
         }
         char fps_counter[48];
         char cps_counter[48];
@@ -155,5 +158,6 @@ int main(int argc, char** argv) {
         glfwSwapBuffers(r.window);
     }
     // TODO (05 Apr 2020 sam): Run all the closing and exit things...
+    stb_leakcheck_dumpmem();
     return 0;
 }
