@@ -4,6 +4,7 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <stdbool.h>
 //#include <sys/time.h>
 #include "cb_lib/cb_string.h"
 #include "cb_lib/cb_types.h"
@@ -29,4 +30,5 @@ typedef struct {
 
 int init_renderer(renderer* r, char* window_name);
 int render_scene(renderer* r, world* w);
+
 #endif

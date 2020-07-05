@@ -27,10 +27,7 @@ int main(int argc, char** argv) {
     w.boom = &b;
     // play_sound(&b, MUSIC, false, 0.0);
     cb_ui_state ui_state;
-
-    printf("initting ui\n");
     init_ui(&ui_state);
-    printf("initted ui\n");
     w.editor.ui_state = &ui_state;
 
     uint frame = 0;

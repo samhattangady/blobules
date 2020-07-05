@@ -89,6 +89,7 @@ typedef enum {
     PUSHING_LEFT,
     SLIPPING,
     STOPPING_HARD_LEFT,
+    ANIMATIONS_COUNT,
 } animations;
 
 typedef struct {
@@ -96,10 +97,12 @@ typedef struct {
     uint length;
     uint index;
     int frame_list[NUM_ANIMATION_FRAMES];
+    vec2 frame_positions[NUM_ANIMATION_FRAMES];
 } animation_frames_data;
 
 typedef struct {
-    // TODO (01 Jul 2020 sam): We might need to add a next animation, or somehow queue animations
+    // TODO (05 Jul 2020 sam): We may also need to store how many animations there
+    // are in total for the given entity.
     bool currently_animating;    
     uint current_animation_index;
     uint default_animation_index;

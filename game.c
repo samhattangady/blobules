@@ -742,10 +742,10 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     }
     // check if can stand
     if (!can_support_player(get_entity_at(w, target_ground_index))) {
-        if (force) {
+        if (force)
             should_schedule_removal = true;
-        }
-        return -2;
+        else
+            should_move_player = false;
     }
     if (get_entity_at(w, ground_index) == SLIPPERY_GROUND && !force && !should_call_maybe_move) {
         should_move_player = false;
@@ -786,8 +786,9 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
 }
 
 int copy_grid_data_to_entities(world* w) {
-    // Rather than trying to keep everything in sync, we explicitly update the position
-    // values of all the entities every frame.
+    // Along with trying to keep everything in sync, we explicitly update the position
+    // values of all the entities every frame. So we only have to ensure correct position
+    // for entities that are no longer in grid_data.
     for (int z=0; z<w->z_size; z++) {
         for (int y=0; y<w->y_size; y++) {
             for (int x=0; x<w->x_size; x++) {
@@ -900,7 +901,7 @@ int set_input(world* w, input_type it, float seconds) {
         if (it != UNDO_MOVE)
             save_freezeframe(w);
     }
-    play_sound(w->boom, BEEP, false, w->seconds);
+    // play_sound(w->boom, BEEP, false, w->seconds);
     return 0;
 }
 
@@ -1341,4 +1342,5 @@ int set_callbacks(GLFWwindow* window) {
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
+    return 0;
 }

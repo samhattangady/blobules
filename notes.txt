@@ -465,3 +465,30 @@ So now, I think that what we need to do is not short circuit out of the
 function. We need to always reach the end, and then queue, and then depending
 on whether there is need for further movement or not, recurse at that point.
 Note that we can short circuit in general, just not to recurse.
+
+I mean, we did a bit today. But also, really, I am a little lost on what
+exactly should be done in a day.  Like I don't necessarily feel bad, but also
+won't say I feel great or anything.
+
+While the animation system could do with a bit of extra work, specifically
+better handling the positionof each frame (rather than any kind of linear or
+eased interpolation), I think for the most part it is fine. The animation
+loader will take some time and effort, but that also requires a certain amount
+of effort from the art side, which I'm not super keen on doing right now.
+Level selct editor needs some work. As does the entire puzzle design aspect.
+
+Maybe we can add joystick support today? That could be fun. Apart from that I
+think the game mode is reaching near to completion. Maybe on that note, we
+should try to also figure out the animation frame spacing stuff today itself.
+Or atleast get that fully out of the way. One thing that would need is a tool
+of some sort that we can use to get the timings down. I don't know whether
+that should be in the game engine or separate?
+
+Maybe it should be separate? That might give me a good chance to see all the
+things that I have developed till now and figure out which is important. But
+also the tool overall whererver it may be seems like it might be a bit hard to
+develop and be neatly uasble? Actually now it does sound kinda fun.
+
+Aah it keeps jumping from, wow, could be fun to write to aah, so much annoying
+boilerplate. So now that I think about it, we should probably only be doing an
+offset from linear. That's the thing that makes the most sense I feel.

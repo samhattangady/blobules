@@ -6,6 +6,7 @@ out vec4 fragColor;
 uniform sampler2D spritesheet;
 
 uniform float time;
+uniform float opacity;
 float PI = 3.141596;
 float NUMBER_OF_SPRITES = 35.0+18.0;
 float STROKE_THICKNESS = 4.0;
@@ -51,6 +52,7 @@ void main() {
     vec4 col = texture(spritesheet, vec2((texCoord.z/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
     if (col.a < 0.2)
         discard;
-    fragColor = col;
+    // fragColor = col;
+    fragColor = vec4(col.xyz, opacity*col.w);
     return;
 }
