@@ -229,3 +229,36 @@ Catch: how to get to cube
 Insight: it's all a maze.
 Rating: 5
 It's a concept that needs to be explored. But I don't want it to be unecessarily hard.
+
+036:
+Insight, you need to use the slippery to your advantage.
+Rating: 7 I think
+I really think this would work well as a part of a larger puzzle.
+
+037:
+Rating: 2
+It's a bit boring. The only actual exciting thing is being forced to kick it
+off the map. But we're pretty used to that by now... So yeah;
+
+038:
+Catch: There is a cube blocking the path. So you have to figure out how to go
+around it. Cube can't easily be pushed, as you will get stuck
+Insight: the little outcrop on top allows you to loop around the block. Use
+one cube to push against the other.
+Rating : 7
+It's quite nice. Having the cube push the other is nice
+
+039:
+Insight, you need to use both outcrops to maneuvre the furn everywhere
+Rating: 4
+It's really boring. I Love the initial setup. where you cant take the furn
+across because you keep getting stuck on the ice. But the solution is super
+dull. And tedious. Which is the bigger issue.
+
+040:
+Catch: We meet a river in a different form. It doesn't extend all the way, but
+still we can push the furn through it
+Insight: Get rid of the icecube along the river. That will give us access to
+the regular river outcrop, and we can get the furn across.
+Rating:8
+It's quite nice.
