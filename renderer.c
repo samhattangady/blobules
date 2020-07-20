@@ -6,6 +6,7 @@
 #include "renderer.h"
 #include "game_settings.h"
 
+uint textures[2];
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Errors: %s\n", description);
@@ -61,6 +62,7 @@ int init_renderer(renderer* r, char* window_name) {
     int window_width = WINDOW_WIDTH;
     printf("trying to create window\n");
 
+    // glfwWindowHint(GLFW_SAMPLES, 16);
     window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, window_name, NULL, NULL);
     if (!window) {
         printf("GLFW could not create a window...\n");
@@ -77,6 +79,7 @@ int init_renderer(renderer* r, char* window_name) {
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_MULTISAMPLE);
 
     uint vao;
     uint vbo;
@@ -93,6 +96,8 @@ int init_renderer(renderer* r, char* window_name) {
     shader_program = glCreateProgram();
 
     int width, height, nrChannels;
+    int width1, height1, nrChannels1;
+    int width2, height2, nrChannels2;
     // set the texture wrapping/filtering options (on the currently bound texture object)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -103,8 +108,29 @@ int init_renderer(renderer* r, char* window_name) {
     glBindTexture(GL_TEXTURE_2D, texture);
     stbi_set_flip_vertically_on_load(true);
     unsigned char *data = stbi_load("static/spritesheet.png",&width,&height,&nrChannels,0);
+    unsigned char *data1 = stbi_load("static/m1.png",&width1,&height1,&nrChannels1,0);
+    unsigned char *data2 = stbi_load("test_png.png",&width2,&height2,&nrChannels2,0);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glGenTextures(2, &textures);
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, textures[0]);
+    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width1, height1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data1);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // glActiveTexture(GL_TEXTURE1);
+    // glBindTexture(GL_TEXTURE_2D, textures[1]);
+    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width2, height2, 0, GL_RGBA, GL_UNSIGNED_BYTE, data2);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
     stbi_image_free(data);
+    stbi_image_free(data1);
+    stbi_image_free(data2);
     glGenerateMipmap(GL_TEXTURE_2D);
     renderer r_ = { window, { (int)WINDOW_WIDTH, (int)WINDOW_HEIGHT },
         { vao, vbo, vertex_shader, fragment_shader, shader_program, texture},
@@ -228,12 +254,22 @@ float get_block_size_y(entity_type type) {
 }
 
 float get_x_pos(world* w, entity_data ed) {
+    float xpos;
     if (!w->currently_moving)
-        return ed.x;
-    int movement_index = ed.movement_index;
-    if (!w->movements[movement_index].currently_moving)
-        return ed.x;
-    return w->movements[movement_index].x;
+        xpos = ed.x;
+    else {
+        int movement_index = ed.movement_index;
+        if (!w->movements[movement_index].currently_moving)
+            xpos = ed.x;
+        else
+            xpos = w->movements[movement_index].x;
+    }
+    if (ed.animation_index > 0) {
+        animation_state as = w->animations[ed.animation_index];
+        animation_frames_data afd = as.animation_data[as.current_animation_index];
+        xpos += 2.0*afd.frame_positions[afd.index].x;
+    }
+    return xpos;
 }
 
 float get_y_pos(world* w, entity_data ed) {
@@ -260,6 +296,8 @@ bool draw_ground_under(entity_type et) {
 void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x_size, float y_size, float depth, float sprite_position) {
     float blockx = BLOCK_WIDTH*1.0 / WINDOW_WIDTH*1.0;
     float blocky = BLOCK_HEIGHT*1.0 / WINDOW_HEIGHT*1.0;
+    // blockx = 2048.0/WINDOW_WIDTH;
+    // blocky = 2048.0/WINDOW_HEIGHT;
     int j = r->buffer_occupied;
     r->buffer_occupied++;
     r->vertex_buffer[(36*j)+ 0] = X_PADDING + (blockx * xpos);
@@ -339,6 +377,8 @@ void render_entity(renderer* r, world* w, entity_data ed) {
 }
 
 int update_vertex_buffer(renderer* r, world* w) {
+    // add_vertex_to_buffer(r, w, 0,0, 1.0, 1.0, -1.0, 7);
+    // return 0;
     for (int i=0; i<w->entities_occupied; i++) {
         entity_data ed = w->entities[i];
         if (ed.z==0 && draw_ground_under(ed.type))
@@ -352,8 +392,13 @@ int render_game_scene(renderer* r, world* w) {
     update_vertex_buffer(r, w);
     glLinkProgram(r->shader.shader_program);
     glUseProgram(r->shader.shader_program);
+    // glUniform1i(glGetUniformLocation(r->shader.shader_program, "spritesheet"), 0);
+    // glUniform1i(glGetUniformLocation(r->shader.shader_program, "sdfsheet"), 1);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, r->shader.texture);
+    // glBindTexture(GL_TEXTURE_2D, textures[0]);
+    // glActiveTexture(GL_TEXTURE1);
+    // glBindTexture(GL_TEXTURE_2D, textures[1]);
     glBindVertexArray(r->shader.vao);
     glBindBuffer(GL_ARRAY_BUFFER, r->shader.vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, r->buffer_size, r->vertex_buffer);
@@ -371,6 +416,9 @@ int render_game_scene(renderer* r, world* w) {
     glDrawArrays(GL_TRIANGLES, 0, r->buffer_size);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+    // glActiveTexture(GL_TEXTURE0+0);
+    // glBindTexture(GL_TEXTURE_2D, 0);
+    // glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, 0);
     memset(r->vertex_buffer, 0, r->buffer_size);
     r->buffer_occupied = 0;
@@ -439,9 +487,12 @@ int render_level_select(renderer* r, world* w) {
 
 int render_scene(renderer* r, world* w) {
     glClearColor(0.1, 0.1, 0.101, 1.0);
+    // glClearColor(0.94, 0.94, 0.92, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_MULTISAMPLE_ARB);
     if (w->active_mode == IN_GAME)
         render_game_scene(r, w);
     if (w->active_mode == MAIN_MENU)

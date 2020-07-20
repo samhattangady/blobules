@@ -492,3 +492,73 @@ develop and be neatly uasble? Actually now it does sound kinda fun.
 Aah it keeps jumping from, wow, could be fun to write to aah, so much annoying
 boilerplate. So now that I think about it, we should probably only be doing an
 offset from linear. That's the thing that makes the most sense I feel.
+
+06 Jul 2020
+There is a balance we need to strike between the movements and the animation
+speed. If it's too slow, then it just becomes unbearable. Maybe see how these
+other games handle that...
+
+07 Jul 2020
+Okay, so now the real question is what interesting phenomenon happens when we
+just have two furn. One is definitely that if we line them up, the act as a
+wall. Okay, I guess a part of the question is how exactly we want to deal with
+holes as a level mechanic. I remember at one point, it felt like a profound
+idea, and for the most part it probably is. But we still need to figure out
+exactly how and where it would be useful. And I really think we just need to
+sit and design a bunch of levels before we get that same level of familiarity
+again. Again, I think I need to keep in mind that the unique thing about these
+puzzles is the sliding. We need to make sure that we keep that in mind as we
+go about designing these puzzles. Doing general sokoban shit is not necesarily
+the best move.
+
+Another thing we would need to work on is the recording / testing.
+
+19 Jul 2020
+Okay, so we are going to try to work on the art stuff today. Hopefully have it
+done by the time the weekend ends. So I am loading the png of the colours.
+Would also then need to load in the shadows. But currently they are both
+regular pngs. We would instead need them to be sdf'd in some way. SO
+basically, the colour png would just be the colours. The secondary png would
+consist of the sdfs. There are three channels, so we could probably have three
+different values there. Off the bat, it could be shadow, outline and distance
+to colour. So I guess we'd need to create the sdfs then. Let's try it out in c
+with the stb_image library. Also I guess we'd need an outline then. Let's do
+that first. Okay that's done. Now we have to sit and figure out exactly how we
+want all the sdfs to work. Just off the top of my head, I'm trying to think
+about how the system would work.
+
+So the outline is fairly straightforward. Use the same logic that we had used
+on shadertoy. Find the distance to the closest line, and just use that as a
+measure. Run a couple of noise filters through it, and we should get a decent
+line out of that.
+
+The next one is probably a little harder. So we would probably need 3-4
+different overlapping noise filters to get the colour stuff working I presume.
+We would still need immediate distance from the edge, because the colour tends
+to be a little more saturated at the exact edges. Then maybe we need a couple
+of noise textures to handle the saturation and lightness values across the
+area as a whole.
+
+Alright, I think that gives me a decent idea of how to start with generating
+the sdfs. Let's go.
+
+20 Jul 2020
+Okay, so I rewrote the sdf calculator to use the gpu instead. speedup is
+fucking insane. the c version took few minutes, this takes 4 seconds. so that
+was nice. and it was kinda fun to sit and port the code from c to glsl i
+guess. Okay, I reran the old code just to get the timing, but I hadn't
+compiled it so it ran for minutes, and then quit, and i got nothing out of it.
+maybe at some point i will rerun it again for the stats... but eh. let's see.
+
+Alright, now I think I need to work on returning the project back to it's
+original state. This has just been a bit of a detour. And that's okay, but how
+do we save this work? I think I'll create a branch with all of this. Then go
+back to master and manually revert it. But I don't really know *exactly* how
+to do that to be fair.
+
+Oh fuckety fuckety. I hadn't committed before butchering. Ouch. Though to be
+fair only renderer was affected in this for the most part. Maybe no branching
+action for me =/. Okay, it's back ish. Depth buffer may be fucked up.
+
+Okay, was just a discard issue. Looks fine now. May need to look a little
+further at some point as well. But need to commit now.

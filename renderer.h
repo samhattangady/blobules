@@ -30,5 +30,6 @@ typedef struct {
 
 int init_renderer(renderer* r, char* window_name);
 int render_scene(renderer* r, world* w);
+int load_shaders(renderer* r);
 
 #endif

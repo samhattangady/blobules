@@ -221,5 +221,6 @@ int save_level(world* w);
 int set_callbacks(GLFWwindow* window);
 entity_type get_entity_at(world* w, int index);
 uint get_entity_anim_index(world* w, int index);
+void set_renderer(void* r);
 
 #endif

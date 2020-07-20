@@ -29,6 +29,7 @@ int main(int argc, char** argv) {
     cb_ui_state ui_state;
     init_ui(&ui_state);
     w.editor.ui_state = &ui_state;
+    set_renderer(&r);
 
     uint frame = 0;
 

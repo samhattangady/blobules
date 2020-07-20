@@ -7,6 +7,7 @@
 #include "game.h"
 #include "boombox.h"
 #include "game_settings.h"
+#include "renderer.h"
 
 #define INPUT_LAG 0.05
 #define LEVEL "levels/000.txt"
@@ -15,7 +16,12 @@
 // TODO (18 Apr 2020 sam): This is required to get the inputs working correctly
 // with callbacks. See if there is a better way to accomplish this.
 world* global_w;
+renderer* global_r;
 float global_seconds;
+
+void set_renderer(void* r) {
+    global_r = (renderer*) r;
+}
 
 int get_position_index_sizes(int x_size, int y_size, int z_size, int x, int y, int z) {
     return ( z * x_size * y_size ) + ( y * x_size ) + x;
@@ -60,45 +66,44 @@ bool has_animations(entity_type et) {
     return (et==PLAYER);
 }
 
-int load_entity_animations(world* w, entity_type et, uint anim_index) {
-    if (et==PLAYER) {
-        // static animation;
-        w->animations[anim_index].animation_data[STATIC].length = 1; 
-        w->animations[anim_index].animation_data[STATIC].index = 0; 
-        w->animations[anim_index].animation_data[STATIC].looping = true; 
-        for (int i=0; i<2; i++)
-            w->animations[anim_index].animation_data[STATIC].frame_list[i] = i; 
-        // move left / jump animation
-        w->animations[anim_index].animation_data[MOVING_LEFT].length = 5; 
-        w->animations[anim_index].animation_data[MOVING_LEFT].index = 0; 
-        w->animations[anim_index].animation_data[MOVING_LEFT].looping = false; 
-        for (int i=0; i<5; i++)
-            w->animations[anim_index].animation_data[MOVING_LEFT].frame_list[i] = i+1; 
-        // move right
-        w->animations[anim_index].animation_data[MOVING_RIGHT].length = 5; 
-        w->animations[anim_index].animation_data[MOVING_RIGHT].index = 0; 
-        w->animations[anim_index].animation_data[MOVING_RIGHT].looping = false; 
-        for (int i=0; i<5; i++)
-            w->animations[anim_index].animation_data[MOVING_RIGHT].frame_list[i] = i+6; 
-        // push left
-        w->animations[anim_index].animation_data[PUSHING_LEFT].length = 5; 
-        w->animations[anim_index].animation_data[PUSHING_LEFT].index = 0; 
-        w->animations[anim_index].animation_data[PUSHING_LEFT].looping = false; 
-        for (int i=0; i<5; i++)
-            w->animations[anim_index].animation_data[PUSHING_LEFT].frame_list[i] = i+12; 
-        // slipping
-        w->animations[anim_index].animation_data[SLIPPING].length = 5; 
-        w->animations[anim_index].animation_data[SLIPPING].index = 0; 
-        w->animations[anim_index].animation_data[SLIPPING].looping = false; 
-        for (int i=0; i<5; i++)
-            w->animations[anim_index].animation_data[SLIPPING].frame_list[i] = i+18; 
-        // stopping hard left
-        w->animations[anim_index].animation_data[STOPPING_HARD_LEFT].length = 5; 
-        w->animations[anim_index].animation_data[STOPPING_HARD_LEFT].index = 0; 
-        w->animations[anim_index].animation_data[STOPPING_HARD_LEFT].looping = false; 
-        for (int i=0; i<5; i++)
-            w->animations[anim_index].animation_data[STOPPING_HARD_LEFT].frame_list[i] = i+24; 
+animations get_anim_from_name(char* a) {
+    printf("checking %s len=%i\n", a, strlen(a));
+    if (strcmp(a, "STATIC") == 0)
+        return STATIC;
+    if (strcmp(a, "MOVING_LEFT") == 0)
+        return MOVING_LEFT;
+    if (strcmp(a, "MOVING_RIGHT") == 0)
+        return MOVING_RIGHT;
+    if (strcmp(a, "PUSHING_LEFT") == 0)
+        return PUSHING_LEFT;
+    if (strcmp(a, "SLIPPING") == 0)
+        return SLIPPING;
+    if (strcmp(a, "STOPPING_HARD_LEFT") == 0)
+        return STOPPING_HARD_LEFT;
+    return ANIMATIONS_COUNT;
+}
+
+int load_player_animations(world* w, uint anim_index) {
+    FILE* anim_file = fopen("player_animations.txt", "r");
+    for (int i=0; i<ANIMATIONS_COUNT; i++) {
+        char* anim_name[128];
+        fscanf(anim_file, "%s\n", &anim_name);
+        printf("loading animations %s\n", anim_name);
+        animations a = get_anim_from_name(anim_name);
+        animation_frames_data afd;
+        afd.index = 0;
+        fscanf(anim_file, "%i\n", &afd.length);
+        for (int j=0; j<afd.length; j++)
+            fscanf(anim_file, "%i %f %f\n", &afd.frame_list[j], &afd.frame_positions[j].x, &afd.frame_positions[j].y);
+        w->animations[anim_index].animation_data[a] = afd;
     }
+    fclose(anim_file);
+    return 0;
+}
+
+int load_entity_animations(world* w, entity_type et, uint anim_index) {
+    if (et==PLAYER)
+        load_player_animations(w, anim_index);
     return 0;
 }
 
@@ -927,7 +932,8 @@ void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action,
     if (key == GLFW_KEY_Z && (action == GLFW_PRESS || action == GLFW_REPEAT))
         set_input(global_w, UNDO_MOVE, global_seconds);
     if (key == GLFW_KEY_SPACE && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        global_w->editor.z_level = (global_w->editor.z_level+1)  % 2;
+        //global_w->editor.z_level = (global_w->editor.z_level+1)  % 2;
+        load_shaders(global_r);
     if (key == GLFW_KEY_TAB && (action == GLFW_PRESS || action == GLFW_REPEAT))
         global_w->editor.active_type = (global_w->editor.active_type+1)  % INVALID;
     if (key == GLFW_KEY_E && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
@@ -1159,21 +1165,23 @@ int simulate_world(world* w, float seconds) {
     global_seconds = seconds;
     w->seconds = seconds;
     if (w->currently_moving) {
-        bool still_moving = false;
-        for (int i=0; i<w->movements_occupied; i++) {
-            if (!w->movements[i].currently_moving)
-                continue;
-            float elapsed = (seconds-w->movements[i].start_time) / w->movements[i].duration;
-            if (elapsed < 0.0)
-                elapsed = 0.0;
-            if (elapsed > 1.0)
-                w->movements[i].currently_moving = false;
-            still_moving = still_moving || w->movements[i].currently_moving;
-            float progress = get_ease_in_out_progress(elapsed);
-            w->movements[i].x = w->movements[i].start_x + progress*w->movements[i].dx;
-            w->movements[i].y = w->movements[i].start_y + progress*w->movements[i].dy;
+        if (w->seconds - w->animation_seconds_update > 1.0 / (float) ANIMATION_FRAMES_PER_SECOND) {
+            bool still_moving = false;
+            for (int i=0; i<w->movements_occupied; i++) {
+                if (!w->movements[i].currently_moving)
+                    continue;
+                float elapsed = (seconds-w->movements[i].start_time) / w->movements[i].duration;
+                if (elapsed < 0.0)
+                    elapsed = 0.0;
+                if (elapsed > 1.0)
+                    w->movements[i].currently_moving = false;
+                still_moving = still_moving || w->movements[i].currently_moving;
+                float progress = get_ease_in_out_progress(elapsed);
+                w->movements[i].x = w->movements[i].start_x + progress*w->movements[i].dx;
+                w->movements[i].y = w->movements[i].start_y + progress*w->movements[i].dy;
+            }
+            w->currently_moving = still_moving;
         }
-        w->currently_moving = still_moving;
     }
     if (w->seconds - w->animation_seconds_update > 1.0 / (float) ANIMATION_FRAMES_PER_SECOND) {
         w->animation_seconds_update = w->seconds;

@@ -65,23 +65,6 @@ char* get_anim_name(animations a) {
     return "whoops";
 }
 
-animations get_anim_from_name(char* a) {
-    printf("checking %s len=%i\n", a, strlen(a));
-    if (strcmp(a, "STATIC") == 0)
-        return STATIC;
-    if (strcmp(a, "MOVING_LEFT") == 0)
-        return MOVING_LEFT;
-    if (strcmp(a, "MOVING_RIGHT") == 0)
-        return MOVING_RIGHT;
-    if (strcmp(a, "PUSHING_LEFT") == 0)
-        return PUSHING_LEFT;
-    if (strcmp(a, "SLIPPING") == 0)
-        return SLIPPING;
-    if (strcmp(a, "STOPPING_HARD_LEFT") == 0)
-        return STOPPING_HARD_LEFT;
-    return ANIMATIONS_COUNT;
-}
-
 int fp_queue_animation(fp_state* state, animations a) {
     printf("queueing animation\n");
     uint queue_index = state->as.queue_length;
