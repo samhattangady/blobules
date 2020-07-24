@@ -23,7 +23,7 @@
 #include "stb_leakcheck.h"
 
 #undef ANIMATION_FRAMES_PER_SECOND
-uint ANIMATION_FRAMES_PER_SECOND = 5;
+u32 ANIMATION_FRAMES_PER_SECOND = 5;
 
 typedef enum {
     FP_DEFAULT,
@@ -67,7 +67,7 @@ char* get_anim_name(animations a) {
 
 int fp_queue_animation(fp_state* state, animations a) {
     printf("queueing animation\n");
-    uint queue_index = state->as.queue_length;
+    u32 queue_index = state->as.queue_length;
     state->as.queue_length++;
     state->as.queue[queue_index] = a;
     return 0;
@@ -434,8 +434,8 @@ int main(int argc, char** argv) {
     clock_t clock_time;
     float frame_time;
     start_time = clock();
-    uint window_pos[2] = {20, 40};
-    uint window_size[2] = {UI_WIDTH, WINDOW_HEIGHT};
+    u32 window_pos[2] = {20, 40};
+    u32 window_size[2] = {UI_WIDTH, WINDOW_HEIGHT};
     init_cb_window(&tools_window, "Frame Editor", window_pos, window_size);
     while (!glfwWindowShouldClose(r.window)) {
         clock_time = clock();

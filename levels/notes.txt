@@ -262,3 +262,33 @@ Insight: Get rid of the icecube along the river. That will give us access to
 the regular river outcrop, and we can get the furn across.
 Rating:8
 It's quite nice.
+
+041:
+Catch: if you start of by aligning the cube, you cant put the furn in correct
+place to be a blocker
+Insight: you have to use the ice to create a path for the blocker later (path
+being below the start position of cube)
+Rating: 9
+Oh man, this took a long time to get working, had another version earlier, but
+taht had an easy level break. this one is really good. am proud.
+
+042:
+Catch: Hard to position the cube where you need it. You will get stuck on the ice
+Insight: Double the furns. You need one of the furns to get off the ice
+Rating: 8
+I think it's okay. pretty interesting. But decent.
+I really would like a level which forces you to double the furns and realise
+that thats what keep them on the board?
+
+043:
+Catch: can't push cube without getting stuck on ice.
+Insight: furn acts as a push off block.
+Rating: 8
+It's really interesting. I just don't know whether it can be a level of
+itself. Maybe should figure out how to make a longer level of it. To be fair,
+it does easily allow for expansion into a larger leve. Or maybe its just a
+great early level.
+Actually no. In this form it's far too simple. There is essentially no room
+for exploration and actually finding the solution. This needs to have some
+more elements, where this is just a small part of the level. Cannot stand
+alone like this.

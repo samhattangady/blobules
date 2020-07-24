@@ -3,7 +3,7 @@ from PIL import Image
 images = ['cube.png', 'wall.png', 'ground.png', 'hot.png', 'cold.png', 'furn.png', 'player.png']
 for i in range(30):
     images.append(f'player_{i}.png')
-for i in range(16):
+for i in range(4):
     images.append(f'slippery_{i}.png')
 
 spritesheet = Image.new('RGBA', (200*len(images),300), (0,0,0,0))

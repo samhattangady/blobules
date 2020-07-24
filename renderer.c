@@ -6,13 +6,16 @@
 #include "renderer.h"
 #include "game_settings.h"
 
-uint textures[2];
+u32 textures[2];
+float ICE_EDGE_TOP = 38;
+float ICE_EDGE_LEFT = 39;
+float ICE_EDGE_CORNER = 40;
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Errors: %s\n", description);
 }
 
-int test_shader_compilation(uint shader, char* type) {
+int test_shader_compilation(u32 shader, char* type) {
     int status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
     if (status != GL_TRUE) {
@@ -62,7 +65,7 @@ int init_renderer(renderer* r, char* window_name) {
     int window_width = WINDOW_WIDTH;
     printf("trying to create window\n");
 
-    // glfwWindowHint(GLFW_SAMPLES, 16);
+    glfwWindowHint(GLFW_SAMPLES, 16);
     window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, window_name, NULL, NULL);
     if (!window) {
         printf("GLFW could not create a window...\n");
@@ -81,11 +84,11 @@ int init_renderer(renderer* r, char* window_name) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_MULTISAMPLE);
 
-    uint vao;
-    uint vbo;
-    uint vertex_shader;
-    uint fragment_shader;
-    uint shader_program;
+    u32 vao;
+    u32 vbo;
+    u32 vertex_shader;
+    u32 fragment_shader;
+    u32 shader_program;
 
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -103,7 +106,7 @@ int init_renderer(renderer* r, char* window_name) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    uint texture;
+    u32 texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     stbi_set_flip_vertically_on_load(true);
@@ -141,69 +144,14 @@ int init_renderer(renderer* r, char* window_name) {
     glBufferData(GL_ARRAY_BUFFER, r->buffer_size, NULL, GL_DYNAMIC_DRAW);
     printf("mallocing... vertex_buffer\n");
     r->vertex_buffer = (float*) malloc(r->buffer_size);
+    r->ground_entities = (entity_type*) malloc(sizeof(entity_type)*MAX_WORLD_ENTITIES/2);
     load_shaders(r);
 	printf("renderer has been initted\n");
     return 0;
 }
 
-float get_slippery_sprite_position(world* w, int x, int y, int z) {
-    // TODO (23 Jun 2020 sam): I don't know the best way to do something like this really
-    // TODO (23 Jun 2020 sam): Logic is a little hard here. Don't know if we can do it
-    // procedurally. I want it to look like the ice is pushed off the board, but in many
-    // places the logic of checking none as well makes it look messed up. We probably will
-    // have to manually decide what each one should be in some way.
-    // TODO (23 Jun 2020 sam): Need to add checks for top_right, top_left etc as well.
-    // Right now if there is a bunch of blocks together, they dont combine, and create
-    // an ugly grid shape. Yuck. But that might need upto 64(?) more sprites.
-    bool top = get_entity_at(w, get_position_index(w, x, y+1, z)) == SLIPPERY_GROUND;
-    bool bottom = get_entity_at(w, get_position_index(w, x, y-1, z)) == SLIPPERY_GROUND;
-    bool left = get_entity_at(w, get_position_index(w, x-1, y, z)) == SLIPPERY_GROUND;
-    bool right = get_entity_at(w, get_position_index(w, x+1, y, z)) == SLIPPERY_GROUND;
-    // bool top = (get_entity_at(w, get_position_index(w, x, y+1, z)) == SLIPPERY_GROUND) ||
-    //            (get_entity_at(w, get_position_index(w, x, y+1, z)) == NONE);
-    // bool bottom = (get_entity_at(w, get_position_index(w, x, y-1, z)) == SLIPPERY_GROUND) ||
-    //             (get_entity_at(w, get_position_index(w, x, y-1, z)) == NONE);
-    // bool left = (get_entity_at(w, get_position_index(w, x-1, y, z)) == SLIPPERY_GROUND) ||
-    //             (get_entity_at(w, get_position_index(w, x-1, y, z)) == NONE);
-    // bool right = (get_entity_at(w, get_position_index(w, x+1, y, z)) == SLIPPERY_GROUND) ||
-    //             (get_entity_at(w, get_position_index(w, x+1, y, z)) == NONE);
-    if (!top && !bottom && !left && !right)
-        return 0.0;
-    if ( top && !bottom && !left && !right)
-        return 1.0;
-    if (!top &&  bottom && !left && !right)
-        return 2.0;
-    if (!top && !bottom && !left &&  right)
-        return 3.0;
-    if (!top && !bottom &&  left && !right)
-        return 4.0;
-    if ( top &&  bottom && !left && !right)
-        return 5.0;
-    if (!top && !bottom &&  left &&  right)
-        return 6.0;
-    if ( top && !bottom &&  left && !right)
-        return 7.0;
-    if ( top && !bottom && !left &&  right)
-        return 8.0;
-    if (!top &&  bottom &&  left && !right)
-        return 9.0;
-    if (!top &&  bottom && !left &&  right)
-        return 10.0;
-    if ( top &&  bottom &&  left && !right)
-        return 11.0;
-    if ( top &&  bottom && !left &&  right)
-        return 12.0;
-    if ( top && !bottom &&  left &&  right)
-        return 13.0;
-    if (!top &&  bottom &&  left &&  right)
-        return 14.0;
-    if ( top &&  bottom &&  left &&  right)
-        return 15.0;
-    return 0.0;
-}
-
 float get_player_animation_frame(world* w, entity_data ed) {
-    uint anim_index = ed.animation_index;
+    u32 anim_index = ed.animation_index;
     animation_state as = w->animations[anim_index];
     animation_frames_data afd = as.animation_data[as.current_animation_index];
     int f = afd.frame_list[afd.index];
@@ -221,7 +169,7 @@ float get_entity_sprite_position(entity_data ed, world* w) {
     if (type == GROUND)
         return 2.0;
     if (type == SLIPPERY_GROUND)
-        return 19.0 +18.0 +get_slippery_sprite_position(w, ed.x, ed.y, ed.z);
+        return 37.0;
     if (type == HOT_TARGET)
         return 3.0;
     if (type == COLD_TARGET)
@@ -293,48 +241,56 @@ bool draw_ground_under(entity_type et) {
     return (et == SLIPPERY_GROUND || et == HOT_TARGET || et == COLD_TARGET);
 }
 
-void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x_size, float y_size, float depth, float sprite_position) {
+void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x_size, float y_size, float depth, float sprite_position, int orientation) {
     float blockx = BLOCK_WIDTH*1.0 / WINDOW_WIDTH*1.0;
     float blocky = BLOCK_HEIGHT*1.0 / WINDOW_HEIGHT*1.0;
-    // blockx = 2048.0/WINDOW_WIDTH;
-    // blocky = 2048.0/WINDOW_HEIGHT;
+    float tx1, ty1, tx2, ty2;
+    if (orientation == 0) {
+        tx1 = 0.0; ty1 = 0.0; tx2 = 1.0; ty2 = 1.0;
+    } else if (orientation == 1) {
+        tx1 = 1.0; ty1 = 0.0; tx2 = 0.0; ty2 = 1.0;
+    } else if (orientation == 2) {
+        tx1 = 1.0; ty1 = 1.0; tx2 = 0.0; ty2 = 0.0;
+    } else if (orientation == 3) {
+        tx1 = 0.0; ty1 = 1.0; tx2 = 1.0; ty2 = 0.0;
+    }
     int j = r->buffer_occupied;
     r->buffer_occupied++;
     r->vertex_buffer[(36*j)+ 0] = X_PADDING + (blockx * xpos);
     r->vertex_buffer[(36*j)+ 1] = Y_PADDING + (blocky * ypos);
     r->vertex_buffer[(36*j)+ 2] = depth;
-    r->vertex_buffer[(36*j)+ 3] = 0.0;
-    r->vertex_buffer[(36*j)+ 4] = 0.0;
+    r->vertex_buffer[(36*j)+ 3] = tx1;
+    r->vertex_buffer[(36*j)+ 4] = ty1;
     r->vertex_buffer[(36*j)+ 5] = sprite_position;
     r->vertex_buffer[(36*j)+ 6] = X_PADDING + (blockx * xpos) + (x_size*blockx);
     r->vertex_buffer[(36*j)+ 7] = Y_PADDING + (blocky * ypos);
     r->vertex_buffer[(36*j)+ 8] = depth;
-    r->vertex_buffer[(36*j)+ 9] = 1.0;
-    r->vertex_buffer[(36*j)+10] = 0.0;
+    r->vertex_buffer[(36*j)+ 9] = tx2;
+    r->vertex_buffer[(36*j)+10] = ty1;
     r->vertex_buffer[(36*j)+11] = sprite_position;
     r->vertex_buffer[(36*j)+12] = X_PADDING + (blockx * xpos);
     r->vertex_buffer[(36*j)+13] = Y_PADDING + (blocky * ypos) + (y_size*blocky);
     r->vertex_buffer[(36*j)+14] = depth;
-    r->vertex_buffer[(36*j)+15] = 0.0;
-    r->vertex_buffer[(36*j)+16] = 1.0;
+    r->vertex_buffer[(36*j)+15] = tx1;
+    r->vertex_buffer[(36*j)+16] = ty2;
     r->vertex_buffer[(36*j)+17] = sprite_position;
     r->vertex_buffer[(36*j)+18] = X_PADDING + (blockx * xpos);
     r->vertex_buffer[(36*j)+19] = Y_PADDING + (blocky * ypos) + (y_size*blocky);
     r->vertex_buffer[(36*j)+20] = depth;
-    r->vertex_buffer[(36*j)+21] = 0.0;
-    r->vertex_buffer[(36*j)+22] = 1.0;
+    r->vertex_buffer[(36*j)+21] = tx1;
+    r->vertex_buffer[(36*j)+22] = ty2;
     r->vertex_buffer[(36*j)+23] = sprite_position;
     r->vertex_buffer[(36*j)+24] = X_PADDING + (blockx * xpos) + (x_size*blockx);
     r->vertex_buffer[(36*j)+25] = Y_PADDING + (blocky * ypos);
     r->vertex_buffer[(36*j)+26] = depth;
-    r->vertex_buffer[(36*j)+27] = 1.0;
-    r->vertex_buffer[(36*j)+28] = 0.0;
+    r->vertex_buffer[(36*j)+27] = tx2;
+    r->vertex_buffer[(36*j)+28] = ty1;
     r->vertex_buffer[(36*j)+29] = sprite_position;
     r->vertex_buffer[(36*j)+30] = X_PADDING + (blockx * xpos) + (x_size*blockx);
     r->vertex_buffer[(36*j)+31] = Y_PADDING + (blocky * ypos) + (y_size*blocky);
     r->vertex_buffer[(36*j)+32] = depth;
-    r->vertex_buffer[(36*j)+33] = 1.0;
-    r->vertex_buffer[(36*j)+34] = 1.0;
+    r->vertex_buffer[(36*j)+33] = tx2;
+    r->vertex_buffer[(36*j)+34] = ty2;
     r->vertex_buffer[(36*j)+35] = sprite_position;
 }
 
@@ -347,7 +303,60 @@ void add_ground_at_pos(renderer* r, world* w, int x, int y) {
     float y_size = get_block_size_y(GROUND);
     // FIXME (26 Jun 2020 sam): Hardcoded value. Fix.
     float sprite_position = 2.0;
-    add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position);
+    add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position, 0);
+} 
+
+entity_type get_ground_et_at(renderer* r, world* w, int x, int y) {
+    int index = x + y*w->x_size;
+    return r->ground_entities[index];
+}
+
+void draw_ice_edge(renderer* r, world* w, int x, int y, float sprite_position, int orientation) {
+    float depth = -0.1;    
+    depth += (float) y/100.0;
+    float xpos = x;
+    float ypos = y;
+    float x_size = get_block_size_x(GROUND);
+    float y_size = get_block_size_y(GROUND);
+    add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position, orientation);
+    return;
+}
+
+void add_ice_edges(renderer* r, world* w) {
+    int x, y;
+    for (int x=0; x<w->x_size; x++) {
+        for (int y=0; y<w->y_size; y++) {
+            entity_type et = get_ground_et_at(r, w, x, y);
+            if (et==SLIPPERY_GROUND || et==NONE)
+                continue;
+            // So we assign neighbours like a numpad. 1 at top left
+            bool n1, n2, n3, n4, n6, n7, n8, n9;
+            n1 = get_ground_et_at(r, w, x-1, y+1) == SLIPPERY_GROUND;
+            n2 = get_ground_et_at(r, w, x+0, y+1) == SLIPPERY_GROUND;
+            n3 = get_ground_et_at(r, w, x+1, y+1) == SLIPPERY_GROUND;
+            n4 = get_ground_et_at(r, w, x-1, y+0) == SLIPPERY_GROUND;
+            n6 = get_ground_et_at(r, w, x+1, y+0) == SLIPPERY_GROUND;
+            n7 = get_ground_et_at(r, w, x-1, y-1) == SLIPPERY_GROUND;
+            n8 = get_ground_et_at(r, w, x+0, y-1) == SLIPPERY_GROUND;
+            n9 = get_ground_et_at(r, w, x+1, y-1) == SLIPPERY_GROUND;
+            if (n1 && !n2 && !n4)
+                draw_ice_edge(r, w, x, y, ICE_EDGE_CORNER, 0);
+            if (n3 && !n2 && !n6)
+                draw_ice_edge(r, w, x, y, ICE_EDGE_CORNER, 1);
+            if (n7 && !n8 && !n4)
+                draw_ice_edge(r, w, x, y, ICE_EDGE_CORNER, 3);
+            if (n9 && !n8 && !n6)
+                draw_ice_edge(r, w, x, y, ICE_EDGE_CORNER, 2);
+            if (n2)
+                draw_ice_edge(r, w, x, y, ICE_EDGE_TOP, 0);
+            if (n8)
+                draw_ice_edge(r, w, x, y, ICE_EDGE_TOP, 2);
+            if (n4)
+                draw_ice_edge(r, w, x, y, ICE_EDGE_LEFT, 0);
+            if (n6)
+                draw_ice_edge(r, w, x, y, ICE_EDGE_LEFT, 2);
+        }
+    }
 } 
 
 void render_entity(renderer* r, world* w, entity_data ed) {
@@ -373,18 +382,22 @@ void render_entity(renderer* r, world* w, entity_data ed) {
     float y_size = get_block_size_y(et);
     float xpos = get_x_pos(w, ed);
     float ypos = get_y_pos(w, ed);
-    add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position);
+    add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position, 0);
 }
 
 int update_vertex_buffer(renderer* r, world* w) {
-    // add_vertex_to_buffer(r, w, 0,0, 1.0, 1.0, -1.0, 7);
-    // return 0;
+    // memset(r->ground_entities, NONE, MAX_WORLD_ENTITIES/2);
+    for (int i=0; i<MAX_WORLD_ENTITIES/2; i++)
+        r->ground_entities[i] = NONE;
     for (int i=0; i<w->entities_occupied; i++) {
         entity_data ed = w->entities[i];
         if (ed.z==0 && draw_ground_under(ed.type))
             add_ground_at_pos(r, w, ed.x, ed.y);
+        if (ed.z==0)
+            r->ground_entities[ed.y*w->x_size+ed.x] = ed.type;
         render_entity(r, w, ed);
     }
+    add_ice_edges(r, w);
     return 0;
 }
 
@@ -456,7 +469,7 @@ int render_level_select(renderer* r, world* w) {
     cb_ui_render_text(w->editor.ui_state, get_level_mode(w), 20, 20);
     for (int i=0; i<w->level_select.total_levels; i++) {
         level_option level = w->level_select.levels[i];
-        cb_ui_render_text(w->editor.ui_state, level.name.text, level.xpos, level.ypos, 1.0);
+        cb_ui_render_text(w->editor.ui_state, level.name.text, level.xpos, level.ypos);
         cb_ui_render_rectangle(w->editor.ui_state, level.xpos-10, level.ypos-5, 200, 21, 0.5);
         int l_index;
         l_index = w->level_select.levels[i].up_index;

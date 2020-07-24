@@ -31,7 +31,7 @@ typedef struct {
     ma_decoder_config decoder_config;
     bool is_playing;
     sound_data* sounds;
-    uint total_tracks;
+    u32 total_tracks;
     track_data* tracks;
 } boombox;
 

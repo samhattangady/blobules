@@ -5,7 +5,7 @@
 
 typedef struct string {
     char* text;
-    uint memory_allotted;
+    u32 memory_allotted;
 } string;
 
 int append_chars(string* base, char* chars);

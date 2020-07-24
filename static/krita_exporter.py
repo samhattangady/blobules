@@ -5,8 +5,8 @@ import pathlib
 
 dirpath = pathlib.Path(__file__).parent.absolute() 
 export_all = False
-export_slippery=False
-export_player = True
+export_slippery=True
+export_player = False
 
 if export_all:
     objects = ['player', 'cube', 'furn', 'ground', 'slippery', 'cold', 'hot', 'wall']

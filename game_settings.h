@@ -5,8 +5,8 @@
 #define WINDOW_HEIGHT 864
 // #define WINDOW_WIDTH 1344
 // #define WINDOW_HEIGHT 756
-#define BLOCK_HEIGHT 135
-#define BLOCK_WIDTH 180
+#define BLOCK_HEIGHT 128
+#define BLOCK_WIDTH 192
 
 #define UI_WIDTH 400
 #define TEXT_HEIGHT 18

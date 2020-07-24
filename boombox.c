@@ -4,18 +4,18 @@
 #include "boombox.h"
 #include "game_settings.h"
 
-uint read_and_mix_pcm_frames(boombox* b, ma_decoder* decoder, float* output, uint frame_count) {
-    uint channels = b->device.playback.channels;
+u32 read_and_mix_pcm_frames(boombox* b, ma_decoder* decoder, float* output, u32 frame_count) {
+    u32 channels = b->device.playback.channels;
     float buffer[4096];
-    uint buffer_capacity = 4096 / channels;
-    uint total_frames_read = 0;
+    u32 buffer_capacity = 4096 / channels;
+    u32 total_frames_read = 0;
     while (total_frames_read < frame_count) {
-        uint frames_read;
-        uint total_frames_remaining = frame_count - total_frames_read;
-        uint frames_to_read = buffer_capacity;
+        u32 frames_read;
+        u32 total_frames_remaining = frame_count - total_frames_read;
+        u32 frames_to_read = buffer_capacity;
         if (frames_to_read > total_frames_remaining)
             frames_to_read = total_frames_remaining;
-        frames_read = (uint) ma_decoder_read_pcm_frames(decoder, buffer, frames_to_read);
+        frames_read = (u32) ma_decoder_read_pcm_frames(decoder, buffer, frames_to_read);
         if (frames_read == 0)
             break;
         for (int i=0; i<frames_read*channels; i++) {
@@ -34,7 +34,7 @@ void boombox_callback(ma_device* device, void* output, const void* input, ma_uin
     int track_index = -1;
     for (int i=0; i<b->total_tracks; i++) {
         if (b->tracks[i].is_playing) {
-            uint frames_read = read_and_mix_pcm_frames(b, &b->tracks[i].decoder, mix_output, frame_count);
+            u32 frames_read = read_and_mix_pcm_frames(b, &b->tracks[i].decoder, mix_output, frame_count);
             if (frames_read < frame_count) {
                 b->tracks[i].is_busy = false;                
                 b->tracks[i].is_playing = false;                

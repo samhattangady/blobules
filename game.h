@@ -46,25 +46,25 @@ typedef struct {
 } player_input;
 
 typedef struct {
-    uint size;
+    u32 size;
     string* levels;
 } levels_list;
 
 typedef struct {
     bool editor_enabled;
-    uint z_level;
+    u32 z_level;
     entity_type active_type;
     cb_ui_state* ui_state;
     cb_window ui_window;
 } editor_data;
 
 typedef struct {
-    uint current_level;
+    u32 current_level;
     char entities[MAX_WORLD_ENTITIES];        
 } world_freezeframe;
 
 typedef struct {
-    uint index;
+    u32 index;
     world_freezeframe* history;
 } world_history;
 
@@ -94,8 +94,8 @@ typedef enum {
 
 typedef struct {
     bool looping;
-    uint length;
-    uint index;
+    u32 length;
+    u32 index;
     int frame_list[NUM_ANIMATION_FRAMES];
     vec2 frame_positions[NUM_ANIMATION_FRAMES];
 } animation_frames_data;
@@ -104,9 +104,9 @@ typedef struct {
     // TODO (05 Jul 2020 sam): We may also need to store how many animations there
     // are in total for the given entity.
     bool currently_animating;    
-    uint current_animation_index;
-    uint default_animation_index;
-    uint queue_length;
+    u32 current_animation_index;
+    u32 default_animation_index;
+    u32 queue_length;
     animations queue[MAX_QUEUED_ANIMATIONS];
     animation_frames_data animation_data[ENTITY_NUM_ANIMATIONS];
 } animation_state;
@@ -114,9 +114,9 @@ typedef struct {
 typedef struct {
     entity_type type;
     // TODO (01 Jul 2020 sam): rename to movement_index
-    uint movement_index;
-    uint animation_index;
-    uint data;
+    u32 movement_index;
+    u32 animation_index;
+    u32 data;
     int x;
     int y;
     int z;
@@ -136,7 +136,7 @@ typedef struct {
 
 typedef struct {
     int active_option;
-    uint total_options;
+    u32 total_options;
     menu_option options[10];
 } main_menu_struct;
 
@@ -146,7 +146,7 @@ typedef struct {
     string data;
     float xpos;
     float ypos;
-    // uint index;
+    // u32 index;
     int up_index;
     int down_index;
     int left_index;
@@ -169,34 +169,34 @@ typedef struct {
 
 typedef struct {
     level_option* levels;
-    uint current_level;
-    uint total_levels;
+    u32 current_level;
+    u32 total_levels;
 } level_select_struct;
 
 typedef struct {
-    uint size;
-    uint x_size;
-    uint y_size;
-    uint z_size;
+    u32 size;
+    u32 x_size;
+    u32 y_size;
+    u32 z_size;
     world_mode active_mode;
     main_menu_struct main_menu;
     level_editor_modes level_mode;
     level_select_struct level_select;
     bool currently_moving;
-    uint entities_occupied;
-    uint movements_occupied;
-    uint animations_occupied;
-    boombox* boom;
+    u32 entities_occupied;
+    u32 movements_occupied;
+    u32 animations_occupied;
+    // boombox* boom;
     mouse_data mouse;
     void* data;
-    uint* grid_data;
+    u32* grid_data;
     entity_data* entities;
     movement_state* movements;
     animation_state* animations;
     vec3i player_position;
     player_input input;
     player_state player;
-    // uint current_level;
+    // u32 current_level;
     // levels_list levels;
     float seconds;
     float animation_seconds_update;
@@ -210,7 +210,7 @@ int previous_option(world* w);
 int select_active_option(world* w);
 
 
-int init_world(world* w, uint number);
+int init_world(world* w, u32 number);
 int get_position_index(world* w, int x, int y, int z);
 int simulate_world(world* w, float seconds);
 int reset_inputs(world* w);
@@ -220,7 +220,7 @@ int change_world_ysize(world* w, int direction, int sign);
 int save_level(world* w);
 int set_callbacks(GLFWwindow* window);
 entity_type get_entity_at(world* w, int index);
-uint get_entity_anim_index(world* w, int index);
+u32 get_entity_anim_index(world* w, int index);
 void set_renderer(void* r);
 
 #endif

@@ -8,7 +8,7 @@ int BASE_STRING_LENGTH = 1024;
 
 int append_chars(string* base, char* chars) {
     short should_realloc = 0;
-    uint memory_allotted = base->memory_allotted;
+    u32 memory_allotted = base->memory_allotted;
     while(memory_allotted < string_length(base) + strlen(chars)) {
         memory_allotted *= 2;
         should_realloc = 1;

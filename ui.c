@@ -13,7 +13,7 @@
 // standardized.
 #define CHAR_BUFFER_SIZE 2048
 
-int cb_ui_test_shader_compilation(uint shader, char* type) {
+int cb_ui_test_shader_compilation(u32 shader, char* type) {
     int status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
     if (status != GL_TRUE) {
@@ -25,7 +25,7 @@ int cb_ui_test_shader_compilation(uint shader, char* type) {
     return 0;
 }
 
-int compile_and_link_text_shader(uint* vertex_shader, uint* fragment_shader, uint* shader_program) {
+int compile_and_link_text_shader(u32* vertex_shader, u32* fragment_shader, u32* shader_program) {
     string vertex_source = read_file("glsl/text_vertex.glsl");
     *vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(*vertex_shader, 1, &vertex_source.text, NULL);
@@ -64,7 +64,7 @@ int init_gl_values(cb_ui_state* state) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // TODO (19 Jun 2020 sam): I'm not sure if we need 2 vaos here. But when I tried to use just
     // one, the rects stopped working. So I'm not entirely sure what should be done in that case.
-    uint char_vao, char_vbo, rect_vao, rect_vbo, line_vao, line_vbo;
+    u32 char_vao, char_vbo, rect_vao, rect_vbo, line_vao, line_vbo;
 
     glGenVertexArrays(1, &rect_vao);
     glBindVertexArray(rect_vao);
@@ -94,9 +94,9 @@ int init_gl_values(cb_ui_state* state) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glBindVertexArray(0);
-    uint text_vertex_shader;
-    uint text_fragment_shader;
-    uint text_shader_program;
+    u32 text_vertex_shader;
+    u32 text_fragment_shader;
+    u32 text_shader_program;
     compile_and_link_text_shader(&text_vertex_shader, &text_fragment_shader, &text_shader_program);
     printf("mallocing... text vertex buffer\n");
     // TODO (03 Jul 2020 sam): Malloc single contiguous array.
@@ -127,7 +127,7 @@ int init_character_glyphs(cb_ui_state* state) {
     // TODO (18 Jun 2020 sam): Look into the stbtt docs and see what the recommended
     // way to load fonts is. Because it's not this.
     stbtt_BakeFontBitmap(ttf_buffer,0, 16.4, temp_bitmap, 512, 512, 0,128, state->glyphs);
-    uint font_texture;
+    u32 font_texture;
     glGenTextures(1, &font_texture);
     glBindTexture(GL_TEXTURE_2D, font_texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 512, 512, 0, GL_RED, GL_UNSIGNED_BYTE, temp_bitmap);
@@ -140,6 +140,8 @@ int init_character_glyphs(cb_ui_state* state) {
 
 int render_chars(cb_ui_state* state) {
     glDisable(GL_DEPTH_TEST);
+    glDisable(GL_MULTISAMPLE);
+    glDisable(GL_MULTISAMPLE_ARB);
     glLinkProgram(state->values.shader_program);
     glUseProgram(state->values.shader_program);
     glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -162,6 +164,8 @@ int render_chars(cb_ui_state* state) {
 
 int render_rectangles(cb_ui_state* state) {
     glDisable(GL_DEPTH_TEST);
+    glDisable(GL_MULTISAMPLE);
+    glDisable(GL_MULTISAMPLE_ARB);
     glDepthFunc(GL_GEQUAL);
     glLinkProgram(state->values.shader_program);
     glUseProgram(state->values.shader_program);
@@ -218,7 +222,7 @@ int cb_ui_render_rectangle(cb_ui_state* state, float xpos, float ypos, float w, 
     // batch drawing the rectangles. Might need to be fixed.
     // we want text coordinates to be passed with top left of window as (0,0)
     ypos = WINDOW_HEIGHT-ypos;
-    uint index = state->values.rect_buffer.occupied;
+    u32 index = state->values.rect_buffer.occupied;
     if (index >= CHAR_BUFFER_SIZE*24) {
         render_rectangles(state);
         index = 0;
@@ -269,7 +273,7 @@ int cb_ui_render_line(cb_ui_state* state, float xpos1, float ypos1, float xpos2,
         y2 = ypos1;//max(ypos1, ypos2);
         y1 = ypos2;//min(ypos1, ypos2);
     }
-    uint index = state->values.line_buffer.occupied;
+    u32 index = state->values.line_buffer.occupied;
     if (index >= CHAR_BUFFER_SIZE*24) {
         render_lines(state);
         index = 0;
@@ -314,7 +318,7 @@ int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y) {
         // for test/dev. They have some other sets of API for release versions.
         stbtt_aligned_quad q;
         stbtt_GetBakedQuad(state->glyphs, 512,512, c, &x, &y, &q, 1);
-        uint index = state->values.char_buffer.occupied;
+        u32 index = state->values.char_buffer.occupied;
         if (index >= CHAR_BUFFER_SIZE*24) {
             render_chars(state);
             index = 0;
@@ -348,7 +352,7 @@ int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y) {
     return 0;
 }
 
-int init_cb_window(cb_window* w, char* title, uint position[2], uint size[2]) {
+int init_cb_window(cb_window* w, char* title, u32 position[2], u32 size[2]) {
     printf("mallocing... init_cb_window\n");
     cb_widget* widget_mem = (cb_widget*) malloc(DEFAULT_WIDGET_NUMBER * sizeof(cb_widget));
     cb_widget_array widgets = {DEFAULT_WIDGET_NUMBER, 0, widget_mem};
@@ -391,7 +395,7 @@ int add_text(cb_ui_state* state, cb_window* window, char* text, bool newline) {
     return 0;
 }
 
-bool mouse_in(cb_ui_state* state, cb_window* window, uint pos[2], uint size[2]) {
+bool mouse_in(cb_ui_state* state, cb_window* window, u32 pos[2], u32 size[2]) {
     float x1 = window->position[0]+pos[0];
     float x2 = window->position[0]+pos[0]+size[0];
     float y1 = window->position[1]+pos[1];

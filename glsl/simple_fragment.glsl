@@ -9,7 +9,7 @@ uniform sampler2D sdfsheet;
 uniform float time;
 uniform float opacity;
 float PI = 3.141596;
-float NUMBER_OF_SPRITES = 35.0+18.0;
+float NUMBER_OF_SPRITES = 41.0;
 float STROKE_THICKNESS = 4.0;
 
 //	Classic Perlin 2D Noise 

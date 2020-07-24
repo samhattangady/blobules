@@ -1,4 +1,4 @@
-#include <windows.h>
+// #include <windows.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <time.h>
@@ -22,16 +22,16 @@ int main(int argc, char** argv) {
     printf("initted world\n");
     renderer r;
     init_renderer(&r, "blobules");
-    boombox b;
-    init_boombox(&b);
-    w.boom = &b;
+    // boombox b;
+    // init_boombox(&b);
+    // w.boom = &b;
     // play_sound(&b, MUSIC, false, 0.0);
     cb_ui_state ui_state;
     init_ui(&ui_state);
     w.editor.ui_state = &ui_state;
     set_renderer(&r);
 
-    uint frame = 0;
+    u32 frame = 0;
 
     //struct timeval start_time;
     //struct timeval current_time;
@@ -43,8 +43,8 @@ int main(int argc, char** argv) {
     //gettimeofday(&start_time, NULL);
     double mouse_x, mouse_y;
 
-    uint window_pos[2] = {20, 40};
-    uint window_size[2] = {UI_WIDTH, WINDOW_HEIGHT};
+    u32 window_pos[2] = {20, 40};
+    u32 window_size[2] = {UI_WIDTH, WINDOW_HEIGHT};
     init_cb_window(&w.editor.ui_window, "Level Editor", window_pos, window_size);
     start_time = clock();
     printf("starting game loop\n");
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
         frame_time = ((double)clock_time-(double)start_time)/CLOCKS_PER_SEC;
         start_time = clock_time;
         seconds += frame_time;
-        update_boombox(&b, seconds);
+        // update_boombox(&b, seconds);
         simulate_world(&w, seconds);
         ui_state.mouse = w.mouse;
         render_scene(&r, &w);

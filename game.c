@@ -31,6 +31,32 @@ int get_position_index(world* w, int x, int y, int z) {
     return get_position_index_sizes(w->x_size, w->y_size, w->z_size, x, y, z);
 }
 
+int get_world_x(world* w) {
+    double xpos = global_w->mouse.current_x;
+    return (int) (((xpos - (X_PADDING*WINDOW_WIDTH/2.0) - (WINDOW_WIDTH/2.0)) /
+                   (BLOCK_WIDTH/2.0))
+                  );
+}
+
+int get_world_y(world* w) {
+    double ypos = global_w->mouse.current_y;
+    return (int) (0.0 - ((ypos+ (Y_PADDING*WINDOW_HEIGHT/2.0) - WINDOW_HEIGHT/2.0) /
+                         (BLOCK_HEIGHT/2.0))
+                  );
+}
+
+int go_to_main_menu(world* w) {
+    printf("going to main menu\n");
+    w->active_mode = MAIN_MENU;
+    return 0;
+}
+int go_to_level_select(world* w) {
+    printf("going to level select\n");
+    w->editor.editor_enabled = false;
+    w->active_mode = LEVEL_SELECT;
+    return 0;
+}
+
 char* as_text(entity_type e) {
     if (e == NONE)
         return "NONE";
@@ -54,6 +80,60 @@ char* as_text(entity_type e) {
         return "REFLECTOR";
     return "INVALID";
 }
+
+entity_type get_entity_type(char c) {
+    if (c == '.')
+        return NONE;
+    if (c == 'o')
+        return GROUND;
+    if (c == 'P')
+        return PLAYER;
+    if (c == 'B')
+        return WALL;
+    if (c == 'I')
+        return CUBE;
+    if (c == 'T')
+        return HOT_TARGET;
+    if (c == '~')
+        return SLIPPERY_GROUND;
+    if (c == 'F')
+        return FURNITURE;
+    if (c == 'R')
+        return REFLECTOR;
+    if (c == 'C')
+        return COLD_TARGET;
+    if (c == 'D')
+        return DESTROYED_TARGET;
+    return INVALID;
+}
+
+char get_entity_char(entity_type et) {
+    if (et ==NONE)
+        return  '.';
+    if (et == GROUND)
+        return 'o';
+    if (et == PLAYER)
+        return 'P';
+    if (et == WALL)
+        return 'B';
+    if (et == CUBE)
+        return 'I';
+    if (et == HOT_TARGET)
+        return 'T';
+    if (et == SLIPPERY_GROUND)
+        return '~';
+    if (et == FURNITURE)
+        return 'F';
+    if (et == REFLECTOR)
+        return 'R';
+    if (et == COLD_TARGET)
+        return 'C';
+    if (et == DESTROYED_TARGET)
+        return 'D';
+    return ' ';
+}
+
+
 
 bool has_movements(entity_type et) {
     return true;
@@ -83,7 +163,8 @@ animations get_anim_from_name(char* a) {
     return ANIMATIONS_COUNT;
 }
 
-int load_player_animations(world* w, uint anim_index) {
+
+int load_player_animations(world* w, u32 anim_index) {
     FILE* anim_file = fopen("player_animations.txt", "r");
     for (int i=0; i<ANIMATIONS_COUNT; i++) {
         char* anim_name[128];
@@ -101,7 +182,7 @@ int load_player_animations(world* w, uint anim_index) {
     return 0;
 }
 
-int load_entity_animations(world* w, entity_type et, uint anim_index) {
+int load_entity_animations(world* w, entity_type et, u32 anim_index) {
     if (et==PLAYER)
         load_player_animations(w, anim_index);
     return 0;
@@ -157,6 +238,66 @@ int add_entity(world* w, entity_type e, int x, int y, int z) {
     return 0;
 }
 
+int save_freezeframe(world* w) {
+    int i, index;
+    // TODO (25 May 2020 sam): Since we increment index here, does that mean that
+    // we never use the 0th index?
+    w->history.index++;
+    if (w->history.index == HISTORY_STEPS) {
+        // When the index is above HISTORY_STEPS, move the whole
+        // array backwards by HISTORY_STEPS/2
+        int num = HISTORY_STEPS/2;
+        memcpy(&w->history.history[0], &w->history.history[num], num*sizeof(world_freezeframe));
+        printf("history memory full...\n");
+        w->history.index = num;
+    }
+    index = w->history.index;
+    w->history.history[index].current_level = w->level_select.current_level;
+    for (i=0; i<w->size; i++)
+        w->history.history[index].entities[i] = get_entity_char(get_entity_at(w, i));
+    // Prevent save if there was no change in the world
+    if (index > 0 && w->history.history[index-1].current_level==w->level_select.current_level) {
+        bool same = true;
+        for (int i=0; i<w->size; i++) {
+            if (w->history.history[index-1].entities[i] !=
+                w->history.history[index].entities[i]) {
+                same = false;
+                break;
+            }
+        }
+        if (same)
+            w->history.index--;
+    }
+    return 0;
+}
+
+int load_previous_freezeframe(world* w) {
+    int i, index;
+    if (w->history.index <= 1) return 0;
+    w->history.index--;
+    index = w->history.index;
+    if (w->history.history[index].current_level != w->level_select.current_level) {
+        // TODO (27 Apr 2020 sam): Changing level requires us to press z twice?
+        // Bug needs to be found and fixed.
+        w->level_select.current_level = w->history.history[index].current_level;
+        load_level(w);
+    }
+    init_entities(w);
+    for (i=0; i<w->size; i++) {
+        entity_type et = get_entity_type(w->history.history[index].entities[i]);
+        int x, y, z;
+        z = i / (w->x_size * w->y_size);
+        y = (i - (z*w->x_size*w->y_size)) / w->x_size;
+        x = i % w->x_size;
+        add_entity(w, et, x, y, z);
+        if (et == PLAYER) {
+            vec3i pos = {x, y, z};
+            w->player_position = pos;
+        }
+    }
+    return 0;
+}
+
 int set_none(world* w, int index) {
     w->grid_data[index] = 0;
     return 0;
@@ -173,60 +314,8 @@ int set_cold_target(world* w, int x, int y, int z) {
 entity_type get_entity_at(world* w, int index) {
     return w->entities[w->grid_data[index]].type;
 }
-uint get_entity_movement_index(world* w, int index) {
+u32 get_entity_movement_index(world* w, int index) {
     return w->entities[w->grid_data[index]].movement_index;
-}
-
-entity_type get_entity_type(char c) {
-    if (c == '.')
-        return NONE;
-    if (c == 'o')
-        return GROUND;
-    if (c == 'P')
-        return PLAYER;
-    if (c == 'B')
-        return WALL;
-    if (c == 'I')
-        return CUBE;
-    if (c == 'T')
-        return HOT_TARGET;
-    if (c == '~')
-        return SLIPPERY_GROUND;
-    if (c == 'F')
-        return FURNITURE;
-    if (c == 'R')
-        return REFLECTOR;
-    if (c == 'C')
-        return COLD_TARGET;
-    if (c == 'D')
-        return DESTROYED_TARGET;
-    return INVALID;
-}
-
-char get_entity_char(entity_type et) {
-    if (et ==NONE)
-        return  '.';
-    if (et == GROUND)
-        return 'o';
-    if (et == PLAYER)
-        return 'P';
-    if (et == WALL)
-        return 'B';
-    if (et == CUBE)
-        return 'I';
-    if (et == HOT_TARGET)
-        return 'T';
-    if (et == SLIPPERY_GROUND)
-        return '~';
-    if (et == FURNITURE)
-        return 'F';
-    if (et == REFLECTOR)
-        return 'R';
-    if (et == COLD_TARGET)
-        return 'C';
-    if (et == DESTROYED_TARGET)
-        return 'D';
-    return ' ';
 }
 
 int load_levels_list(level_select_struct* l) {
@@ -234,7 +323,7 @@ int load_levels_list(level_select_struct* l) {
     level_option* levels = (level_option*) malloc(sizeof(level_option)*TOTAL_NUM_LEVELS);
     string levels_data = read_file(LEVEL_LISTING);
     // TODO (15 Apr 2020 sam): PERFORMANCE. Looping through string twice
-    uint n = 0;
+    u32 n = 0;
     char c;
     for (int i=0; true; i++) {
         if (levels_data.text[i] == '\n')
@@ -385,7 +474,7 @@ int load_previous_level(world* w) {
     return 0;
 }
 
-int init_world(world* w, uint number) {
+int init_world(world* w, u32 number) {
     player_input input = {NO_INPUT, 0.0};
     world_freezeframe* frames = (world_freezeframe*) malloc(HISTORY_STEPS * sizeof(world_freezeframe));
     world_history history = {0, frames};
@@ -411,10 +500,10 @@ int init_world(world* w, uint number) {
     // tmp.levels = list;
     tmp.history = history;
     *w = tmp;
-    uint grid_data_size = sizeof(uint) * MAX_WORLD_ENTITIES;
-    uint entity_data_size = sizeof(entity_data) * MAX_WORLD_ENTITIES;
-    uint movement_data_size = sizeof(movement_state) * MAX_WORLD_ENTITIES;
-    uint animation_data_size = sizeof(animation_state) * MAX_WORLD_ENTITIES;
+    u32 grid_data_size = sizeof(u32) * MAX_WORLD_ENTITIES;
+    u32 entity_data_size = sizeof(entity_data) * MAX_WORLD_ENTITIES;
+    u32 movement_data_size = sizeof(movement_state) * MAX_WORLD_ENTITIES;
+    u32 animation_data_size = sizeof(animation_state) * MAX_WORLD_ENTITIES;
     w->data = (void*) calloc(grid_data_size+entity_data_size+movement_data_size+animation_data_size, sizeof(char));
     w->grid_data = w->data;
     w->entities = (char*) w->data+grid_data_size;
@@ -464,19 +553,19 @@ int can_stop_cube_slide(entity_type et) {
     return false;
 }
 
-int set_entity_position(world* w, uint index, int x, int y, int z) {
+int set_entity_position(world* w, u32 index, int x, int y, int z) {
     w->entities[index].x = x;
     w->entities[index].y = y;
     w->entities[index].z = z;
     return 0;
 }
 
-int schedule_entity_removal(world*w, uint index, int depth) {
+int schedule_entity_removal(world*w, u32 index, int depth) {
     w->entities[index].removal_time = w->seconds + (2+depth)*ANIMATION_SINGLE_STEP_TIME;
     return 0;
 }
 
-int add_interpolation(world* w, uint index, int x, int y, int z, int dx, int dy, int depth) {
+int add_interpolation(world* w, u32 index, int x, int y, int z, int dx, int dy, int depth) {
     w->currently_moving = true;
     if (w->movements[w->entities[index].movement_index].currently_moving) {
         w->movements[w->entities[index].movement_index].duration += ANIMATION_SINGLE_STEP_TIME; // *pow(0.8, depth);
@@ -682,9 +771,9 @@ bool can_push_player_back(entity_type et) {
     return false;
 }
 
-int set_player_animation(world* w, uint index, animations a) {
+int set_player_animation(world* w, u32 index, animations a) {
     // reset current playing animation to frame 0
-    uint anim_index = w->entities[index].animation_index;
+    u32 anim_index = w->entities[index].animation_index;
     animation_state as = w->animations[anim_index];
     as.animation_data[as.current_animation_index].index = 0;
     as.current_animation_index = a;
@@ -692,10 +781,10 @@ int set_player_animation(world* w, uint index, animations a) {
     return 0;
 }
 
-int queue_player_animation(world* w , uint index, animations a) {
-    uint anim_index = w->entities[index].animation_index;
+int queue_player_animation(world* w , u32 index, animations a) {
+    u32 anim_index = w->entities[index].animation_index;
     animation_state as = w->animations[anim_index];
-    uint queue_index = as.queue_length;;
+    u32 queue_index = as.queue_length;;
     as.queue_length++;
     as.queue[queue_index] = a;
     w->animations[anim_index] = as;
@@ -815,67 +904,6 @@ int remove_scheduled_entities(world* w) {
         }
     }
 }
-
-int save_freezeframe(world* w) {
-    int i, index;
-    // TODO (25 May 2020 sam): Since we increment index here, does that mean that
-    // we never use the 0th index?
-    w->history.index++;
-    if (w->history.index == HISTORY_STEPS) {
-        // When the index is above HISTORY_STEPS, move the whole
-        // array backwards by HISTORY_STEPS/2
-        int num = HISTORY_STEPS/2;
-        memcpy(&w->history.history[0], &w->history.history[num], num*sizeof(world_freezeframe));
-        printf("history memory full...\n");
-        w->history.index = num;
-    }
-    index = w->history.index;
-    w->history.history[index].current_level = w->level_select.current_level;
-    for (i=0; i<w->size; i++)
-        w->history.history[index].entities[i] = get_entity_char(get_entity_at(w, i));
-    // Prevent save if there was no change in the world
-    if (index > 0 && w->history.history[index-1].current_level==w->level_select.current_level) {
-        bool same = true;
-        for (int i=0; i<w->size; i++) {
-            if (w->history.history[index-1].entities[i] !=
-                w->history.history[index].entities[i]) {
-                same = false;
-                break;
-            }
-        }
-        if (same)
-            w->history.index--;
-    }
-    return 0;
-}
-
-int load_previous_freezeframe(world* w) {
-    int i, index;
-    if (w->history.index <= 1) return 0;
-    w->history.index--;
-    index = w->history.index;
-    if (w->history.history[index].current_level != w->level_select.current_level) {
-        // TODO (27 Apr 2020 sam): Changing level requires us to press z twice?
-        // Bug needs to be found and fixed.
-        w->level_select.current_level = w->history.history[index].current_level;
-        load_level(w);
-    }
-    init_entities(w);
-    for (i=0; i<w->size; i++) {
-        entity_type et = get_entity_type(w->history.history[index].entities[i]);
-        int x, y, z;
-        z = i / (w->x_size * w->y_size);
-        y = (i - (z*w->x_size*w->y_size)) / w->x_size;
-        x = i % w->x_size;
-        add_entity(w, et, x, y, z);
-        if (et == PLAYER) {
-            vec3i pos = {x, y, z};
-            w->player_position = pos;
-        }
-    }
-    return 0;
-}
-
 int trigger_input(world* w, input_type it) {
     vec3i pos = w->player_position;
     if (it == MOVE_UP)
@@ -932,7 +960,8 @@ void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action,
     if (key == GLFW_KEY_Z && (action == GLFW_PRESS || action == GLFW_REPEAT))
         set_input(global_w, UNDO_MOVE, global_seconds);
     if (key == GLFW_KEY_SPACE && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        //global_w->editor.z_level = (global_w->editor.z_level+1)  % 2;
+        global_w->editor.z_level = (global_w->editor.z_level+1)  % 2;
+    if (key == GLFW_KEY_F && (action == GLFW_PRESS || action == GLFW_REPEAT))
         load_shaders(global_r);
     if (key == GLFW_KEY_TAB && (action == GLFW_PRESS || action == GLFW_REPEAT))
         global_w->editor.active_type = (global_w->editor.active_type+1)  % INVALID;
@@ -985,35 +1014,10 @@ int select_active_option(world* w) {
     return 0;
 }
 
-int go_to_main_menu(world* w) {
-    printf("going to main menu\n");
-    w->active_mode = MAIN_MENU;
-    return 0;
-}
-int go_to_level_select(world* w) {
-    printf("going to level select\n");
-    w->editor.editor_enabled = false;
-    w->active_mode = LEVEL_SELECT;
-    return 0;
-}
-
 int go_to_next_level_mode(world* w) {
     w->level_mode++;
     if (w->level_mode == LEVEL_EDITOR_MODES_COUNT)
         w->level_mode = NEUTRAL;
-}
-
-void level_select_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        set_up_level(global_w);
-    if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        set_down_level(global_w);
-    if (key == GLFW_KEY_ENTER && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        enter_active_level(global_w);
-    if (key == GLFW_KEY_SPACE && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        go_to_next_level_mode(global_w);
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-        go_to_main_menu(global_w);
 }
 
 int set_up_level(world* w) {
@@ -1036,6 +1040,19 @@ int enter_active_level(world* w) {
     return 0;
 }
 
+void level_select_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        set_up_level(global_w);
+    if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        set_down_level(global_w);
+    if (key == GLFW_KEY_ENTER && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        enter_active_level(global_w);
+    if (key == GLFW_KEY_SPACE && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        go_to_next_level_mode(global_w);
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
+        go_to_main_menu(global_w);
+}
+
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (global_w->active_mode == IN_GAME)
         in_game_key_callback(window, key, scancode, action, mods);
@@ -1054,7 +1071,7 @@ void add_entity_at_mouse(world* w) {
     // on "correct z level"
     // TODO (03 Jul 2020 sam): Check if there is already an entity here
     // and remove in that case.
-    uint index = get_position_index(w, x, y, w->editor.z_level);
+    u32 index = get_position_index(w, x, y, w->editor.z_level);
     entity_type et = get_entity_at(w, index);
     if (et != NONE)
         w->entities[w->grid_data[index]].type = NONE;
@@ -1063,8 +1080,8 @@ void add_entity_at_mouse(world* w) {
     // entities when we remove something. This way of doing it is obviously
     // not performant, but since this function is only called in the editor,
     // its fine.
-    change_world_xsize_right(w, 1);
-    change_world_xsize_right(w, -1);
+    // change_world_xsize_right(w, 1);
+    // change_world_xsize_right(w, -1);
 }
 
 void remove_entity_at_mouse(world* w) {
@@ -1072,7 +1089,7 @@ void remove_entity_at_mouse(world* w) {
     int y = get_world_y(w);
     if (x < 0 || x >= w->x_size || y < 0 || y >= w->y_size)
         return;
-    uint index = get_position_index(w, x, y, w->editor.z_level);
+    u32 index = get_position_index(w, x, y, w->editor.z_level);
     entity_type et = get_entity_at(w, index);
     if (et != NONE) {
         w->editor.active_type = et;
@@ -1084,8 +1101,8 @@ void remove_entity_at_mouse(world* w) {
         // entities when we remove something. This way of doing it is obviously
         // not performant, but since this function is only called in the editor,
         // its fine.
-        change_world_xsize_right(w, 1);
-        change_world_xsize_right(w, -1);
+        // change_world_xsize_right(w, 1);
+        // change_world_xsize_right(w, -1);
     }
     // save_freezeframe(w);
 }
@@ -1093,20 +1110,6 @@ void remove_entity_at_mouse(world* w) {
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     global_w->mouse.current_x = xpos;
     global_w->mouse.current_y = ypos;
-}
-
-int get_world_x(world* w) {
-    double xpos = global_w->mouse.current_x;
-    return (int) (((xpos - (X_PADDING*WINDOW_WIDTH/2.0) - (WINDOW_WIDTH/2.0)) /
-                   (BLOCK_WIDTH/2.0))
-                  );
-}
-
-int get_world_y(world* w) {
-    double ypos = global_w->mouse.current_y;
-    return (int) (0.0 - ((ypos+ (Y_PADDING*WINDOW_HEIGHT/2.0) - WINDOW_HEIGHT/2.0) /
-                         (BLOCK_HEIGHT/2.0))
-                  );
 }
 
 int run_editor_functions(world* w) {
@@ -1151,7 +1154,7 @@ float get_ease_in_out_progress(float time_elapsed) {
 int run_level_select_functions(world* w) {
     if (w->level_mode == SET_POSITION) {
         if (w->mouse.l_released) {
-            uint l = w->level_select.current_level;
+            u32 l = w->level_select.current_level;
             w->level_select.levels[l].xpos = w->mouse.current_x;
             w->level_select.levels[l].ypos = w->mouse.current_y;
         }
@@ -1224,8 +1227,8 @@ int reset_inputs(world* w) {
 
 int change_world_xsize_right(world* w, int sign) {
     int ogx = w->x_size;
-    uint old_grid[MAX_WORLD_ENTITIES];
-    memcpy(old_grid, w->grid_data, w->size*sizeof(uint));
+    u32 old_grid[MAX_WORLD_ENTITIES];
+    memcpy(old_grid, w->grid_data, w->size*sizeof(u32));
     entity_data old_entities[MAX_WORLD_ENTITIES];
     memcpy(old_entities, w->entities, w->size*sizeof(entity_data));
     sign = sign / abs(sign);
@@ -1248,8 +1251,8 @@ int change_world_xsize_right(world* w, int sign) {
 
 int change_world_xsize_left(world* w, int sign) {
     int ogx = w->x_size;
-    uint old_grid[MAX_WORLD_ENTITIES];
-    memcpy(old_grid, w->grid_data, w->size*sizeof(uint));
+    u32 old_grid[MAX_WORLD_ENTITIES];
+    memcpy(old_grid, w->grid_data, w->size*sizeof(u32));
     entity_data old_entities[MAX_WORLD_ENTITIES];
     memcpy(old_entities, w->entities, w->size*sizeof(entity_data));
     sign = sign / abs(sign);
@@ -1278,8 +1281,8 @@ int change_world_xsize_left(world* w, int sign) {
 
 int change_world_ysize_top(world *w, int sign) {
     int ogy = w->y_size;
-    uint old_grid[MAX_WORLD_ENTITIES];
-    memcpy(old_grid, w->grid_data, w->size*sizeof(uint));
+    u32 old_grid[MAX_WORLD_ENTITIES];
+    memcpy(old_grid, w->grid_data, w->size*sizeof(u32));
     entity_data old_entities[MAX_WORLD_ENTITIES];
     memcpy(old_entities, w->entities, w->size*sizeof(entity_data));
     sign = sign / abs(sign);
@@ -1302,8 +1305,8 @@ int change_world_ysize_top(world *w, int sign) {
 
 int change_world_ysize_bottom(world *w, int sign) {
     int ogy = w->y_size;
-    uint old_grid[MAX_WORLD_ENTITIES];
-    memcpy(old_grid, w->grid_data, w->size*sizeof(uint));
+    u32 old_grid[MAX_WORLD_ENTITIES];
+    memcpy(old_grid, w->grid_data, w->size*sizeof(u32));
     entity_data old_entities[MAX_WORLD_ENTITIES];
     memcpy(old_entities, w->entities, w->size*sizeof(entity_data));
     sign = sign / abs(sign);

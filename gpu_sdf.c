@@ -19,7 +19,7 @@
 
 #define MIN_ALPHA 0.7
 #define MAX_PIXEL_DISTANCE 127
-#define u8 uint8_t
+#define u8 u328_t
 #define WINDOW_HEIGHT 1024
 #define WINDOW_WIDTH 1024
 
@@ -27,7 +27,7 @@ static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Errors: %s\n", description);
 }
 
-int test_shader_compilation(uint shader, char* type) {
+int test_shader_compilation(u32 shader, char* type) {
     int status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
     if (status != GL_TRUE) {
@@ -76,11 +76,11 @@ int main(int argc, char** argv) {
     glEnable(GL_MULTISAMPLE);
 
     /* initialise basic gl stuffs */
-    uint vao;
-    uint vbo;
-    uint vertex_shader;
-    uint fragment_shader;
-    uint shader_program;
+    u32 vao;
+    u32 vbo;
+    u32 vertex_shader;
+    u32 fragment_shader;
+    u32 shader_program;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
     glGenBuffers(1, &vbo);
@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
     dispose_string(&fragment_source);
 
     /* create and load textures */
-    uint textures[3];
+    u32 textures[3];
     int width, height, nrChannels;
     stbi_set_flip_vertically_on_load(true);
     unsigned char *body = stbi_load("static/m1.png",&width,&height,&nrChannels,0);

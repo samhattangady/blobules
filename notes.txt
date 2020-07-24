@@ -562,3 +562,34 @@ action for me =/. Okay, it's back ish. Depth buffer may be fucked up.
 
 Okay, was just a discard issue. Looks fine now. May need to look a little
 further at some point as well. But need to commit now.
+
+21 Jul 2020
+It's a new day, it's a new way. Again, the self imposed restrictions are going
+quite well. But I'm just super restless, and don't know what to do. Oh wait, I
+was working on a pretty epic puzzle design last night. Maybe complete that up.
+
+Okay, got a couple of decent levels out today.
+
+22 Jul 2020
+So there are two interesting things that happen when you have 2 furns. One is
+that putting them back to back allows neither to move. So it acts like a wall.
+So there are two things I think I want to explore using that. One is figuring
+out a way that both need to be used. The other?
+Actually no, I saw before that there's no really interesting thing that cam
+come out of that because there is no difference between having two stay in the
+same place, and having one bounce back. Unlesswe need to push off the cube
+again. Yes. In that case, we would have to place them back to back.
+
+Haha, it feels like I'm just now discovering that in fact, the final goal is
+actually probably the biggest obstacle. Always manages to get in the way. And
+thematically, that just feels so on point.
+
+23 Jul 2020
+Okay, so I think we need to start moving towards the final stage of artwork
+atleast in level. I have a good idea for how the render the slippery. Also
+will need to figure out the pipeline to set up all of the artwork, so that has
+to be done as well.
+But yeah, basically need to start moving towards a more final version of all
+of that. So basically what we need is a couple of passes through _after_ all
+the elements have been drawn. Or atleast during that process. Add things like
+flowers or whatever. And in this case, ice on the side.
