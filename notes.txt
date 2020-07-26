@@ -593,3 +593,36 @@ But yeah, basically need to start moving towards a more final version of all
 of that. So basically what we need is a couple of passes through _after_ all
 the elements have been drawn. Or atleast during that process. Add things like
 flowers or whatever. And in this case, ice on the side.
+
+24 Jul 2020
+Phew. Finally the work week is complete. And I should be able to work on
+things. TO be completely honest, I'm not entirely certain what the best thing
+to work on next would be. I think the art is sowewhere in a limbo where we
+have the "tech", but the art is not really ready. Maybe that is something we
+can take on over the weekend and see where that gets us.
+The level select is woefully behind as well, and there seems to be zero idea
+of where we want that to go. Maybe just some thematic explorations would be
+super useful as well. Also just some general goal setting. Don't want to sit
+and do now, but at some point over the weekend. How to release a build for
+playtesting. And so on.
+On the art side, I guess there is still some work that needs to be done,
+specifically with the idea of leaving the paper colour around the edges of
+separate sprites. (maybe in sprite as well?)
+
+In any case, all of that has still left me with no real ideas as to where we
+should be pointing our attention to next.  Haha yeah I guess. Life I guess.
+
+25 Hul 2020
+And I still don't believe I have an idea of what I wan't to be doing next.
+Maybe try to fkesh out the level select screen? Okay, the real question there
+is what should be done? Actually the main menu screen might be a bit easier to
+tackle in that regard.
+So let's do that work and animation.
+
+s6 Jul 2020
+Okay, just worked on a level, and oh man it works so well. I think the best
+way to make levels is to just really throw in a bunch of things and then
+actually try to solve it.
+
+Okay, moving on now, made a couple of banger levels today. Quite happy with
+them.

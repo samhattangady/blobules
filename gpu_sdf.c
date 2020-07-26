@@ -19,9 +19,9 @@
 
 #define MIN_ALPHA 0.7
 #define MAX_PIXEL_DISTANCE 127
-#define u8 u328_t
-#define WINDOW_HEIGHT 1024
-#define WINDOW_WIDTH 1024
+#define u8 uint8_t 
+#define WINDOW_HEIGHT 1080
+#define WINDOW_WIDTH 800
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Errors: %s\n", description);
@@ -44,37 +44,7 @@ void sdf_key_callback(GLFWwindow* window, int key, int scancode, int action, int
         glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
-int main(int argc, char** argv) {
-    clock_t start_time;
-    start_time = clock();
-    /* creating gl context */
-    glfwSetErrorCallback(glfw_error_callback);
-    if (!glfwInit()) return -1;
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    GLFWwindow* window;
-    int window_height = WINDOW_HEIGHT;
-    int window_width = WINDOW_WIDTH;
-    printf("trying to create window\n");
-    glfwWindowHint(GLFW_SAMPLES, 16);
-    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "gpu_sdf", NULL, NULL);
-    if (!window) {
-        printf("GLFW could not create a window...\n");
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-    glewExperimental = GL_TRUE;
-    if (glewInit() != GLEW_OK) {
-        printf("GLEW could not initiate.\n");
-        return -1;
-    }
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_MULTISAMPLE);
-
+int save_sdf_file(GLFWwindow* window, char* fillname, char* shadname, char* linename, char* outfname) {
     /* initialise basic gl stuffs */
     u32 vao;
     u32 vbo;
@@ -105,14 +75,14 @@ int main(int argc, char** argv) {
     glUseProgram(shader_program);
     dispose_string(&vertex_source);
     dispose_string(&fragment_source);
-
+    
     /* create and load textures */
     u32 textures[3];
     int width, height, nrChannels;
     stbi_set_flip_vertically_on_load(true);
-    unsigned char *body = stbi_load("static/m1.png",&width,&height,&nrChannels,0);
-    unsigned char *shad = stbi_load("static/m2.png",&width,&height,&nrChannels,0);
-    unsigned char *line = stbi_load("static/m3.png",&width,&height,&nrChannels,0);
+    unsigned char *body = stbi_load(fillname,&width,&height,&nrChannels,0);
+    unsigned char *shad = stbi_load(shadname,&width,&height,&nrChannels,0);
+    unsigned char *line = stbi_load(linename,&width,&height,&nrChannels,0);
     glGenTextures(3, &textures);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textures[0]);
@@ -173,8 +143,55 @@ int main(int argc, char** argv) {
     u8* output = (u8*) malloc(sizeof(u8) * width*height*4);
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, output);
     stbi_flip_vertically_on_write(true);
-    stbi_write_png("test_png.png", width, height, 4, output, 0);
+    stbi_write_png(outfname, width, height, 4, output, 0);
+    return 0;
+}
 
+int main(int argc, char** argv) {
+    clock_t start_time;
+    start_time = clock();
+    /* creating gl context */
+    glfwSetErrorCallback(glfw_error_callback);
+    if (!glfwInit()) return -1;
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    GLFWwindow* window;
+    int window_height = WINDOW_HEIGHT;
+    int window_width = WINDOW_WIDTH;
+    printf("trying to create window\n");
+    glfwWindowHint(GLFW_SAMPLES, 16);
+    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "gpu_sdf", NULL, NULL);
+    if (!window) {
+        printf("GLFW could not create a window...\n");
+        glfwTerminate();
+        return -1;
+    }
+    glfwMakeContextCurrent(window);
+    glewExperimental = GL_TRUE;
+    if (glewInit() != GLEW_OK) {
+        printf("GLEW could not initiate.\n");
+        return -1;
+    }
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_MULTISAMPLE);
+
+    // for (int i=0; i<60; i++) {
+    //     char fillname[50];
+    //     char shadname[50];
+    //     char linename[50];
+    //     char outfname[50];
+    //     sprintf(fillname, "static/main_menu/anim_%i.png", i);
+    //     sprintf(shadname, "static/main_menu/shadow_%i.png", i);
+    //     sprintf(linename, "static/main_menu/line_%i.png", i);
+    //     sprintf(outfname, "static/main_menu/sdf_%i.png", i);
+    //     printf("calculating %s...\t", outfname);
+    //     save_sdf_file(window, fillname, shadname, linename, outfname);
+    //     printf("done %s...\n", outfname);
+    // }
+    save_sdf_file(window, "static/main_menu/fillbg.png",  "static/main_menu/shad_bg.png", "static/main_menu/linebg.png" , "static/main_menu/sdf_bg.png");
     start_time = clock() - start_time;
     printf("processing complete in %f seconds\n", (double)start_time/CLOCKS_PER_SEC);
     printf("done.\n");

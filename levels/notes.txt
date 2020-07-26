@@ -292,3 +292,18 @@ Actually no. In this form it's far too simple. There is essentially no room
 for exploration and actually finding the solution. This needs to have some
 more elements, where this is just a small part of the level. Cannot stand
 alone like this.
+
+044:
+Catch: you can align the cubes, but cant really push without getting stuck
+Insight: you need to dislodge the furn at the corner, and use that to push a
+cibe inwards.
+Rating: 9
+Really nice level
+
+045:
+Catch if you immediately line up the cube, you'll not be able to get the furn
+into place to block the win
+Insight: you need to use the cube to create a path so that you can get the
+slippery out later.
+Rating: 9
+ayay. same as 041? haha, even the catch and insight are exactly the same.

@@ -64,6 +64,8 @@ void main() {
         int yc = int(textCoord.y * size.y);
         ivec2 p = get_points_at_radius(body, xc, yc, r);
         int inside = pixel_inside(body, xc, yc);
+        if (inside==1)
+            col.r = 0.0;
         if (inside==1 && p[1]>1) {
             col.r = 0.5 - (r/255.0);
             break;
@@ -77,6 +79,8 @@ void main() {
         int yc = int(textCoord.y * size.y);
         ivec2 p = get_points_at_radius(shad, xc, yc, r);
         int inside = pixel_inside(shad, xc, yc);
+        if (inside==1)
+            col.g = 0.0;
         if (inside==1 && p[1]>1) {
             col.g = 0.5 - (r/255.0);
             break;
@@ -90,6 +94,8 @@ void main() {
         int yc = int(textCoord.y * size.y);
         ivec2 p = get_points_at_radius(line, xc, yc, r);
         int inside = pixel_inside(line, xc, yc);
+        if (inside==1)
+            col.b = 0.0;
         if (inside==1 && p[1]>1) {
             col.b = 0.5 - (r/255.0);
             break;
