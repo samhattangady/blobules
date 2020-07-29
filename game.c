@@ -1020,17 +1020,31 @@ int go_to_next_level_mode(world* w) {
         w->level_mode = NEUTRAL;
 }
 
-int set_up_level(world* w) {
-    int next = w->level_select.levels[w->level_select.current_level].up_index;
-    if (next != -1)
-        w->level_select.current_level = next;
+int add_level_interpolation(world* w, int current, int next) {
     return 0;
 }
 
-int set_down_level(world* w) {
-    int next = w->level_select.levels[w->level_select.current_level].down_index;
-    if (next != -1)
+int set_next_level(world* w, level_select_direction dir) {
+    int next;
+    level_option current_level = w->level_select.levels[w->level_select.current_level];
+    if (dir == LEVEL_UP)
+        next = current_level.up_index;
+    if (dir == LEVEL_DOWN)
+        next = current_level.down_index;
+    if (dir == LEVEL_LEFT)
+        next = current_level.left_index;
+    if (dir == LEVEL_RIGHT)
+        next = current_level.right_index;
+    if (next != -1) {
+        level_option next_level = w->level_select.levels[next];
+        w->level_select.moving = true;
+        w->level_select.start_x = current_level.xpos;
+        w->level_select.start_y = current_level.ypos;
+        w->level_select.end_x = next_level.xpos;
+        w->level_select.end_y = next_level.ypos;
+        w->level_select.move_start = w->seconds;
         w->level_select.current_level = next;
+    }
     return 0;
 }
 
@@ -1041,10 +1055,12 @@ int enter_active_level(world* w) {
 }
 
 void level_select_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (global_w->level_select.moving)
+        return;
     if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        set_up_level(global_w);
+        set_next_level(global_w, LEVEL_UP);
     if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        set_down_level(global_w);
+        set_next_level(global_w, LEVEL_DOWN);
     if (key == GLFW_KEY_ENTER && (action == GLFW_PRESS || action == GLFW_REPEAT))
         enter_active_level(global_w);
     if (key == GLFW_KEY_SPACE && (action == GLFW_PRESS || action == GLFW_REPEAT))
@@ -1141,6 +1157,10 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     }
 }
 
+float get_linear_progress(float time_elapsed) {
+    return time_elapsed;
+}
+
 float get_ease_in_out_progress(float time_elapsed) {
     // formulae from https://github.com/nicolausYes/easing-functions/blob/master/src/easing.cpp
     // we are using the easeInOutQuad
@@ -1162,11 +1182,29 @@ int run_level_select_functions(world* w) {
     return 0;
 }
 
+int simulate_level_select(world* w) {
+    if (!w->level_select.moving)
+        return 0;
+    float elapsed = (w->seconds-w->level_select.move_start) / ANIMATION_SINGLE_STEP_TIME;
+    if (elapsed >= 1.0) {
+        w->level_select.cx = w->level_select.end_x;
+        w->level_select.cy = w->level_select.end_y;
+        w->level_select.moving = false;
+    } else {
+        float progress = get_ease_in_out_progress(elapsed);        
+        w->level_select.cx = w->level_select.start_x + progress*(w->level_select.end_x-w->level_select.start_x);
+        w->level_select.cy = w->level_select.start_y + progress*(w->level_select.end_y-w->level_select.start_y);
+    }
+    return 0;
+}
+
 int simulate_world(world* w, float seconds) {
-    if (w->player == WIN)
-        load_next_level(w);
     global_seconds = seconds;
     w->seconds = seconds;
+    if (w->active_mode == LEVEL_SELECT)
+        simulate_level_select(w);
+    if (w->player == WIN)
+        load_next_level(w);
     if (w->currently_moving) {
         if (w->seconds - w->animation_seconds_update > 1.0 / (float) ANIMATION_FRAMES_PER_SECOND) {
             bool still_moving = false;
@@ -1179,7 +1217,7 @@ int simulate_world(world* w, float seconds) {
                 if (elapsed > 1.0)
                     w->movements[i].currently_moving = false;
                 still_moving = still_moving || w->movements[i].currently_moving;
-                float progress = get_ease_in_out_progress(elapsed);
+                float progress = get_linear_progress(elapsed);
                 w->movements[i].x = w->movements[i].start_x + progress*w->movements[i].dx;
                 w->movements[i].y = w->movements[i].start_y + progress*w->movements[i].dy;
             }

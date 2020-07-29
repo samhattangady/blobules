@@ -1,14 +1,14 @@
 10 11 2
 ..........
-.oooooooo.
-.oooooooo.
-.o~~ooooo.
-.o~~ooooo.
-.o~~~oToo.
-.oooooooo.
-.oooooooo.
-.oooooooo.
-.oooooooo.
+.ooooooo..
+.ooooooo..
+.o~~oooo..
+.o~~oooo..
+.o~~~oTo..
+.ooooooo..
+.ooooooo..
+.ooooooo..
+.ooooooo..
 ..........
 
 ..........

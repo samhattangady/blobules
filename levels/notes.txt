@@ -307,3 +307,9 @@ Insight: you need to use the cube to create a path so that you can get the
 slippery out later.
 Rating: 9
 ayay. same as 041? haha, even the catch and insight are exactly the same.
+
+046:
+Catch: hard to get the cube to stop in mid path
+Insight: use cube as blocker
+Rating: 7
+It's kinda nice. Not too hard or interesting or fun though...

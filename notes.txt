@@ -612,17 +612,56 @@ separate sprites. (maybe in sprite as well?)
 In any case, all of that has still left me with no real ideas as to where we
 should be pointing our attention to next.  Haha yeah I guess. Life I guess.
 
-25 Hul 2020
+25 Jul 2020
 And I still don't believe I have an idea of what I wan't to be doing next.
-Maybe try to fkesh out the level select screen? Okay, the real question there
+Maybe try to flesh out the level select screen? Okay, the real question there
 is what should be done? Actually the main menu screen might be a bit easier to
 tackle in that regard.
 So let's do that work and animation.
 
-s6 Jul 2020
+26 Jul 2020
 Okay, just worked on a level, and oh man it works so well. I think the best
 way to make levels is to just really throw in a bunch of things and then
 actually try to solve it.
 
 Okay, moving on now, made a couple of banger levels today. Quite happy with
-them.
+them. But what next?
+
+So when it comes to the concept of the level select screen, I really like the
+idea that there are different ways to get to the same level, and it's not all
+laid out on some square grid. I think that idea gels well with the theme. But
+there are some usability constraints there that I do not want to override.
+Like you can always go back to the level you just came from. so left and right
+are always the inverse of each other. same for up and down. beyond that, i
+think there are lots of things that can be done.
+
+However, specifically which of those things I want to do, I'm currently
+uncertain. and even in general, what those _lots of things_ are, I don't
+really know. All I know is that there are not many constraints, so im just
+assuming there are lots of options available to explore i guess.
+
+So I like the idea of spiralling in towards the final level. that allows us to
+have optional levels on outshoots, which could be fairly self explanatory.
+
+Okay, found a better idea instead it's all a loop, and you end up where you
+started, but with a better understanding. something like that. also the main
+loop is outermost, with all levels having a detour around to take a shorted
+path. Once all the levels are completed, that's game completion. everything
+else is bonus content. and once all the levels are completed, that 100%.
+
+so we would need some indicator to show that 100 is not complete. or something
+along those lines. but if there are detours, then it should be clear that
+there is some meaning in coming back and retrying or something like that, and
+at that point, all the inside levels will open up? or maybe we shouldn't
+really bother hiding them all that much. or maybe on the last stage, we then
+open up all the inside levels if you go and see. something like that maybe.
+yeah, that makes sense.
+
+27 Jul 2020
+Made a level today. nothing super special, but decent enough i guess. Need to
+figure out what needs to be done on dev side along with, and make sure that
+we're doing that as well. for the most part i feel that the levels will just
+take time. we need to be making some kind of consistent progress on the rest
+of the dev stuff as well. so maybe start off with some kind of deadline for
+starting playtesting. that may be super useful. say 01Sep2020? That should be
+a decent date I presume.

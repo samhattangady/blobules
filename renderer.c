@@ -467,15 +467,22 @@ char* get_level_mode(world* w) {
 int render_level_select(renderer* r, world* w) {
     // TODO (14 Jun 2020 sam): Keep the ui state in a more accessible location
     cb_ui_render_text(w->editor.ui_state, get_level_mode(w), 20, 20);
+    level_option active_level = w->level_select.levels[w->level_select.current_level];
+    float cx = w->level_select.cx - WINDOW_WIDTH/2;
+    float cy = w->level_select.cy - WINDOW_HEIGHT/2;
     for (int i=0; i<w->level_select.total_levels; i++) {
         level_option level = w->level_select.levels[i];
-        cb_ui_render_text(w->editor.ui_state, level.name.text, level.xpos, level.ypos);
-        cb_ui_render_rectangle(w->editor.ui_state, level.xpos-10, level.ypos-5, 200, 21, 0.5);
+        float lx = (level.xpos-cx);
+        float ly = (level.ypos-cy);
+        cb_ui_render_text(w->editor.ui_state, level.name.text, lx, ly);
+        cb_ui_render_rectangle(w->editor.ui_state, lx-10, ly-5, 200, 21, 0.5);
         int l_index;
         l_index = w->level_select.levels[i].up_index;
         if (l_index > 0) {
             level_option l = w->level_select.levels[l_index];
-            cb_ui_render_line(w->editor.ui_state, level.xpos+95, level.ypos, l.xpos+95, l.ypos, 1.0);
+            float lnx = (l.xpos-cx);
+            float lny = (l.ypos-cy);
+            cb_ui_render_line(w->editor.ui_state, lx+95, ly, lnx+95, lny, 1.0);
         }
         // l_index = w->level_select.levels[i].down_index;
         // if (l_index > 0) {
@@ -485,7 +492,9 @@ int render_level_select(renderer* r, world* w) {
         l_index = w->level_select.levels[i].left_index;
         if (l_index > 0) {
             level_option l = w->level_select.levels[l_index];
-            cb_ui_render_line(w->editor.ui_state, level.xpos, level.ypos, l.xpos, l.ypos, 1.0);
+            float lnx = (l.xpos-cx);
+            float lny = (l.ypos-cy);
+            cb_ui_render_line(w->editor.ui_state, lx, ly, lnx, lny, 1.0);
         }
         // l_index = w->level_select.levels[i].right_index;
         // if (l_index > 0) {
@@ -493,8 +502,7 @@ int render_level_select(renderer* r, world* w) {
         //     cb_ui_render_line(w->editor.ui_state, level.xpos, level.ypos, l.xpos, l.ypos, 1.0);
         // }
     }
-    level_option active_level = w->level_select.levels[w->level_select.current_level];
-    cb_ui_render_rectangle(w->editor.ui_state, active_level.xpos-10, active_level.ypos-5, 200, 21, 0.5);
+    cb_ui_render_rectangle(w->editor.ui_state, WINDOW_WIDTH/2-10, WINDOW_HEIGHT/2-5, 200, 21, 0.5);
     return 0;
 }
 

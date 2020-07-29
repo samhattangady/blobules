@@ -35,6 +35,13 @@ typedef enum {
 } input_type;
 
 typedef enum {
+    LEVEL_UP,
+    LEVEL_LEFT,
+    LEVEL_DOWN,
+    LEVEL_RIGHT,
+} level_select_direction;
+
+typedef enum {
     ALIVE,
     DEAD,
     WIN,
@@ -168,9 +175,17 @@ typedef struct {
 } level_editor;
 
 typedef struct {
+    bool moving;
     level_option* levels;
     u32 current_level;
     u32 total_levels;
+    float start_x;
+    float start_y;
+    float cx;
+    float cy;
+    float end_x;
+    float end_y;
+    float move_start;
 } level_select_struct;
 
 typedef struct {
