@@ -144,10 +144,21 @@ typedef struct {
 typedef struct {
     int active_option;
     u32 total_options;
-    menu_option options[10];
+    menu_option options[8];
 } main_menu_struct;
 
 typedef struct {
+    bool playable;
+    bool unlocked;
+    bool discovered;
+    bool completed;
+    // this is to account for the case that first level should not
+    // unlock the last level when completed.
+    bool unlock_all;
+    // when one bonus is unlock+discovered, we need to unlock and discover
+    // all
+    bool can_unlock_bonus;
+    bool is_bonus;
     string name;
     // TODO (15 Jun 2020 sam): This is unused. Currently we still load data from file.
     string data;
@@ -223,7 +234,6 @@ int init_main_menu(world* w);
 int next_option(world* w);
 int previous_option(world* w);
 int select_active_option(world* w);
-
 
 int init_world(world* w, u32 number);
 int get_position_index(world* w, int x, int y, int z);

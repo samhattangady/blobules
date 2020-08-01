@@ -665,3 +665,63 @@ take time. we need to be making some kind of consistent progress on the rest
 of the dev stuff as well. so maybe start off with some kind of deadline for
 starting playtesting. that may be super useful. say 01Sep2020? That should be
 a decent date I presume.
+
+31 Jul 2020
+Again, I'm not fully certain what to be working on. Maybe make the level
+select screen work? Including some of the rendering stuff. Sure yeah, that
+makes sense I guess. Also I would have to somehow get the level unlocking
+stuff to work as well. Maybe start off with that?
+
+Yeah, I really think that we need to be slightly more organised about all of
+this if we really want to be seriously working on the level select screen.
+Just sit and lay out the levels "randomly" for now. Later, we can always come
+back and figure out the "correct" level order for pacing and things.
+
+So yeah, with regards to the final rendering of the level select, I think as
+you complete levels, obviously the lines should show. Also how do we then use
+that to create the "story". So yeah, then we just need to sit and consider all
+the things that are available.
+
+Also, maybe we are in a position to start seriously considering what we want
+to have in the first release of the game (playtest release). Yeah, for the
+most part, I think atleast the levels that we have should be playtested, for
+some level of feedback.
+
+Also, this would be a good excuse to really do the work required for release.
+get it to a point where all the remaining stuff is just polish. to be fair,
+that was the goal for june? or maybe july, but that's okay, i do think that we
+have gotten decent amount of work done. now we need to start focussing on
+actually completing.
+
+Also the name. aah. the motherfucking name.
+
+01 Aug 2020
+Alright. It's a new month. And it's the weekend. So hopefully, I'd like to get
+a large part of the level select screen done this weekend. All the code if
+possible, and some of the final "artwork"
+
+So legit, the first thing that we would need to do would have to be to sit and
+arrange all the levels in a meaningful way. I guess we would also need to
+create the basics of the savegame system?
+Okay, but what to we need to do the layoud stuff?
+
+Okay, so there seem to be two main aspects that we would need to take care of
+really. but fuck all that, lets just get started with something man. I guess
+the first question that we need to ask is whether we want to use the same
+shader. I think a large part of the shader code would be the same, so that
+should be okay. So lets just get started with that then I guess... So heres
+another thing. we have to have the positions of the levels all saved in shader
+(or passed to shader). okay. so? what's your point sam?
+
+Lets just get started man. put in a blank sheet? No should have the fill. I
+don't really think I can just wing this like some of the other stuff...
+Alright. So the main difficulty right now is how to do the lines between the
+levels. It can be procedural or handdrawn, that's not the real concern. The
+main thing is how do we create a texture where they can be turned on and off?
+
+Maybe put just that part away for now? Then another thing is the level
+placement. how do we get the coordinates of the levels? Let's just start with
+that? Since we theoretically already have some tools... So start off with
+rendering the blank background. We would also have to retool the shaders to
+use the center coords. something like that. Also, maybe it might be useful to
+have a separate set of shaders. Or maybe not.

@@ -106,9 +106,9 @@ int init_renderer(renderer* r, char* window_name) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    u32 texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    u32 fill_texture;
+    glGenTextures(1, &fill_texture);
+    glBindTexture(GL_TEXTURE_2D, fill_texture);
     stbi_set_flip_vertically_on_load(true);
     unsigned char *data = stbi_load("static/spritesheet.png",&width,&height,&nrChannels,0);
     unsigned char *data1 = stbi_load("static/m1.png",&width1,&height1,&nrChannels1,0);
@@ -136,7 +136,7 @@ int init_renderer(renderer* r, char* window_name) {
     stbi_image_free(data2);
     glGenerateMipmap(GL_TEXTURE_2D);
     renderer r_ = { window, { (int)WINDOW_WIDTH, (int)WINDOW_HEIGHT },
-        { vao, vbo, vertex_shader, fragment_shader, shader_program, texture},
+        { vao, vbo, vertex_shader, fragment_shader, shader_program, fill_texture},
         0, 0, NULL };
     *r = r_;
     r->buffer_size = get_buffer_size();
@@ -408,7 +408,7 @@ int render_game_scene(renderer* r, world* w) {
     // glUniform1i(glGetUniformLocation(r->shader.shader_program, "spritesheet"), 0);
     // glUniform1i(glGetUniformLocation(r->shader.shader_program, "sdfsheet"), 1);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, r->shader.texture);
+    glBindTexture(GL_TEXTURE_2D, r->shader.fill_texture);
     // glBindTexture(GL_TEXTURE_2D, textures[0]);
     // glActiveTexture(GL_TEXTURE1);
     // glBindTexture(GL_TEXTURE_2D, textures[1]);
@@ -472,6 +472,8 @@ int render_level_select(renderer* r, world* w) {
     float cy = w->level_select.cy - WINDOW_HEIGHT/2;
     for (int i=0; i<w->level_select.total_levels; i++) {
         level_option level = w->level_select.levels[i];
+        if (!level.unlocked)
+            continue;
         float lx = (level.xpos-cx);
         float ly = (level.ypos-cy);
         cb_ui_render_text(w->editor.ui_state, level.name.text, lx, ly);

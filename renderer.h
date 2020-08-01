@@ -16,7 +16,7 @@ typedef struct {
     u32 vertex_shader;
     u32 fragment_shader;
     u32 shader_program;
-    u32 texture;
+    u32 fill_texture;
 } shader_data;
 
 typedef struct {

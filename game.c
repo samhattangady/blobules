@@ -335,6 +335,7 @@ int load_levels_list(level_select_struct* l) {
     n = 0;
     int index = 0;
     level_option lev;
+    lev.unlocked = true;
     for (int i=0; true; i++) {
         c = levels_data.text[i];
         if (c == ' ') {
@@ -359,6 +360,8 @@ int load_levels_list(level_select_struct* l) {
             n++;
             index = 0;
             clear_string(&tmp);
+            if (n>5)
+                lev.unlocked = false;
         }
         else if (c == '\0')
             break;
@@ -369,6 +372,16 @@ int load_levels_list(level_select_struct* l) {
     l->levels = levels;
     l->current_level = 0;
 	printf("got levels\n");
+    return 0;
+}
+
+int save_levels_list(world* w) {
+    printf("saving level_select list\n");
+    FILE* level_listing_file = fopen(LEVEL_LISTING, "w");
+    for (int n=0; n<w->level_select.total_levels; n++) {
+        level_option lev = w->level_select.levels[n];
+        fprintf(level_listing_file, "%s %f %f %i %i %i %i\n", lev.name.text, lev.xpos, lev.ypos, lev.up_index, lev.down_index, lev.left_index, lev.right_index);
+    }
     return 0;
 }
 
@@ -480,6 +493,8 @@ int init_world(world* w, u32 number) {
     world_history history = {0, frames};
     level_select_struct level_select;
     load_levels_list(&level_select);
+    level_select.cx = level_select.levels[0].xpos;
+    level_select.cy = level_select.levels[0].ypos;
     mouse_data mouse;
     mouse.l_pressed = false;
     mouse.r_pressed = false;
@@ -926,15 +941,20 @@ int trigger_input(world* w, input_type it) {
 }
 
 int set_input(world* w, input_type it, float seconds) {
-    if ((w->input.type == NO_INPUT) || ((seconds - w->input.time) > INPUT_LAG)) {
-        w->input.type = it;
-        w->input.time = seconds;
-        trigger_input(w, it);
-        // TODO (27 Apr 2020 sam): Figure out exactly when to save the freezeframe
-        if (it != UNDO_MOVE)
-            save_freezeframe(w);
-    }
+    w->input.type = it;
+    w->input.time = seconds;
+    trigger_input(w, it);
+    if (it != UNDO_MOVE)
+        save_freezeframe(w);
     // play_sound(w->boom, BEEP, false, w->seconds);
+    return 0;
+}
+
+int unlock_all_levels(world* w) {
+    printf("unlocking levels...\n");
+    for (int i=0; i<w->level_select.total_levels; i++) {
+        w->level_select.levels[i].unlocked = true;
+    }
     return 0;
 }
 
@@ -943,12 +963,6 @@ void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action,
         return;
     if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
         go_to_level_select(global_w);
-    if (key == GLFW_KEY_R && action == GLFW_PRESS)
-        set_input(global_w, RESTART_LEVEL, global_seconds);
-    if (key == GLFW_KEY_N && action == GLFW_PRESS)
-        set_input(global_w, NEXT_LEVEL, global_seconds);
-    if (key == GLFW_KEY_P && action == GLFW_PRESS)
-        set_input(global_w, PREVIOUS_LEVEL, global_seconds);
     if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT))
         set_input(global_w, MOVE_UP, global_seconds);
     if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT))
@@ -959,15 +973,20 @@ void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action,
         set_input(global_w, MOVE_RIGHT, global_seconds);
     if (key == GLFW_KEY_Z && (action == GLFW_PRESS || action == GLFW_REPEAT))
         set_input(global_w, UNDO_MOVE, global_seconds);
+    if (key == GLFW_KEY_R && action == GLFW_PRESS)
+        set_input(global_w, RESTART_LEVEL, global_seconds);
+    if (key == GLFW_KEY_N && action == GLFW_PRESS)
+        set_input(global_w, NEXT_LEVEL, global_seconds);
+    if (key == GLFW_KEY_P && action == GLFW_PRESS)
+        set_input(global_w, PREVIOUS_LEVEL, global_seconds);
     if (key == GLFW_KEY_SPACE && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        global_w->editor.z_level = (global_w->editor.z_level+1)  % 2;
+        global_w->editor.z_level = (global_w->editor.z_level+1) % 2;
     if (key == GLFW_KEY_F && (action == GLFW_PRESS || action == GLFW_REPEAT))
         load_shaders(global_r);
     if (key == GLFW_KEY_TAB && (action == GLFW_PRESS || action == GLFW_REPEAT))
         global_w->editor.active_type = (global_w->editor.active_type+1)  % INVALID;
-    if (key == GLFW_KEY_E && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+    if (key == GLFW_KEY_E && (action == GLFW_PRESS || action == GLFW_REPEAT))
         global_w->editor.editor_enabled =  !global_w->editor.editor_enabled;
-    }
 }
 
 int init_main_menu(world* w) {
@@ -1037,13 +1056,15 @@ int set_next_level(world* w, level_select_direction dir) {
         next = current_level.right_index;
     if (next != -1) {
         level_option next_level = w->level_select.levels[next];
-        w->level_select.moving = true;
-        w->level_select.start_x = current_level.xpos;
-        w->level_select.start_y = current_level.ypos;
-        w->level_select.end_x = next_level.xpos;
-        w->level_select.end_y = next_level.ypos;
-        w->level_select.move_start = w->seconds;
-        w->level_select.current_level = next;
+        if (next_level.unlocked) {
+            w->level_select.moving = true;
+            w->level_select.start_x = current_level.xpos;
+            w->level_select.start_y = current_level.ypos;
+            w->level_select.end_x = next_level.xpos;
+            w->level_select.end_y = next_level.ypos;
+            w->level_select.move_start = w->seconds;
+            w->level_select.current_level = next;
+        }
     }
     return 0;
 }
@@ -1067,6 +1088,18 @@ void level_select_key_callback(GLFWwindow* window, int key, int scancode, int ac
         go_to_next_level_mode(global_w);
     if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
         go_to_main_menu(global_w);
+    if (key == GLFW_KEY_J && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        global_w->level_select.cy -= 10.0;
+    if (key == GLFW_KEY_K && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        global_w->level_select.cy += 10.0;
+    if (key == GLFW_KEY_H && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        global_w->level_select.cx -= 10.0;
+    if (key == GLFW_KEY_L && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        global_w->level_select.cx += 10.0;
+    if (key == GLFW_KEY_C && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        save_levels_list(global_w);
+    if (key == GLFW_KEY_Q && action == GLFW_RELEASE)
+        unlock_all_levels(global_w);
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -1133,7 +1166,7 @@ int run_editor_functions(world* w) {
         add_entity_at_mouse(w);
     else if (w->mouse.r_pressed)
         remove_entity_at_mouse(w);
-
+    return 0;
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
@@ -1175,8 +1208,8 @@ int run_level_select_functions(world* w) {
     if (w->level_mode == SET_POSITION) {
         if (w->mouse.l_released) {
             u32 l = w->level_select.current_level;
-            w->level_select.levels[l].xpos = w->mouse.current_x;
-            w->level_select.levels[l].ypos = w->mouse.current_y;
+            w->level_select.levels[l].xpos = w->mouse.current_x-WINDOW_WIDTH/2+w->level_select.cx;
+            w->level_select.levels[l].ypos = w->mouse.current_y-WINDOW_HEIGHT/2+w->level_select.cy;
         }
     }
     return 0;
@@ -1203,8 +1236,8 @@ int simulate_world(world* w, float seconds) {
     w->seconds = seconds;
     if (w->active_mode == LEVEL_SELECT)
         simulate_level_select(w);
-    if (w->player == WIN)
-        load_next_level(w);
+    if (w->player == WIN && w->active_mode==IN_GAME)
+        go_to_level_select(w);
     if (w->currently_moving) {
         if (w->seconds - w->animation_seconds_update > 1.0 / (float) ANIMATION_FRAMES_PER_SECOND) {
             bool still_moving = false;
