@@ -52,9 +52,14 @@ float cnoise(vec2 P){
 }
 
 void main() {
-    vec4 col = texture(spritesheet, vec2((texCoord.z/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
-    if (col.a < 0.5)
+    vec4 col;
+    if (texCoord.z < 0.0) 
+        col = texture(spritesheet, texCoord.xy);
+    else
+        col = texture(spritesheet, vec2((texCoord.z/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
+    if (col.a < 0.5) {
         discard;
+    }
     fragColor = col;
     return;
     // vec2 tx = texCoord.xy + 0.0004*cnoise(fragCoord.xy*15.0)*sin(time/3.5);

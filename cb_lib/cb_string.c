@@ -67,7 +67,6 @@ string string_from(char* text) {
     unsigned int len = BASE_STRING_LENGTH;
     while (len < strlen(text))
         len *= 2;
-    printf("mallocing... string_from\n");
     char* s = (char*) malloc(len * sizeof(char));
     s[0] = '\0';
     strcat(s, text);

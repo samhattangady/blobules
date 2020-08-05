@@ -104,7 +104,10 @@ void main() {
             break;
         }
     }
-    
+    // col.r = 1.0-col.r;
+    // col.g = 1.0-col.g;
+    // col.b = 1.0-col.b;
+    // col.a = col.r;
     fragColor = col;
     return;
 }

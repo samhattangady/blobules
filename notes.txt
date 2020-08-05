@@ -725,3 +725,15 @@ that? Since we theoretically already have some tools... So start off with
 rendering the blank background. We would also have to retool the shaders to
 use the center coords. something like that. Also, maybe it might be useful to
 have a separate set of shaders. Or maybe not.
+
+02 Aug 2020
+Okay, so decent progress yesterday I guess. TOday we need to figure out how to
+add the actual level indicators. How to load that into the shader and stuff.
+and then how to only show the things that are actually available I guess. And
+for that matter, mayeb even separate the shaders. Should be separate enough.
+Also, I was thinking, maybe I'm becoming overreliant on the idea of
+accomplishgin everything in a single draw call. The background can easily just
+be a separate set of shaders, and then have another set of shaders for the
+actual levels and lines and things.
+
+Okay, so lets get started on the second round of shader stuff then.

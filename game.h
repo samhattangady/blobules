@@ -157,7 +157,6 @@ typedef struct {
     bool unlock_all;
     // when one bonus is unlock+discovered, we need to unlock and discover
     // all
-    bool can_unlock_bonus;
     bool is_bonus;
     string name;
     // TODO (15 Jun 2020 sam): This is unused. Currently we still load data from file.
@@ -169,6 +168,7 @@ typedef struct {
     int down_index;
     int left_index;
     int right_index;
+    float complete_time;
 } level_option;
 
 typedef enum {
@@ -243,7 +243,6 @@ char* as_text (entity_type et);
 int change_world_xsize(world* w, int direction, int sign);
 int change_world_ysize(world* w, int direction, int sign);
 int save_level(world* w);
-int set_callbacks(GLFWwindow* window);
 entity_type get_entity_at(world* w, int index);
 u32 get_entity_anim_index(world* w, int index);
 void set_renderer(void* r);

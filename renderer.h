@@ -3,29 +3,40 @@
 
 #define GLEW_STATIC
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include "SDL.h"
+#include "SDL_opengl.h"
+#include <stdio.h>
 #include <stdbool.h>
-//#include <sys/time.h>
 #include "cb_lib/cb_string.h"
 #include "cb_lib/cb_types.h"
 #include "game.h"
 
 typedef struct {
-    u32 vao;
-    u32 vbo;
     u32 vertex_shader;
     u32 fragment_shader;
     u32 shader_program;
     u32 fill_texture;
+    u32 sdf_texture;
+    u32 framebuffer;
+    u32 rendered_texture;
 } shader_data;
 
 typedef struct {
-    GLFWwindow* window;
-    int size[2];
-    shader_data shader;
+    u32 vao;
+    u32 vbo;
     u32 buffer_size;
     u32 buffer_occupied;
     float* vertex_buffer;
+} buffer_data;
+
+typedef struct {
+    SDL_Window* window;
+    int size[2];
+    shader_data ingame_shader;
+    shader_data level_background_shader;
+    shader_data level_shader;
+    buffer_data ingame_buffer;
+    buffer_data level_buffer;
     entity_type* ground_entities;
 } renderer;
 

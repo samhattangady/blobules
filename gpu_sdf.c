@@ -20,8 +20,8 @@
 #define MIN_ALPHA 0.7
 #define MAX_PIXEL_DISTANCE 127
 #define u8 uint8_t 
-#define WINDOW_HEIGHT 1080
-#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 512
+#define WINDOW_WIDTH 512
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Errors: %s\n", description);
@@ -191,7 +191,7 @@ int main(int argc, char** argv) {
     //     save_sdf_file(window, fillname, shadname, linename, outfname);
     //     printf("done %s...\n", outfname);
     // }
-    save_sdf_file(window, "static/main_menu/fillbg.png",  "static/main_menu/shad_bg.png", "static/main_menu/linebg.png" , "static/main_menu/sdf_bg.png");
+    save_sdf_file(window, "static/sdf_circle.png",  "static/sdf_circle.png", "static/sdf_circle.png" , "static/ls_sdf.png");
     start_time = clock() - start_time;
     printf("processing complete in %f seconds\n", (double)start_time/CLOCKS_PER_SEC);
     printf("done.\n");

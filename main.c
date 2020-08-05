@@ -1,9 +1,8 @@
-// #include <windows.h>
+#include "SDL.h"
 #include <stdio.h>
 #include <stdbool.h>
 #include <time.h>
 #define STB_TRUETYPE_IMPLEMENTATION
-#define MINIAUDIO_IMPLEMENTATION
 #include "ui.h"
 #include "renderer.h"
 #include "cb_lib/cb_string.h"
@@ -48,10 +47,14 @@ int main(int argc, char** argv) {
     init_cb_window(&w.editor.ui_window, "Level Editor", window_pos, window_size);
     start_time = clock();
     printf("starting game loop\n");
-    set_callbacks(r.window);
-    while (!glfwWindowShouldClose(r.window) && w.active_mode != EXIT) {
+    SDL_Event test_event;
+    // set_callbacks(r.window);
+    while (w.active_mode != EXIT) {
         frame += 1;
-        glfwPollEvents();
+        while (SDL_PollEvent(&test_event)) {
+            if (test_event.type == SDL_QUIT)
+                w.active_mode = EXIT;
+        }
         clock_time = clock();
         frame_time = ((double)clock_time-(double)start_time)/CLOCKS_PER_SEC;
         start_time = clock_time;
@@ -153,7 +156,7 @@ int main(int argc, char** argv) {
         cb_ui_render_text(&ui_state, cps_counter, WINDOW_WIDTH-100, 40);
         render_ui(&ui_state);
         reset_inputs(&w);
-        glfwSwapBuffers(r.window);
+        SDL_GL_SwapWindow(r.window);
     }
     // TODO (05 Apr 2020 sam): Run all the closing and exit things...
     stb_leakcheck_dumpmem();

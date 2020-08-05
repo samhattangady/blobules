@@ -323,19 +323,14 @@ int load_levels_list(level_select_struct* l) {
     level_option* levels = (level_option*) malloc(sizeof(level_option)*TOTAL_NUM_LEVELS);
     string levels_data = read_file(LEVEL_LISTING);
     // TODO (15 Apr 2020 sam): PERFORMANCE. Looping through string twice
-    u32 n = 0;
     char c;
-    for (int i=0; true; i++) {
-        if (levels_data.text[i] == '\n')
-            n++;
-        if (levels_data.text[i] == '\0')
-            break;
-    }
+    u32 n = 0;
     string tmp = empty_string();
-    n = 0;
     int index = 0;
     level_option lev;
     lev.unlocked = true;
+    lev.completed = false;
+    lev.complete_time = 0.0;
     for (int i=0; true; i++) {
         c = levels_data.text[i];
         if (c == ' ') {
@@ -493,6 +488,7 @@ int init_world(world* w, u32 number) {
     world_history history = {0, frames};
     level_select_struct level_select;
     load_levels_list(&level_select);
+    level_select.moving = false;
     level_select.cx = level_select.levels[0].xpos;
     level_select.cy = level_select.levels[0].ypos;
     mouse_data mouse;
@@ -502,7 +498,7 @@ int init_world(world* w, u32 number) {
     // TODO (12 Jun 2020 sam): See whether there is a cleaner way to set this all to 0;
     memset(&tmp, 0, sizeof(world));
     tmp.input = input;
-    tmp.active_mode = LEVEL_SELECT;
+    tmp.active_mode = IN_GAME;
     tmp.level_select = level_select;
     init_main_menu(&tmp);
     tmp.player = ALIVE;
@@ -958,6 +954,7 @@ int unlock_all_levels(world* w) {
     return 0;
 }
 
+/*
 void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (global_w->currently_moving)
         return;
@@ -988,6 +985,7 @@ void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action,
     if (key == GLFW_KEY_E && (action == GLFW_PRESS || action == GLFW_REPEAT))
         global_w->editor.editor_enabled =  !global_w->editor.editor_enabled;
 }
+*/
 
 int init_main_menu(world* w) {
     menu_option new_game = {string_from("New Game")};
@@ -1013,6 +1011,7 @@ int previous_option(world* w) {
     return 0;
 }
 
+/*
 void main_menu_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT))
         previous_option(global_w);
@@ -1021,8 +1020,9 @@ void main_menu_key_callback(GLFWwindow* window, int key, int scancode, int actio
     if (key == GLFW_KEY_ENTER && (action == GLFW_PRESS || action == GLFW_REPEAT))
         select_active_option(global_w);
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GL_TRUE);
+        global_w->active_mode = EXIT;
 }
+*/
 
 int select_active_option(world* w) {
     // TODO (14 Jun 2020 sam): Figure out better way to link option with action?
@@ -1075,6 +1075,7 @@ int enter_active_level(world* w) {
     return 0;
 }
 
+/*
 void level_select_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (global_w->level_select.moving)
         return;
@@ -1086,6 +1087,8 @@ void level_select_key_callback(GLFWwindow* window, int key, int scancode, int ac
         enter_active_level(global_w);
     if (key == GLFW_KEY_SPACE && (action == GLFW_PRESS || action == GLFW_REPEAT))
         go_to_next_level_mode(global_w);
+    if (key == GLFW_KEY_F && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        load_shaders(global_r);
     if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
         go_to_main_menu(global_w);
     if (key == GLFW_KEY_J && (action == GLFW_PRESS || action == GLFW_REPEAT))
@@ -1096,12 +1099,18 @@ void level_select_key_callback(GLFWwindow* window, int key, int scancode, int ac
         global_w->level_select.cx -= 10.0;
     if (key == GLFW_KEY_L && (action == GLFW_PRESS || action == GLFW_REPEAT))
         global_w->level_select.cx += 10.0;
-    if (key == GLFW_KEY_C && (action == GLFW_PRESS || action == GLFW_REPEAT))
+    if (key == GLFW_KEY_P && (action == GLFW_PRESS || action == GLFW_REPEAT))
         save_levels_list(global_w);
+    if (key == GLFW_KEY_C && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+        global_w->level_select.levels[global_w->level_select.current_level].completed = true;
+        global_w->level_select.levels[global_w->level_select.current_level].complete_time = global_w->seconds;
+    }
     if (key == GLFW_KEY_Q && action == GLFW_RELEASE)
         unlock_all_levels(global_w);
 }
+*/
 
+/*
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (global_w->active_mode == IN_GAME)
         in_game_key_callback(window, key, scancode, action, mods);
@@ -1110,6 +1119,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     else if (global_w->active_mode == LEVEL_SELECT)
         level_select_key_callback(window, key, scancode, action, mods);
 }
+*/
 
 void add_entity_at_mouse(world* w) {
     int x = get_world_x(w);
@@ -1156,10 +1166,12 @@ void remove_entity_at_mouse(world* w) {
     // save_freezeframe(w);
 }
 
+/*
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     global_w->mouse.current_x = xpos;
     global_w->mouse.current_y = ypos;
 }
+*/
 
 int run_editor_functions(world* w) {
     if (w->mouse.l_pressed)
@@ -1169,6 +1181,7 @@ int run_editor_functions(world* w) {
     return 0;
 }
 
+/*
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
         global_w->mouse.l_pressed = true;
@@ -1189,6 +1202,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         global_w->mouse.r_released = true;
     }
 }
+*/
 
 float get_linear_progress(float time_elapsed) {
     return time_elapsed;
@@ -1420,9 +1434,11 @@ int change_world_ysize(world* w, int direction, int sign) {
     return 0;
 }
 
+/*
 int set_callbacks(GLFWwindow* window) {
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     return 0;
 }
+*/

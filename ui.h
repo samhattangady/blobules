@@ -4,7 +4,8 @@
 #define GLEW_STATIC
 #include <stdbool.h>
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include "SDL.h"
+#include "SDL_opengl.h"
 #include "stb_truetype.h"
 #include "cb_lib/cb_types.h"
 #include "common.h"
