@@ -1,7 +1,6 @@
 #include "SDL.h"
 #include <stdio.h>
 #include <stdbool.h>
-#include <time.h>
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "ui.h"
 #include "renderer.h"
@@ -32,14 +31,12 @@ int main(int argc, char** argv) {
 
     u32 frame = 0;
 
-    //struct timeval start_time;
-    //struct timeval current_time;
-    clock_t start_time;
-    clock_t clock_time;
+    u32 start_time;
+    u32 clock_time;
     float frame_time;
     float frame_cycles;
     float seconds = 0.0;
-    //gettimeofday(&start_time, NULL);
+    start_time = SDL_GetTicks();
     double mouse_x, mouse_y;
 
     u32 window_pos[2] = {20, 40};
@@ -63,8 +60,8 @@ int main(int argc, char** argv) {
             if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP)
                 process_mouse_button(&w, event.button, event.type);
         }
-        clock_time = clock();
-        frame_time = ((double)clock_time-(double)start_time)/CLOCKS_PER_SEC;
+        clock_time = SDL_GetTicks();
+        frame_time = ((double)clock_time-(double)start_time)/1000.0;
         start_time = clock_time;
         seconds += frame_time;
         // update_boombox(&b, seconds);
@@ -157,9 +154,7 @@ int main(int argc, char** argv) {
         }
         char fps_counter[48];
         char cps_counter[48];
-        clock_time = clock() - clock_time;
         sprintf(fps_counter, "%.2f fps", 1.0/frame_time);
-        sprintf(cps_counter, "%.2f cps", 1.0/((double)clock_time/CLOCKS_PER_SEC));
         cb_ui_render_text(&ui_state, fps_counter, WINDOW_WIDTH-100, 20);
         cb_ui_render_text(&ui_state, cps_counter, WINDOW_WIDTH-100, 40);
         render_ui(&ui_state);
