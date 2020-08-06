@@ -567,6 +567,11 @@ float bg_texture_pixel_to_vertex_y(renderer* r, float y) {
     return vertex_y;
 }
 
+float my_min(float a, float b) {
+    if (a<b) return a;
+    return b;
+}
+
 int update_level_vertex_background_sdf_buffer(renderer* r, world* w) {
     level_option active_level = w->level_select.levels[w->level_select.current_level];
     for (int i=0; i<w->level_select.total_levels; i++) {
@@ -575,7 +580,7 @@ int update_level_vertex_background_sdf_buffer(renderer* r, world* w) {
             continue;
         float lx = (level.xpos);
         float ly = LS_HEIGHT-(level.ypos);
-        float extent = 3.0 * min((w->seconds - level.complete_time) / 2.0, 1.0);
+        float extent = 3.0 * my_min((w->seconds - level.complete_time) / 2.0, 1.0);
         float vx1 = bg_texture_pixel_to_vertex_x(r, lx-LEVEL_BACKGROUND_SDF_WIDTH*extent/2.0);
         float vy1 = bg_texture_pixel_to_vertex_y(r, ly-LEVEL_BACKGROUND_SDF_HEIGHT*extent/2.0);
         float vx2 = bg_texture_pixel_to_vertex_x(r, lx+LEVEL_BACKGROUND_SDF_WIDTH*extent/2.0);
