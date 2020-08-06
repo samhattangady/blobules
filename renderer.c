@@ -158,8 +158,7 @@ int init_renderer(renderer* r, char* window_name) {
     int window_width = WINDOW_WIDTH;
     printf("trying to create window\n");
 
-    // glfwWindowHint(GLFW_SAMPLES, 16);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
     window = SDL_CreateWindow(window_name, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                               window_width, window_height, SDL_WINDOW_OPENGL);
     if (window == NULL) {

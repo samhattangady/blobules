@@ -1,5 +1,6 @@
 #ifndef BLOBULES_GAME_DEFINED
 #define BLOBULES_GAME_DEFINED
+#include "SDL.h"
 #include <stdbool.h>
 #include "cb_lib/cb_types.h"
 #include "ui.h"
@@ -32,6 +33,9 @@ typedef enum {
     NEXT_LEVEL,
     PREVIOUS_LEVEL,
     UNDO_MOVE,
+    AFFIRMATIVE,
+    ESCAPE,
+    INPUT_TYPE_COUNT,
 } input_type;
 
 typedef enum {
@@ -246,5 +250,9 @@ int save_level(world* w);
 entity_type get_entity_at(world* w, int index);
 u32 get_entity_anim_index(world* w, int index);
 void set_renderer(void* r);
+int process_keydown_event(world* w, SDL_KeyboardEvent event);
+int process_keyup_event(world* w, SDL_KeyboardEvent event);
+int process_mouse_motion(world* w, SDL_MouseMotionEvent event);
+int process_mouse_button(world* w, SDL_MouseButtonEvent event, u32 action);
 
 #endif

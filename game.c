@@ -504,6 +504,7 @@ int init_world(world* w, u32 number) {
     tmp.player = ALIVE;
     tmp.level_mode = NEUTRAL;
     tmp.editor.editor_enabled = false;
+    tmp.currently_moving = false;
     tmp.mouse = mouse;
     tmp.editor.z_level = 0;
     tmp.editor.active_type = GROUND;
@@ -915,8 +916,8 @@ int remove_scheduled_entities(world* w) {
         }
     }
 }
-int trigger_input(world* w, input_type it) {
-    vec3i pos = w->player_position;
+int trigger_input(world* w) {
+    input_type it = w->input.type;
     if (it == MOVE_UP)
         maybe_move_player(w, 0, 1, 0, false, 0);
     if (it == MOVE_DOWN)
@@ -933,14 +934,20 @@ int trigger_input(world* w, input_type it) {
         load_previous_level(w);
     if (it == UNDO_MOVE)
         load_previous_freezeframe(w);
+    if (it == ESCAPE)
+        go_to_level_select(w);
     return 0;
 }
 
-int set_input(world* w, input_type it, float seconds) {
+int set_input(world* w, input_type it) {
     w->input.type = it;
-    w->input.time = seconds;
-    trigger_input(w, it);
-    if (it != UNDO_MOVE)
+    w->input.time = w->seconds;
+    trigger_input(w);
+    if (it == MOVE_UP ||
+        it == MOVE_DOWN ||
+        it == MOVE_LEFT ||
+        it == MOVE_RIGHT ||
+        it == RESTART_LEVEL)
         save_freezeframe(w);
     // play_sound(w->boom, BEEP, false, w->seconds);
     return 0;
@@ -986,6 +993,106 @@ void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action,
         global_w->editor.editor_enabled =  !global_w->editor.editor_enabled;
 }
 */
+
+int process_ingame_keydown_event(world* w, SDL_KeyboardEvent event) {
+    if (w->currently_moving)
+        return 0;
+    SDL_Keycode key = event.keysym.sym;
+    bool repeat = event.repeat != 0;
+    if (key == SDLK_w || key == SDLK_UP)
+        set_input(w, MOVE_UP);
+    if (key == SDLK_a || key == SDLK_LEFT)
+        set_input(w, MOVE_LEFT);
+    if (key == SDLK_s || key == SDLK_DOWN)
+        set_input(w, MOVE_DOWN);
+    if (key == SDLK_d || key == SDLK_RIGHT)
+        set_input(w, MOVE_RIGHT);
+    if (key == SDLK_z)
+        set_input(w, UNDO_MOVE);
+    if(!repeat) {
+        if (key == SDLK_r)
+            set_input(w, RESTART_LEVEL);
+    }
+    if (DEBUG_BUILD) {
+        if (key == SDLK_e)
+            w->editor.editor_enabled =  !w->editor.editor_enabled;
+    }
+    return 0;
+}
+
+int process_level_select_keydown_event(world* w, SDL_KeyboardEvent event) {
+    if (w->level_select.moving)
+        return 0;
+    SDL_Keycode key = event.keysym.sym;
+    bool repeat = event.repeat != 0;
+    if (repeat)
+        return 0;
+    if (key == SDLK_w || key == SDLK_UP)
+        set_next_level(w, LEVEL_UP);
+    if (key == SDLK_s || key == SDLK_DOWN)
+        set_next_level(w, LEVEL_DOWN);
+    if (key == SDLK_RETURN || key == SDLK_KP_ENTER)
+        enter_active_level(w);
+    return 0;
+}
+
+int process_main_menu_keydown_event(world* w, SDL_KeyboardEvent event) {
+    SDL_Keycode key = event.keysym.sym;
+    bool repeat = event.repeat != 0;
+    if (key == SDLK_w || key == SDLK_UP)
+        previous_option(w);
+    if (key == SDLK_s || key == SDLK_DOWN)
+        next_option(w);
+    if (key == SDLK_RETURN || key == SDLK_KP_ENTER)
+        select_active_option(w);
+    if (DEBUG_BUILD) {
+        if (key == SDLK_ESCAPE)
+            w->active_mode = EXIT;
+    }
+    return 0;
+}
+
+int process_keydown_event(world* w, SDL_KeyboardEvent event) {
+    if (w->active_mode == IN_GAME)
+        process_ingame_keydown_event(w, event);
+    if (w->active_mode == LEVEL_SELECT)
+        process_level_select_keydown_event(w, event);
+    if (w->active_mode == MAIN_MENU)
+        process_main_menu_keydown_event(w, event);
+    return 0;
+}
+
+int process_ingame_keyup_event(world* w, SDL_KeyboardEvent event) {
+    if (w->currently_moving)
+        return 0;
+    SDL_Keycode key = event.keysym.sym;
+    if (key == SDLK_ESCAPE)
+        set_input(w, ESCAPE);
+    return 0;
+}
+
+int process_level_select_keyup_event(world* w, SDL_KeyboardEvent event) {
+    if (w->level_select.moving)
+        return 0;
+    SDL_Keycode key = event.keysym.sym;
+    if (key == SDLK_ESCAPE)
+        go_to_main_menu(w);
+    return 0;
+}
+
+int process_main_menu_keyup_event(world* w, SDL_KeyboardEvent event) {
+    return 0;
+}
+
+int process_keyup_event(world* w, SDL_KeyboardEvent event) {
+    if (w->active_mode == IN_GAME)
+        process_ingame_keyup_event(w, event);
+    else if (w->active_mode == LEVEL_SELECT)
+        process_level_select_keyup_event(w, event);
+    else if (w->active_mode == MAIN_MENU)
+        process_main_menu_keyup_event(w, event);
+    return 0;
+}
 
 int init_main_menu(world* w) {
     menu_option new_game = {string_from("New Game")};
@@ -1166,12 +1273,34 @@ void remove_entity_at_mouse(world* w) {
     // save_freezeframe(w);
 }
 
-/*
-void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-    global_w->mouse.current_x = xpos;
-    global_w->mouse.current_y = ypos;
+int process_mouse_motion(world* w, SDL_MouseMotionEvent event) {
+    w->mouse.current_x = (float) event.x;
+    w->mouse.current_y = (float) event.y;
+    return 0;
 }
-*/
+
+int process_mouse_button(world* w, SDL_MouseButtonEvent event, u32 action) {
+    int button = event.button;
+    if (button == SDL_BUTTON_LEFT && action == SDL_MOUSEBUTTONDOWN) {
+        w->mouse.l_pressed = true;
+        w->mouse.l_down_x = w->mouse.current_x;
+        w->mouse.l_down_y = w->mouse.current_y;
+    }
+    if (button == SDL_BUTTON_LEFT && action == SDL_MOUSEBUTTONUP) {
+        w->mouse.l_pressed = false;
+        w->mouse.l_released = true;
+    }
+    if (button == SDL_BUTTON_RIGHT && action == SDL_MOUSEBUTTONDOWN) {
+        w->mouse.r_pressed = true;
+        w->mouse.r_down_x = w->mouse.current_x;
+        w->mouse.r_down_y = w->mouse.current_y;
+    }
+    if (button == SDL_BUTTON_RIGHT && action == SDL_MOUSEBUTTONUP) {
+        w->mouse.r_pressed = false;
+        w->mouse.r_released = true;
+    }
+    return 0;
+}
 
 int run_editor_functions(world* w) {
     if (w->mouse.l_pressed)

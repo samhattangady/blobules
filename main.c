@@ -47,13 +47,21 @@ int main(int argc, char** argv) {
     init_cb_window(&w.editor.ui_window, "Level Editor", window_pos, window_size);
     start_time = clock();
     printf("starting game loop\n");
-    SDL_Event test_event;
+    SDL_Event event;
     // set_callbacks(r.window);
     while (w.active_mode != EXIT) {
         frame += 1;
-        while (SDL_PollEvent(&test_event)) {
-            if (test_event.type == SDL_QUIT)
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT)
                 w.active_mode = EXIT;
+            if (event.type == SDL_KEYDOWN)
+                process_keydown_event(&w, event.key);
+            if (event.type == SDL_KEYUP)
+                process_keyup_event(&w, event.key);
+            if (event.type == SDL_MOUSEMOTION)
+                process_mouse_motion(&w, event.motion);
+            if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP)
+                process_mouse_button(&w, event.button, event.type);
         }
         clock_time = clock();
         frame_time = ((double)clock_time-(double)start_time)/CLOCKS_PER_SEC;
