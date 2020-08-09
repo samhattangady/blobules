@@ -737,3 +737,9 @@ be a separate set of shaders, and then have another set of shaders for the
 actual levels and lines and things.
 
 Okay, so lets get started on the second round of shader stuff then.
+
+08 Aug 2020
+So today, I would like to finish working on the line between levels rendering
+stuff. I have decided that it makes sense to do that with sdfs. So yeah, to
+begine, we can just draw straight lines between the two points. Maybe in the
+future we can update that to use some kind of curves...

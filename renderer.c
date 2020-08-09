@@ -13,8 +13,8 @@ float LS_WIDTH = 4000.0;
 float LS_HEIGHT = 4000.0;
 float LEVEL_SPRITE_WIDTH = 90.0;
 float LEVEL_SPRITE_HEIGHT = 90.0;
-float LEVEL_BACKGROUND_SDF_WIDTH = 512.0;
-float LEVEL_BACKGROUND_SDF_HEIGHT = 512.0;
+float LEVEL_BACKGROUND_SDF_WIDTH = 256.0;
+float LEVEL_BACKGROUND_SDF_HEIGHT = 256.0;
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Errors: %s\n", description);
@@ -152,7 +152,6 @@ int init_buffer_data(buffer_data* buffer, int buffer_size) {
 
 int init_renderer(renderer* r, char* window_name) {
 	printf("init renderer\n");
-    SDL_Init(SDL_INIT_VIDEO);
     SDL_Window *window;
     int window_height = WINDOW_HEIGHT;
     int window_width = WINDOW_WIDTH;
@@ -345,10 +344,12 @@ void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x
     } else if (orientation == 3) {
         tx1 = 0.0; ty1 = 1.0; tx2 = 1.0; ty2 = 0.0;
     }
-    float vx1 = X_PADDING + (blockx * xpos);
-    float vy1 = Y_PADDING + (blocky * ypos);
-    float vx2 = X_PADDING + (blockx * xpos) + (x_size*blockx);
-    float vy2 = Y_PADDING + (blocky * ypos) + (y_size*blocky);
+    float x_padding = get_x_padding(w);
+    float y_padding = get_y_padding(w);
+    float vx1 = x_padding + (blockx * xpos);
+    float vy1 = y_padding + (blocky * ypos);
+    float vx2 = x_padding + (blockx * xpos) + (x_size*blockx);
+    float vy2 = y_padding + (blocky * ypos) + (y_size*blocky);
     add_single_vertex_to_buffer(&r->ingame_buffer, vx1, vy1, vx2, vy2, tx1, ty1, tx2, ty2, depth, sprite_position);
 }
 
@@ -572,25 +573,103 @@ float my_min(float a, float b) {
     return b;
 }
 
+float my_max(float a, float b) {
+    if (a>b) return a;
+    return b;
+}
+
+float my_abs(float a) {
+    if (a < 0.0)
+        return -a;
+    return a;
+}
+
+int draw_single_line(renderer* r, float x1, float y1, float x2, float y2, float opacity) {
+    // only meant for lines that are vertical/horizontal. (just fills full box)
+    float half_line_thickness = 3.0;
+    if (x1 == x2)  {
+        // line is vertical
+        x1 += half_line_thickness;
+        x2 -= half_line_thickness;
+    } else {
+        y1 -= half_line_thickness;
+        y2 += half_line_thickness;
+    }
+    float vx1 = bg_texture_pixel_to_vertex_x(r, x1);
+    float vy1 = bg_texture_pixel_to_vertex_y(r, y1);
+    float vx2 = bg_texture_pixel_to_vertex_x(r, x2);
+    float vy2 = bg_texture_pixel_to_vertex_y(r, y2);
+    add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, opacity, 2.0);
+    return 0;
+}
+
+int draw_line_connections(renderer* r, world* w, level_connection con) {
+    level_option level = w->level_select.levels[con.head_index];
+    level_option next_level = w->level_select.levels[con.tail_index];
+    float lx1 = (level.xpos);
+    float ly1 = LS_HEIGHT-(level.ypos);
+    float lx2 = (next_level.xpos);
+    float ly2 = LS_HEIGHT-(next_level.ypos);
+    if (con.is_left_right) {
+        lx1 += 20.0;
+        lx2 -= 20.0;
+    } else {
+        ly1 -= 20.0;
+        ly2 += 20.0;
+    }
+    float opacity = 0.5 * pow(my_min(1.0, (w->seconds - con.draw_time)/2.0), 0.7);
+    float extent = 3.0 * pow(my_min((w->seconds - level.complete_time) / 2.0, 1.0), 0.7);
+    // we want 3 lines, to form like a staircase between levels.
+    if (con.is_left_right) {
+        float mid_x = (lx1 + lx2) / 2.0;
+        draw_single_line(r, lx1, ly1, mid_x, ly1, opacity);
+        draw_single_line(r, mid_x, ly1, mid_x, ly2, opacity);
+        draw_single_line(r, mid_x, ly2, lx2, ly2, opacity);
+    } else {
+        float mid_y = (ly1 + ly2) / 2.0;
+        draw_single_line(r, lx1, ly1, lx1, mid_y, opacity);
+        draw_single_line(r, lx1, mid_y, lx2, mid_y, opacity);
+        draw_single_line(r, lx2, mid_y, lx2, ly2, opacity);
+    }
+    return 0;
+}
+
 int update_level_vertex_background_sdf_buffer(renderer* r, world* w) {
     level_option active_level = w->level_select.levels[w->level_select.current_level];
+    float circle_sprite = 1.0;
+    float line_sprite = 2.0;
+    // render the background sdf for color fill
     for (int i=0; i<w->level_select.total_levels; i++) {
         level_option level = w->level_select.levels[i];
         if (!level.completed)
             continue;
         float lx = (level.xpos);
         float ly = LS_HEIGHT-(level.ypos);
-        float extent = 3.0 * my_min((w->seconds - level.complete_time) / 2.0, 1.0);
+        float extent = 3.0 * pow(my_min((w->seconds - level.complete_time) / 2.0, 1.0), 0.7);
         float vx1 = bg_texture_pixel_to_vertex_x(r, lx-LEVEL_BACKGROUND_SDF_WIDTH*extent/2.0);
         float vy1 = bg_texture_pixel_to_vertex_y(r, ly-LEVEL_BACKGROUND_SDF_HEIGHT*extent/2.0);
         float vx2 = bg_texture_pixel_to_vertex_x(r, lx+LEVEL_BACKGROUND_SDF_WIDTH*extent/2.0);
         float vy2 = bg_texture_pixel_to_vertex_y(r, ly+LEVEL_BACKGROUND_SDF_HEIGHT*extent/2.0);
-        add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, 0.0, -0.1);
+        add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, 0.0, circle_sprite);
+    }
+    // render the lines sdf for lines connecting levels
+    // currently we are only drawing the left, up links (as a left will have a right, that will be same)
+    for (int i=0; i<w->level_select.total_connections; i++) {
+        level_connection con = w->level_select.connections[i];
+        if (!con.discovered)
+            continue;
+        draw_line_connections(r, w, con);
     }
     return 0;
 }
 
 int update_level_select_vertex_buffer(renderer* r, world* w) {
+    // we want a single smaller circle in middle of screen always
+    float vx1 = screen_pixel_to_vertex_x(r, r->size[0]/2-LEVEL_SPRITE_WIDTH/4.0);
+    float vy1 = screen_pixel_to_vertex_y(r, r->size[1]/2-LEVEL_SPRITE_HEIGHT/4.0);
+    float vx2 = screen_pixel_to_vertex_x(r, r->size[0]/2+LEVEL_SPRITE_WIDTH/4.0);
+    float vy2 = screen_pixel_to_vertex_y(r, r->size[1]/2+LEVEL_SPRITE_HEIGHT/4.0);
+    add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, -0.1, -1.0);
     level_option active_level = w->level_select.levels[w->level_select.current_level];
     float cx = w->level_select.cx - r->size[0]/2;
     float cy = w->level_select.cy - r->size[1]/2;
@@ -605,13 +684,15 @@ int update_level_select_vertex_buffer(renderer* r, world* w) {
         float vx2 = screen_pixel_to_vertex_x(r, lx+LEVEL_SPRITE_WIDTH/2.0);
         float vy2 = screen_pixel_to_vertex_y(r, ly+LEVEL_SPRITE_HEIGHT/2.0);
         add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, -0.1, -1.0);
+        if (i == w->level_select.current_level) {
+        }
     }
     return 0;
 }
 
 int render_level_select(renderer* r, world* w) {
     int position_attribute, tex_attribute, uni_ybyx, uni_time;
-    // background sdf
+    // background sdf -> drawing is done in the shader. We just want to pass in the coords
     glBindFramebuffer(GL_FRAMEBUFFER, r->level_background_shader.framebuffer);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -637,6 +718,7 @@ int render_level_select(renderer* r, world* w) {
     uni_time = glGetUniformLocation(r->level_background_shader.shader_program, "time");
     glUniform1f(uni_ybyx, LS_HEIGHT/LS_WIDTH);
     glUniform1f(uni_time, w->seconds);
+    glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "mode"), 1);
     glViewport(0, 0, LS_WIDTH, LS_HEIGHT);
     glDrawArrays(GL_TRIANGLES, 0, r->level_buffer.buffer_size);
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -671,6 +753,7 @@ int render_level_select(renderer* r, world* w) {
     uni_time = glGetUniformLocation(r->level_background_shader.shader_program, "time");
     glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "spritesheet"), 0);
     glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "sdfsheet"), 1);
+    glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "mode"), 2);
     glUniform1f(uni_ybyx, r->size[1]*1.0/r->size[0]);
     glUniform1f(uni_time, w->seconds);
     glViewport(0, 0, r->size[0], r->size[1]);

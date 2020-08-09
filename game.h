@@ -33,7 +33,7 @@ typedef enum {
     NEXT_LEVEL,
     PREVIOUS_LEVEL,
     UNDO_MOVE,
-    AFFIRMATIVE,
+    ENTER,
     ESCAPE,
     INPUT_TYPE_COUNT,
 } input_type;
@@ -152,13 +152,24 @@ typedef struct {
 } main_menu_struct;
 
 typedef struct {
+    int head_index;
+    int tail_index;
+    float x1;
+    float y1;
+    float x2;
+    float y2;
+    float draw_time;
+    bool discovered;
+    bool is_left_right;
+    bool head_unlocks_tail;
+    bool tail_unlocks_head;
+} level_connection;
+
+typedef struct {
     bool playable;
     bool unlocked;
     bool discovered;
     bool completed;
-    // this is to account for the case that first level should not
-    // unlock the last level when completed.
-    bool unlock_all;
     // when one bonus is unlock+discovered, we need to unlock and discover
     // all
     bool is_bonus;
@@ -186,14 +197,13 @@ typedef enum {
 } level_editor_modes;
 
 typedef struct {
-    bool level_editor_enabled;
-} level_editor;
-
-typedef struct {
     bool moving;
+    bool moving_left_right;
     level_option* levels;
+    level_connection* connections;
     u32 current_level;
     u32 total_levels;
+    u32 total_connections;
     float start_x;
     float start_y;
     float cx;
@@ -250,9 +260,9 @@ int save_level(world* w);
 entity_type get_entity_at(world* w, int index);
 u32 get_entity_anim_index(world* w, int index);
 void set_renderer(void* r);
-int process_keydown_event(world* w, SDL_KeyboardEvent event);
-int process_keyup_event(world* w, SDL_KeyboardEvent event);
-int process_mouse_motion(world* w, SDL_MouseMotionEvent event);
-int process_mouse_button(world* w, SDL_MouseButtonEvent event, u32 action);
+int process_input_event(world* w, SDL_Event event);
+int handle_input_state(world* w, SDL_GameController* controller);
+float get_x_padding(world* w);
+float get_y_padding(world* w);
 
 #endif

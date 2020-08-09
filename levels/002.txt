@@ -1,9 +1,9 @@
 5 8 2
 .....
-.ooo.
-.ooo.
-.ooo.
-.ooo.
+oooo.
+oooo.
+oooo.
+oooo.
 oooo.
 oooT.
 .....

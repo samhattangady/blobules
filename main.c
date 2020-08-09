@@ -15,6 +15,7 @@
 
 int main(int argc, char** argv) {
     // TODO (31 Mar 2020 sam): Name this window according to the current version;
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
     world w;
     init_world(&w, 1024);
     printf("initted world\n");
@@ -29,8 +30,19 @@ int main(int argc, char** argv) {
     w.editor.ui_state = &ui_state;
     set_renderer(&r);
 
-    u32 frame = 0;
+    SDL_GameController *controller = NULL;
+    for (int i=0; i<SDL_NumJoysticks(); i++) {
+        if (SDL_IsGameController(i)) {
+            controller = SDL_GameControllerOpen(i);
+            if (controller) {
+                break;
+            } else {
+                fprintf(stderr, "Could not open gamecontroller %i: %s\n", i, SDL_GetError());
+            }
+        }
+    }
 
+    u32 frame = 0;
     u32 start_time;
     u32 clock_time;
     float frame_time;
@@ -48,17 +60,11 @@ int main(int argc, char** argv) {
     // set_callbacks(r.window);
     while (w.active_mode != EXIT) {
         frame += 1;
+        handle_input_state(&w, controller);
         while (SDL_PollEvent(&event)) {
+            process_input_event(&w, event);
             if (event.type == SDL_QUIT)
                 w.active_mode = EXIT;
-            if (event.type == SDL_KEYDOWN)
-                process_keydown_event(&w, event.key);
-            if (event.type == SDL_KEYUP)
-                process_keyup_event(&w, event.key);
-            if (event.type == SDL_MOUSEMOTION)
-                process_mouse_motion(&w, event.motion);
-            if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP)
-                process_mouse_button(&w, event.button, event.type);
         }
         clock_time = SDL_GetTicks();
         frame_time = ((double)clock_time-(double)start_time)/1000.0;
@@ -81,6 +87,7 @@ int main(int argc, char** argv) {
             new_line(&ui_state, &w.editor.ui_window, false);
             add_text(&ui_state, &w.editor.ui_window, "Select a block type...", true);
             if (add_button(&ui_state, &w.editor.ui_window, "CUBE", true)) {
+                printf("cube\n");
                 w.editor.z_level = 1;
                 w.editor.active_type = CUBE;
             }

@@ -11,16 +11,36 @@
 
 #define INPUT_LAG 0.05
 #define LEVEL "levels/000.txt"
-#define LEVEL_LISTING "levels/listing.txt"
+#define LEVEL_LISTING "levels/data.txt"
 
 // TODO (18 Apr 2020 sam): This is required to get the inputs working correctly
 // with callbacks. See if there is a better way to accomplish this.
 world* global_w;
 renderer* global_r;
-float global_seconds;
 
 void set_renderer(void* r) {
     global_r = (renderer*) r;
+}
+
+float get_x_padding(world* w) {
+    // we want the world to be centered based on how big the level is
+    float window_width = global_r->size[0];
+    float cols = w->x_size;
+    float occupied = (cols * BLOCK_WIDTH/2.0) / window_width;
+    // this is some fuckall math. basically the padding is a negative value
+    // that is added. so it's not the padding from the border, rather the padding
+    // from the center outward. also since gl has screen middle as 0.0, and total
+    // width as 2.0, things just get cancelled out, and it looks like we are returning
+    // the negative occupied as the result... but yeah.
+    return -occupied;
+}
+
+float get_y_padding(world* w) {
+    // we want the world to be centered based on how big the level is
+    float window_height = global_r->size[1];
+    float rows = w->y_size;
+    float occupied = (rows * BLOCK_HEIGHT/2.0) / window_height;
+    return -occupied;
 }
 
 int get_position_index_sizes(int x_size, int y_size, int z_size, int x, int y, int z) {
@@ -33,14 +53,16 @@ int get_position_index(world* w, int x, int y, int z) {
 
 int get_world_x(world* w) {
     double xpos = global_w->mouse.current_x;
-    return (int) (((xpos - (X_PADDING*WINDOW_WIDTH/2.0) - (WINDOW_WIDTH/2.0)) /
+    double x_padding = get_x_padding(w);
+    return (int) (((xpos - (x_padding*WINDOW_WIDTH/2.0) - (WINDOW_WIDTH/2.0)) /
                    (BLOCK_WIDTH/2.0))
                   );
 }
 
 int get_world_y(world* w) {
     double ypos = global_w->mouse.current_y;
-    return (int) (0.0 - ((ypos+ (Y_PADDING*WINDOW_HEIGHT/2.0) - WINDOW_HEIGHT/2.0) /
+    double y_padding = get_y_padding(w);
+    return (int) (0.0 - ((ypos+ (y_padding*WINDOW_HEIGHT/2.0) - WINDOW_HEIGHT/2.0) /
                          (BLOCK_HEIGHT/2.0))
                   );
 }
@@ -318,67 +340,159 @@ u32 get_entity_movement_index(world* w, int index) {
     return w->entities[w->grid_data[index]].movement_index;
 }
 
+
+int complete_level(world* w, int l_index) {
+    level_option lev = w->level_select.levels[l_index];
+    if (!lev.completed) {
+        w->level_select.levels[l_index].completed = true;
+        w->level_select.levels[l_index].complete_time = w->seconds;
+    }
+    int next;
+    int* cons[4];
+    cons[0] = lev.up_index;
+    cons[1] = lev.left_index;
+    cons[2] = lev.down_index;
+    cons[3] = lev.right_index;
+    level_connection con;
+    for (int i=0; i<4; i++) {
+        int con_index = cons[i];
+        if (con_index == -1)
+            continue;
+        con = w->level_select.connections[con_index];
+        if (con.head_index == l_index && con.head_unlocks_tail) {
+            if (!w->level_select.levels[con.tail_index].unlocked)
+                w->level_select.levels[con.tail_index].unlocked = true;
+            if (!con.discovered) {
+                w->level_select.connections[con_index].discovered = true;
+                w->level_select.connections[con_index].draw_time = w->seconds;
+            }
+        } else if (con.tail_index == l_index && con.tail_unlocks_head) {
+            if  (!w->level_select.levels[con.head_index].unlocked)
+                w->level_select.levels[con.head_index].unlocked = true;
+            if (!con.discovered) {
+                w->level_select.connections[con_index].discovered = true;
+                w->level_select.connections[con_index].draw_time = w->seconds;
+            }
+        }
+    }
+    return 0;
+}
+
+int complete_current_level(world* w) {
+    int l_index = w->level_select.current_level;
+    complete_level(w, l_index);
+    return 0;
+}
+
 int load_levels_list(level_select_struct* l) {
+    // the level file format is as follows. Each line is either a level or a connection
+    // between two levels. so first char is either L or C.
+    // L path_to_level pos_x pos_y playable is_bonus
+    // C level_1_index level_2_index is_left_right head_unlocks_tail tail_unlocks_head
+    // if is_left_right, level_1 gets connection as right_index, level_2 as left_index
+    // if not, level_1 gets as down_index, level_2 as up_index
+    // all the bools are either 0 or 1.
     printf("mallocing... load_levels_list\n");
-    level_option* levels = (level_option*) malloc(sizeof(level_option)*TOTAL_NUM_LEVELS);
     string levels_data = read_file(LEVEL_LISTING);
-    // TODO (15 Apr 2020 sam): PERFORMANCE. Looping through string twice
-    char c;
+    u32 n_levels = 0;
+    u32 n_connections = 0;
     u32 n = 0;
+    char c;
+    for (int i=0; true; i++) {
+        c = levels_data.text[i];
+        if (c == 'L')
+            n_levels++;
+        if (c == 'C')
+            n_connections++;
+        if (c == '\0')
+           break; 
+    }    
+    level_option* levels = (level_option*) malloc(sizeof(level_option)*n_levels);
+    level_connection* connections = (level_connection*) malloc(sizeof(level_option)*n_connections);
     string tmp = empty_string();
+    bool levels_done;
     int index = 0;
     level_option lev;
-    lev.unlocked = true;
+    lev.unlocked = false;
     lev.completed = false;
     lev.complete_time = 0.0;
+    lev.left_index = -1;
+    lev.right_index = -1;
+    lev.up_index = -1;
+    lev.down_index = -1;
+    level_connection con;
+    con.discovered = false;
+    con.draw_time = 1.0;
     for (int i=0; true; i++) {
         c = levels_data.text[i];
         if (c == ' ') {
-            if (index == 0)
-                lev.name = string_from(tmp.text);
-            else if (index == 1)
-                lev.xpos = (float) atof(tmp.text);
-            else if (index == 2)
-                lev.ypos = (float) atof(tmp.text);
-            else if (index == 3)
-                lev.up_index = atoi(tmp.text);
-            else if (index == 4)
-                lev.down_index = atoi(tmp.text);
-            else if (index == 5)
-                lev.left_index = atoi(tmp.text);
-            else if (index == 6)
-                lev.right_index = atoi(tmp.text);
+            if (!levels_done) {
+                if (index == 1)
+                    lev.name = string_from(tmp.text);
+                else if (index == 2)
+                    lev.xpos = (float) atof(tmp.text);
+                else if (index == 3)
+                    lev.ypos = (float) atof(tmp.text);
+            } else {
+                if (index == 1)
+                    con.head_index = atoi(tmp.text);
+                else if (index == 2)
+                    con.tail_index = atoi(tmp.text);
+                else if (index == 3)
+                    con.is_left_right = (tmp.text[0] == '1');
+                else if (index == 4)
+                    con.head_unlocks_tail = (tmp.text[0]== '1');
+                else if (index == 5)
+                    con.tail_unlocks_head = (tmp.text[0] == '1');
+            }
             index++;
             clear_string(&tmp);
         } else if (c == '\n') {
-            levels[n] = lev;
+            if (!levels_done)
+                levels[n] = lev;
+            else {
+                u32 con_index = n-n_levels;
+                connections[con_index] = con;
+                if (con.is_left_right) {
+                    levels[con.head_index].right_index = con_index;
+                    levels[con.tail_index].left_index = con_index;
+                } else {
+                    levels[con.head_index].down_index = con_index;
+                    levels[con.tail_index].up_index = con_index;
+                }
+            }
             n++;
+            if (n == n_levels)
+                levels_done = true;
             index = 0;
             clear_string(&tmp);
-            if (n>5)
-                lev.unlocked = false;
+            // if (n>5)
+            //     lev.unlocked = false;
         }
         else if (c == '\0')
             break;
         else
             append_sprintf(&tmp, "%c", c);
     }
-    l->total_levels = n;
+    l->total_levels = n_levels;
+    l->total_connections = n_connections;
     l->levels = levels;
+    l->levels[0].unlocked = true;
+    l->connections = connections;
     l->current_level = 0;
 	printf("got levels\n");
     return 0;
 }
 
-int save_levels_list(world* w) {
-    printf("saving level_select list\n");
-    FILE* level_listing_file = fopen(LEVEL_LISTING, "w");
-    for (int n=0; n<w->level_select.total_levels; n++) {
-        level_option lev = w->level_select.levels[n];
-        fprintf(level_listing_file, "%s %f %f %i %i %i %i\n", lev.name.text, lev.xpos, lev.ypos, lev.up_index, lev.down_index, lev.left_index, lev.right_index);
-    }
-    return 0;
-}
+// int save_levels_list(world* w) {
+//     printf("saving level_select list\n");
+//     FILE* level_listing_file = fopen(LEVEL_LISTING, "w");
+//     for (int n=0; n<w->level_select.total_levels; n++) {
+//         level_option lev = w->level_select.levels[n];
+//         fprintf(level_listing_file, "%s %f %f %i %i %i %i\n", lev.name.text, lev.xpos, lev.ypos, lev.up_index, lev.down_index, lev.left_index, lev.right_index);
+//     }
+//     return 0;
+// }
 
 int init_entities(world* w) {
     // TODO (25 Jun 2020 sam): This had all been initialised to nonzero values. I'm not sure
@@ -498,7 +612,7 @@ int init_world(world* w, u32 number) {
     // TODO (12 Jun 2020 sam): See whether there is a cleaner way to set this all to 0;
     memset(&tmp, 0, sizeof(world));
     tmp.input = input;
-    tmp.active_mode = IN_GAME;
+    tmp.active_mode = LEVEL_SELECT;
     tmp.level_select = level_select;
     init_main_menu(&tmp);
     tmp.player = ALIVE;
@@ -916,48 +1030,75 @@ int remove_scheduled_entities(world* w) {
         }
     }
 }
-int trigger_input(world* w) {
-    input_type it = w->input.type;
-    if (it == MOVE_UP)
-        maybe_move_player(w, 0, 1, 0, false, 0);
-    if (it == MOVE_DOWN)
-        maybe_move_player(w, 0, -1, 0, false, 0);
-    if (it == MOVE_RIGHT)
-        maybe_move_player(w, 1, 0, 0, false, 0);
-    if (it == MOVE_LEFT)
-        maybe_move_player(w, -1, 0, 0, false, 0);
-    if (it == RESTART_LEVEL)
-        load_level(w);
-    if (it == NEXT_LEVEL)
-        load_next_level(w);
-    if (it == PREVIOUS_LEVEL)
-        load_previous_level(w);
-    if (it == UNDO_MOVE)
-        load_previous_freezeframe(w);
-    if (it == ESCAPE)
-        go_to_level_select(w);
-    return 0;
-}
 
 int set_input(world* w, input_type it) {
-    w->input.type = it;
-    w->input.time = w->seconds;
-    trigger_input(w);
-    if (it == MOVE_UP ||
-        it == MOVE_DOWN ||
-        it == MOVE_LEFT ||
-        it == MOVE_RIGHT ||
-        it == RESTART_LEVEL)
-        save_freezeframe(w);
+    if (w->seconds - w->input.time < ANIMATION_SINGLE_STEP_TIME)
+        return 0;
+    if (w->active_mode == IN_GAME) {
+        if (w->currently_moving)
+            return 0;
+        if (it == MOVE_UP)
+            maybe_move_player(w, 0, 1, 0, false, 0);
+        if (it == MOVE_DOWN)
+            maybe_move_player(w, 0, -1, 0, false, 0);
+        if (it == MOVE_RIGHT)
+            maybe_move_player(w, 1, 0, 0, false, 0);
+        if (it == MOVE_LEFT)
+            maybe_move_player(w, -1, 0, 0, false, 0);
+        if (it == RESTART_LEVEL)
+            load_level(w);
+        if (it == NEXT_LEVEL)
+            load_next_level(w);
+        if (it == PREVIOUS_LEVEL)
+            load_previous_level(w);
+        if (it == UNDO_MOVE)
+            load_previous_freezeframe(w);
+        if (it == ESCAPE)
+            go_to_level_select(w);
+        if (it == MOVE_UP ||
+            it == MOVE_DOWN ||
+            it == MOVE_LEFT ||
+            it == MOVE_RIGHT ||
+            it == RESTART_LEVEL)
+            save_freezeframe(w);
+    } else if (w->active_mode == LEVEL_SELECT) {
+        if (w->level_select.moving)
+            return 0;
+        if (it == MOVE_UP)
+            set_next_level(w, LEVEL_UP);
+        if (it == MOVE_DOWN)
+            set_next_level(w, LEVEL_DOWN);
+        if (it == MOVE_LEFT)
+            set_next_level(w, LEVEL_LEFT);
+        if (it == MOVE_RIGHT)
+            set_next_level(w, LEVEL_RIGHT);
+        if (it == ENTER)
+            enter_active_level(w);
+        if (it == ESCAPE)
+            go_to_main_menu(w);
+    } else if (w->active_mode == MAIN_MENU) {
+        if (it == MOVE_UP)
+            previous_option(w);
+        if (it == MOVE_DOWN)
+            next_option(w);
+        if (it == ENTER)
+            select_active_option(w);
+        if (DEBUG_BUILD) {
+            if (it  == ESCAPE)
+                w->active_mode = EXIT;
+        }
+    }
     // play_sound(w->boom, BEEP, false, w->seconds);
+    w->input.time = w->seconds;
     return 0;
 }
 
 int unlock_all_levels(world* w) {
     printf("unlocking levels...\n");
-    for (int i=0; i<w->level_select.total_levels; i++) {
+    for (int i=0; i<w->level_select.total_levels; i++)
         w->level_select.levels[i].unlocked = true;
-    }
+    for (int i=0; i<w->level_select.total_connections; i++)
+        w->level_select.connections[i].discovered = true;
     return 0;
 }
 
@@ -993,106 +1134,6 @@ void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action,
         global_w->editor.editor_enabled =  !global_w->editor.editor_enabled;
 }
 */
-
-int process_ingame_keydown_event(world* w, SDL_KeyboardEvent event) {
-    if (w->currently_moving)
-        return 0;
-    SDL_Keycode key = event.keysym.sym;
-    bool repeat = event.repeat != 0;
-    if (key == SDLK_w || key == SDLK_UP)
-        set_input(w, MOVE_UP);
-    if (key == SDLK_a || key == SDLK_LEFT)
-        set_input(w, MOVE_LEFT);
-    if (key == SDLK_s || key == SDLK_DOWN)
-        set_input(w, MOVE_DOWN);
-    if (key == SDLK_d || key == SDLK_RIGHT)
-        set_input(w, MOVE_RIGHT);
-    if (key == SDLK_z)
-        set_input(w, UNDO_MOVE);
-    if(!repeat) {
-        if (key == SDLK_r)
-            set_input(w, RESTART_LEVEL);
-    }
-    if (DEBUG_BUILD) {
-        if (key == SDLK_e)
-            w->editor.editor_enabled =  !w->editor.editor_enabled;
-    }
-    return 0;
-}
-
-int process_level_select_keydown_event(world* w, SDL_KeyboardEvent event) {
-    if (w->level_select.moving)
-        return 0;
-    SDL_Keycode key = event.keysym.sym;
-    bool repeat = event.repeat != 0;
-    if (repeat)
-        return 0;
-    if (key == SDLK_w || key == SDLK_UP)
-        set_next_level(w, LEVEL_UP);
-    if (key == SDLK_s || key == SDLK_DOWN)
-        set_next_level(w, LEVEL_DOWN);
-    if (key == SDLK_RETURN || key == SDLK_KP_ENTER)
-        enter_active_level(w);
-    return 0;
-}
-
-int process_main_menu_keydown_event(world* w, SDL_KeyboardEvent event) {
-    SDL_Keycode key = event.keysym.sym;
-    bool repeat = event.repeat != 0;
-    if (key == SDLK_w || key == SDLK_UP)
-        previous_option(w);
-    if (key == SDLK_s || key == SDLK_DOWN)
-        next_option(w);
-    if (key == SDLK_RETURN || key == SDLK_KP_ENTER)
-        select_active_option(w);
-    if (DEBUG_BUILD) {
-        if (key == SDLK_ESCAPE)
-            w->active_mode = EXIT;
-    }
-    return 0;
-}
-
-int process_keydown_event(world* w, SDL_KeyboardEvent event) {
-    if (w->active_mode == IN_GAME)
-        process_ingame_keydown_event(w, event);
-    if (w->active_mode == LEVEL_SELECT)
-        process_level_select_keydown_event(w, event);
-    if (w->active_mode == MAIN_MENU)
-        process_main_menu_keydown_event(w, event);
-    return 0;
-}
-
-int process_ingame_keyup_event(world* w, SDL_KeyboardEvent event) {
-    if (w->currently_moving)
-        return 0;
-    SDL_Keycode key = event.keysym.sym;
-    if (key == SDLK_ESCAPE)
-        set_input(w, ESCAPE);
-    return 0;
-}
-
-int process_level_select_keyup_event(world* w, SDL_KeyboardEvent event) {
-    if (w->level_select.moving)
-        return 0;
-    SDL_Keycode key = event.keysym.sym;
-    if (key == SDLK_ESCAPE)
-        go_to_main_menu(w);
-    return 0;
-}
-
-int process_main_menu_keyup_event(world* w, SDL_KeyboardEvent event) {
-    return 0;
-}
-
-int process_keyup_event(world* w, SDL_KeyboardEvent event) {
-    if (w->active_mode == IN_GAME)
-        process_ingame_keyup_event(w, event);
-    else if (w->active_mode == LEVEL_SELECT)
-        process_level_select_keyup_event(w, event);
-    else if (w->active_mode == MAIN_MENU)
-        process_main_menu_keyup_event(w, event);
-    return 0;
-}
 
 int init_main_menu(world* w) {
     menu_option new_game = {string_from("New Game")};
@@ -1150,20 +1191,34 @@ int add_level_interpolation(world* w, int current, int next) {
     return 0;
 }
 
+int get_other_level(world* w, int index, int current) {
+    if (index == -1)
+        return -1;
+    level_connection con = w->level_select.connections[index];
+    if (con.head_index == current)
+        return con.tail_index;
+    return con.head_index;
+}
+
 int set_next_level(world* w, level_select_direction dir) {
     int next;
-    level_option current_level = w->level_select.levels[w->level_select.current_level];
+    int current_index = w->level_select.current_level;
+    level_option current_level = w->level_select.levels[current_index];
     if (dir == LEVEL_UP)
-        next = current_level.up_index;
+        next = get_other_level(w, current_level.up_index, current_index);
     if (dir == LEVEL_DOWN)
-        next = current_level.down_index;
+        next = get_other_level(w, current_level.down_index, current_index);
     if (dir == LEVEL_LEFT)
-        next = current_level.left_index;
+        next = get_other_level(w, current_level.left_index, current_index);
     if (dir == LEVEL_RIGHT)
-        next = current_level.right_index;
+        next = get_other_level(w, current_level.right_index, current_index);
     if (next != -1) {
         level_option next_level = w->level_select.levels[next];
         if (next_level.unlocked) {
+            if (dir == LEVEL_LEFT || dir == LEVEL_RIGHT)
+                w->level_select.moving_left_right = true;
+            else
+                w->level_select.moving_left_right = false;
             w->level_select.moving = true;
             w->level_select.start_x = current_level.xpos;
             w->level_select.start_y = current_level.ypos;
@@ -1217,17 +1272,6 @@ void level_select_key_callback(GLFWwindow* window, int key, int scancode, int ac
 }
 */
 
-/*
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (global_w->active_mode == IN_GAME)
-        in_game_key_callback(window, key, scancode, action, mods);
-    else if (global_w->active_mode == MAIN_MENU)
-        main_menu_key_callback(window, key, scancode, action, mods);
-    else if (global_w->active_mode == LEVEL_SELECT)
-        level_select_key_callback(window, key, scancode, action, mods);
-}
-*/
-
 void add_entity_at_mouse(world* w) {
     int x = get_world_x(w);
     int y = get_world_y(w);
@@ -1274,8 +1318,8 @@ void remove_entity_at_mouse(world* w) {
 }
 
 int process_mouse_motion(world* w, SDL_MouseMotionEvent event) {
-    w->mouse.current_x = (float) event.x;
-    w->mouse.current_y = (float) event.y;
+    w->mouse.current_x = 1.0*event.x;
+    w->mouse.current_y = 1.0*event.y;
     return 0;
 }
 
@@ -1309,29 +1353,6 @@ int run_editor_functions(world* w) {
         remove_entity_at_mouse(w);
     return 0;
 }
-
-/*
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        global_w->mouse.l_pressed = true;
-        global_w->mouse.l_down_x = global_w->mouse.current_x;
-        global_w->mouse.l_down_y = global_w->mouse.current_y;
-    }
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-        global_w->mouse.l_pressed = false;
-        global_w->mouse.l_released = true;
-    }
-    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-        global_w->mouse.r_pressed = true;
-        global_w->mouse.r_down_x = global_w->mouse.current_x;
-        global_w->mouse.r_down_y = global_w->mouse.current_y;
-    }
-    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
-        global_w->mouse.r_pressed = false;
-        global_w->mouse.r_released = true;
-    }
-}
-*/
 
 float get_linear_progress(float time_elapsed) {
     return time_elapsed;
@@ -1375,7 +1396,6 @@ int simulate_level_select(world* w) {
 }
 
 int simulate_world(world* w, float seconds) {
-    global_seconds = seconds;
     w->seconds = seconds;
     if (w->active_mode == LEVEL_SELECT)
         simulate_level_select(w);
@@ -1562,6 +1582,83 @@ int change_world_ysize(world* w, int direction, int sign) {
         change_world_ysize_bottom(w, sign);
     return 0;
 }
+
+int process_input_event(world* w, SDL_Event event) {
+    if (event.type == SDL_MOUSEMOTION)
+        process_mouse_motion(w, event.motion);
+    if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP)
+        process_mouse_button(w, event.button, event.type);
+    if (event.type == SDL_KEYUP) {
+        SDL_Keycode key = event.key.keysym.sym;
+        if (key == SDLK_ESCAPE)
+            set_input(w, ESCAPE);
+        if (key == SDLK_RETURN || key == SDLK_KP_ENTER)
+            set_input(w, ENTER);
+        if (DEBUG_BUILD) {
+            if (key == SDLK_e)
+                w->editor.editor_enabled =  !w->editor.editor_enabled;
+            if (key == SDLK_c)
+                complete_current_level(w);
+            if (key == SDLK_q)
+                unlock_all_levels(w);
+            if (key == SDLK_f)
+                load_shaders(global_r);
+            if (key == SDLK_n)
+                set_input(w, NEXT_LEVEL);
+            if (key == SDLK_p)
+                set_input(w, PREVIOUS_LEVEL);
+        }
+    }
+    return 0;
+}
+
+int handle_input_state(world* w, SDL_GameController* controller) {
+    // keyboard
+    const Uint8* keyboard = SDL_GetKeyboardState(NULL);
+    if (keyboard[SDL_SCANCODE_W] || keyboard[SDL_SCANCODE_UP])
+        set_input(w, MOVE_UP);
+    if (keyboard[SDL_SCANCODE_S] || keyboard[SDL_SCANCODE_DOWN])
+        set_input(w, MOVE_DOWN);
+    if (keyboard[SDL_SCANCODE_A] || keyboard[SDL_SCANCODE_LEFT])
+        set_input(w, MOVE_LEFT);
+    if (keyboard[SDL_SCANCODE_D] || keyboard[SDL_SCANCODE_RIGHT])
+        set_input(w, MOVE_RIGHT);
+    if (keyboard[SDL_SCANCODE_Z])
+        set_input(w, UNDO_MOVE);
+    if (keyboard[SDL_SCANCODE_R])
+        set_input(w, RESTART_LEVEL);
+    if (keyboard[SDL_SCANCODE_RETURN] || keyboard[SDL_SCANCODE_KP_ENTER])
+        set_input(w, ENTER);
+    // controller buttons
+    if (controller != NULL) {
+        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP))
+            set_input(w, MOVE_UP);
+        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN))
+            set_input(w, MOVE_DOWN);
+        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT))
+            set_input(w, MOVE_LEFT);
+        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT))
+            set_input(w, MOVE_RIGHT);
+        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A))
+            set_input(w, ENTER);
+        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_B))
+            set_input(w, UNDO_MOVE);
+        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_Y))
+            set_input(w, RESTART_LEVEL);
+        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_START))
+            set_input(w, ESCAPE);
+        if (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX) > 16384)
+            set_input(w, MOVE_RIGHT);
+        if (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX) < -16384)
+            set_input(w, MOVE_LEFT);
+        if (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY) > 16384)
+            set_input(w, MOVE_DOWN);
+        if (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY) < -16384)
+            set_input(w, MOVE_UP);
+    }
+    return 0;
+}
+
 
 /*
 int set_callbacks(GLFWwindow* window) {
