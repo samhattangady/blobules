@@ -12,6 +12,7 @@
 #define INPUT_LAG 0.05
 #define LEVEL "levels/000.txt"
 #define LEVEL_LISTING "levels/data.txt"
+#define PI 3.14159265
 
 // TODO (18 Apr 2020 sam): This is required to get the inputs working correctly
 // with callbacks. See if there is a better way to accomplish this.
@@ -1362,10 +1363,22 @@ float get_ease_in_out_progress(float time_elapsed) {
     // formulae from https://github.com/nicolausYes/easing-functions/blob/master/src/easing.cpp
     // we are using the easeInOutQuad
     // return t < 0.5 ? 2 * t * t : t * (4 - 2 * t) - 1;
-    return time_elapsed;
+    // return time_elapsed;
     if (time_elapsed < 0.5)
         return 2 * time_elapsed * time_elapsed;
     return time_elapsed * (4 - 2*time_elapsed)-1;
+}
+
+float get_sigmoid_progress(float time_elapsed) {
+    // 1/(1+pow(2.718,5-x*10))
+    return 1.0 / (1.0 + pow(2.718, 5-(10*time_elapsed)));
+}
+
+float get_anti_sigmoid_progress(float time_elapsed) {
+    // basically a function that slows growth when sigmoid is growing more.
+    if (time_elapsed < 0.5)
+        return sin(time_elapsed*PI)/2;
+    return 1.0 + sin((time_elapsed+1.0)*PI)/2.0;
 }
 
 int run_level_select_functions(world* w) {
@@ -1382,15 +1395,24 @@ int run_level_select_functions(world* w) {
 int simulate_level_select(world* w) {
     if (!w->level_select.moving)
         return 0;
-    float elapsed = (w->seconds-w->level_select.move_start) / ANIMATION_SINGLE_STEP_TIME;
+    float elapsed = (w->seconds-w->level_select.move_start) / ANIMATION_SINGLE_STEP_TIME/2.0;
     if (elapsed >= 1.0) {
         w->level_select.cx = w->level_select.end_x;
         w->level_select.cy = w->level_select.end_y;
         w->level_select.moving = false;
     } else {
-        float progress = get_ease_in_out_progress(elapsed);        
-        w->level_select.cx = w->level_select.start_x + progress*(w->level_select.end_x-w->level_select.start_x);
-        w->level_select.cy = w->level_select.start_y + progress*(w->level_select.end_y-w->level_select.start_y);
+        float progress = get_sigmoid_progress(elapsed);    
+        float anti = get_anti_sigmoid_progress(elapsed);
+        float dx, dy;
+        if (w->level_select.moving_left_right) {
+            dx = anti;
+            dy = progress;
+        } else {
+            dx = progress;
+            dy = anti;
+        }
+        w->level_select.cx = w->level_select.start_x + dx*(w->level_select.end_x-w->level_select.start_x);
+        w->level_select.cy = w->level_select.start_y + dy*(w->level_select.end_y-w->level_select.start_y);
     }
     return 0;
 }
