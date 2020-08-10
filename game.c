@@ -294,6 +294,33 @@ int save_freezeframe(world* w) {
     return 0;
 }
 
+int save_level_history(world* w) {
+    int i, index;
+    w->level_select.history.index++;
+    if (w->level_select.history.index == HISTORY_STEPS) {
+        int num = HISTORY_STEPS/2;
+        memcpy(&w->level_select.history.history[0], &w->level_select.history.history[num], num*sizeof(u32));
+        w->level_select.history.index = num;
+    }
+    index = w->level_select.history.index;
+    w->level_select.history.history[index] = w->level_select.current_level;
+    w->level_select.just_left_level = false;
+    return 0;
+}
+
+int load_previous_level_from_history(world* w) {
+    int i, index;
+    if (w->level_select.history.index <= 1)
+        return 0;
+    w->level_select.history.index--;
+    index = w->level_select.history.index;
+    w->level_select.current_level = w->level_select.history.history[index];
+    level_option current_level = w->level_select.levels[w->level_select.current_level];
+    w->level_select.cx = current_level.xpos;
+    w->level_select.cy = current_level.ypos;
+    return 0;
+}
+
 int load_previous_freezeframe(world* w) {
     int i, index;
     if (w->history.index <= 1) return 0;
@@ -481,6 +508,9 @@ int load_levels_list(level_select_struct* l) {
     l->levels[0].unlocked = true;
     l->connections = connections;
     l->current_level = 0;
+    u32* level_frames = (u32*) calloc(HISTORY_STEPS, sizeof(u32));
+    l->history.index = 0;
+    l->history.history = level_frames;
 	printf("got levels\n");
     return 0;
 }
@@ -515,6 +545,11 @@ int init_entities(world* w) {
     ed.z = 0;
     ed.removal_time = -1.0;
     w->entities[0] = ed;
+    return 0;
+}
+
+int clear_world_history(world* w) {
+    w->history.index = 0;
     return 0;
 }
 
@@ -554,6 +589,7 @@ int load_level(world* w) {
     }
     fclose(level_file);
     global_w = w;
+    clear_world_history(w);
     save_freezeframe(w);
     return 0;
 }
@@ -637,6 +673,7 @@ int init_world(world* w, u32 number) {
     w->movements = (char*)w->data+(grid_data_size+entity_data_size);
     w->animations = (char*)w->data+(grid_data_size+entity_data_size+movement_data_size);
     w->animation_seconds_update = 0.0;
+    save_level_history(w);
     load_level(w);
     return 0;
 }
@@ -1054,8 +1091,10 @@ int set_input(world* w, input_type it) {
             load_previous_level(w);
         if (it == UNDO_MOVE)
             load_previous_freezeframe(w);
-        if (it == ESCAPE)
+        if (it == ESCAPE) {
             go_to_level_select(w);
+            w->level_select.just_left_level = true;
+        }
         if (it == MOVE_UP ||
             it == MOVE_DOWN ||
             it == MOVE_LEFT ||
@@ -1073,6 +1112,12 @@ int set_input(world* w, input_type it) {
             set_next_level(w, LEVEL_LEFT);
         if (it == MOVE_RIGHT)
             set_next_level(w, LEVEL_RIGHT);
+        if (it == UNDO_MOVE) {
+            if (w->level_select.just_left_level)
+                w->active_mode = IN_GAME;
+            else
+                load_previous_level_from_history(w);
+        }
         if (it == ENTER)
             enter_active_level(w);
         if (it == ESCAPE)
@@ -1203,19 +1248,28 @@ int get_other_level(world* w, int index, int current) {
 
 int set_next_level(world* w, level_select_direction dir) {
     int next;
+    level_connection con;
     int current_index = w->level_select.current_level;
     level_option current_level = w->level_select.levels[current_index];
-    if (dir == LEVEL_UP)
+    if (dir == LEVEL_UP) {
         next = get_other_level(w, current_level.up_index, current_index);
-    if (dir == LEVEL_DOWN)
+        con = w->level_select.connections[current_level.up_index];
+    }
+    if (dir == LEVEL_DOWN) {
         next = get_other_level(w, current_level.down_index, current_index);
-    if (dir == LEVEL_LEFT)
+        con = w->level_select.connections[current_level.down_index];
+    }
+    if (dir == LEVEL_LEFT) {
         next = get_other_level(w, current_level.left_index, current_index);
-    if (dir == LEVEL_RIGHT)
+        con = w->level_select.connections[current_level.left_index];
+    }
+    if (dir == LEVEL_RIGHT) {
         next = get_other_level(w, current_level.right_index, current_index);
+        con = w->level_select.connections[current_level.right_index];
+    }
     if (next != -1) {
         level_option next_level = w->level_select.levels[next];
-        if (next_level.unlocked) {
+        if (next_level.unlocked && con.discovered) {
             if (dir == LEVEL_LEFT || dir == LEVEL_RIGHT)
                 w->level_select.moving_left_right = true;
             else
@@ -1227,6 +1281,7 @@ int set_next_level(world* w, level_select_direction dir) {
             w->level_select.end_y = next_level.ypos;
             w->level_select.move_start = w->seconds;
             w->level_select.current_level = next;
+            save_level_history(w);
         }
     }
     return 0;
@@ -1421,8 +1476,10 @@ int simulate_world(world* w, float seconds) {
     w->seconds = seconds;
     if (w->active_mode == LEVEL_SELECT)
         simulate_level_select(w);
-    if (w->player == WIN && w->active_mode==IN_GAME)
+    if (w->player == WIN && w->active_mode==IN_GAME) {
         go_to_level_select(w);
+        complete_current_level(w);
+    }
     if (w->currently_moving) {
         if (w->seconds - w->animation_seconds_update > 1.0 / (float) ANIMATION_FRAMES_PER_SECOND) {
             bool still_moving = false;
@@ -1629,6 +1686,12 @@ int process_input_event(world* w, SDL_Event event) {
                 set_input(w, NEXT_LEVEL);
             if (key == SDLK_p)
                 set_input(w, PREVIOUS_LEVEL);
+            if (key == SDLK_j) {
+                for (int i=1; i<w->level_select.history.index; i++) {
+                    printf("%i: %i\t", i, w->level_select.history.history[i]);
+                }
+                printf("\n");
+            }
         }
     }
     return 0;

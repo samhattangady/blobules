@@ -80,6 +80,11 @@ typedef struct {
 } world_history;
 
 typedef struct {
+    u32 index;
+    u32* history;
+} level_history;
+
+typedef struct {
     // okay what is required here?
     bool currently_moving;
     float start_time;
@@ -199,11 +204,13 @@ typedef enum {
 typedef struct {
     bool moving;
     bool moving_left_right;
+    bool just_left_level;
     level_option* levels;
     level_connection* connections;
     u32 current_level;
     u32 total_levels;
     u32 total_connections;
+    level_history history;
     float start_x;
     float start_y;
     float cx;
