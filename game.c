@@ -649,7 +649,7 @@ int init_world(world* w, u32 number) {
     // TODO (12 Jun 2020 sam): See whether there is a cleaner way to set this all to 0;
     memset(&tmp, 0, sizeof(world));
     tmp.input = input;
-    tmp.active_mode = LEVEL_SELECT;
+    tmp.active_mode = MAIN_MENU;
     tmp.level_select = level_select;
     init_main_menu(&tmp);
     tmp.player = ALIVE;
@@ -1182,7 +1182,7 @@ void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action,
 */
 
 int init_main_menu(world* w) {
-    menu_option new_game = {string_from("New Game")};
+    menu_option new_game = {string_from("Play")};
     menu_option exit = {string_from("Exit")};
     w->main_menu.total_options = 2;
     w->main_menu.active_option = 0;
@@ -1680,6 +1680,13 @@ int process_input_event(world* w, SDL_Event event) {
                 complete_current_level(w);
             if (key == SDLK_q)
                 unlock_all_levels(w);
+            if (key == SDLK_f) {
+                SDL_SetWindowFullscreen(global_r->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                SDL_DisplayMode DM;
+                SDL_GetCurrentDisplayMode(0, &DM);
+                global_r->size[0] = DM.w;
+                global_r->size[1] = DM.h;
+            }
             if (key == SDLK_f)
                 load_shaders(global_r);
             if (key == SDLK_n)

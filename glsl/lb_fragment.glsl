@@ -13,6 +13,7 @@ uniform float time;
 uniform float opacity;
 float PI = 3.141596;
 float STROKE_THICKNESS = 4.0;
+vec4 bg = vec4(0.94, 0.94, 0.92, 1.0);
 
 //	Classic Perlin 2D Noise 
 //	by Stefan Gustavson
@@ -68,20 +69,23 @@ void main() {
     vec4 col = vec4(0.0);
     if (mode == 1) {
         col.a = 1.0;
+        col.b = 0.0;
         if (texCoord.z < 1.5) { // circle
             float dist = (0.5 - distance(tx, vec2(0.5))) * 2.0;
             col.r = dist;
             col.a = dist;
         } else if (texCoord.z < 2.5) { // level connection
             col.g = fragCoord.z;
+        } else if (texCoord.z < 3.5) { // level connection
+            // for lines to be color of paper.
+            col.b = 1.0;
         }
     } else if (mode == 2) {
         col = texture2D(spritesheet, tx);
         vec4 sdf = texture2D(sdfsheet, texCoord.xy);
         col.a *= smoothstep(0.0, 0.5, sdf.r);
         col = mix(col,vec4(0.1, 0.1, 0.1, 1.0), sdf.g);
-        // if (col.a < 0.5)
-        //     discard;
+        col = mix(col, bg, sdf.b);
     }
     fragColor = col;
     return;

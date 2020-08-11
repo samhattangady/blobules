@@ -116,17 +116,11 @@ int init_character_glyphs(cb_ui_state* state) {
     printf("initting character glyphs...\t");
     unsigned char* ttf_buffer = (unsigned char*) malloc(150000);
     unsigned char* temp_bitmap = (unsigned char*) malloc(512*512);
-    FILE* handler = fopen("fonts/mono.ttf", "rb");
+    FILE* handler = fopen("fonts/shortstack.ttf", "rb");
     if (!handler)
         printf("error opening font file I guess...\n");
     fread(ttf_buffer, 1, 150000, handler);
-    memset(temp_bitmap, 42, 512*512);
-    // TODO (12 May 2020 sam): Don't load from 0 to 128. Figure out the correct
-    // range for all chars. Note that you will also have to load the correct char
-    // accordingly.
-    // TODO (18 Jun 2020 sam): Look into the stbtt docs and see what the recommended
-    // way to load fonts is. Because it's not this.
-    stbtt_BakeFontBitmap(ttf_buffer,0, 16.4, temp_bitmap, 512, 512, 0,128, state->glyphs);
+    stbtt_BakeFontBitmap(ttf_buffer,0, 32, temp_bitmap, 512, 512, 32, 95, state->glyphs);
     u32 font_texture;
     glGenTextures(1, &font_texture);
     glBindTexture(GL_TEXTURE_2D, font_texture);
@@ -135,6 +129,7 @@ int init_character_glyphs(cb_ui_state* state) {
     state->font_texture = font_texture;
     free(ttf_buffer);
     free(temp_bitmap);
+    fclose(handler);
     return 0;
 }
 
@@ -307,17 +302,37 @@ int cb_ui_render_line(cb_ui_state* state, float xpos1, float ypos1, float xpos2,
     return 0;
 }
 
+void get_baked_quad(const stbtt_bakedchar *chardata, int pw, int ph, int char_index, float *xpos, float *ypos, stbtt_aligned_quad *q) {
+    // This function is a copy of sbtt_GetBakedQuad, but modified to support opengl y grows up.
+    float ipw = 1.0f / pw, iph = 1.0f / ph;
+    const stbtt_bakedchar *b = chardata + char_index;
+    int round_x = floor((*xpos + b->xoff) + 0.5f);
+    int round_y = floor((*ypos - b->yoff) + 0.5f);
+    
+    q->x0 = round_x;
+    q->y0 = round_y;
+    q->x1 = round_x + b->x1 - b->x0;
+    q->y1 = round_y - b->y1 + b->y0;
+    
+    q->s0 = b->x0 * ipw;
+    q->t0 = b->y0 * iph;
+    q->s1 = b->x1 * ipw;
+    q->t1 = b->y1 * iph;
+    
+    *xpos += b->xadvance;
+}
+
 int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y) {
     // we want text coordinates to be passed with top left of window as (0,0)
     y = WINDOW_HEIGHT-y;
     y -= PIXEL_SIZE - BUTTON_PADDING;
     for (int i=0; i<strlen(text); i++) {
-        char c = text[i];
+        char c = text[i] - 32;
         float yoff = state->glyphs[c].yoff;
         // TODO (17 Jun 2020 sam): Move to stb_tt release version. GetBakedQuad is meant
         // for test/dev. They have some other sets of API for release versions.
         stbtt_aligned_quad q;
-        stbtt_GetBakedQuad(state->glyphs, 512,512, c, &x, &y, &q, 1);
+        get_baked_quad(state->glyphs, 512,512, c, &x, &y, &q);
         u32 index = state->values.char_buffer.occupied;
         if (index >= CHAR_BUFFER_SIZE*24) {
             render_chars(state);
@@ -325,29 +340,29 @@ int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y) {
         }
         state->values.char_buffer.occupied += 24;
         state->values.char_buffer.vertex_buffer[index + 0] = q.x0;
-        state->values.char_buffer.vertex_buffer[index + 1] = q.y1-yoff;
+        state->values.char_buffer.vertex_buffer[index + 1] = q.y0;
         state->values.char_buffer.vertex_buffer[index + 2] = q.s0;
         state->values.char_buffer.vertex_buffer[index + 3] = q.t0;
-        state->values.char_buffer.vertex_buffer[index + 4] = q.x0;
-        state->values.char_buffer.vertex_buffer[index + 5] = q.y0-yoff;
-        state->values.char_buffer.vertex_buffer[index + 6] = q.s0;
-        state->values.char_buffer.vertex_buffer[index + 7] = q.t1;
-        state->values.char_buffer.vertex_buffer[index + 8] = q.x1;
-        state->values.char_buffer.vertex_buffer[index + 9] = q.y0-yoff;
-        state->values.char_buffer.vertex_buffer[index + 10] = q.s1;
+        state->values.char_buffer.vertex_buffer[index + 4] = q.x1;
+        state->values.char_buffer.vertex_buffer[index + 5] = q.y0;
+        state->values.char_buffer.vertex_buffer[index + 6] = q.s1;
+        state->values.char_buffer.vertex_buffer[index + 7] = q.t0;
+        state->values.char_buffer.vertex_buffer[index + 8] = q.x0;
+        state->values.char_buffer.vertex_buffer[index + 9] = q.y1;
+        state->values.char_buffer.vertex_buffer[index + 10] = q.s0;
         state->values.char_buffer.vertex_buffer[index + 11] = q.t1;
         state->values.char_buffer.vertex_buffer[index + 12] = q.x0;
-        state->values.char_buffer.vertex_buffer[index + 13] = q.y1-yoff;
+        state->values.char_buffer.vertex_buffer[index + 13] = q.y1;
         state->values.char_buffer.vertex_buffer[index + 14] = q.s0;
-        state->values.char_buffer.vertex_buffer[index + 15] = q.t0;
+        state->values.char_buffer.vertex_buffer[index + 15] = q.t1;
         state->values.char_buffer.vertex_buffer[index + 16] = q.x1;
-        state->values.char_buffer.vertex_buffer[index + 17] = q.y0-yoff;
+        state->values.char_buffer.vertex_buffer[index + 17] = q.y0;
         state->values.char_buffer.vertex_buffer[index + 18] = q.s1;
-        state->values.char_buffer.vertex_buffer[index + 19] = q.t1;
+        state->values.char_buffer.vertex_buffer[index + 19] = q.t0;
         state->values.char_buffer.vertex_buffer[index + 20] = q.x1;
-        state->values.char_buffer.vertex_buffer[index + 21] = q.y1-yoff;
+        state->values.char_buffer.vertex_buffer[index + 21] = q.y1;
         state->values.char_buffer.vertex_buffer[index + 22] = q.s1;
-        state->values.char_buffer.vertex_buffer[index + 23] = q.t0;
+        state->values.char_buffer.vertex_buffer[index + 23] = q.t1;
     }
     return 0;
 }
@@ -369,7 +384,7 @@ float get_text_width(cb_ui_state* state, char* text) {
         char c = text[i];
         stbtt_aligned_quad q;
         x = 0.0;
-        stbtt_GetBakedQuad(state->glyphs, 512,512, c, &x, &y, &q, 1);
+        get_baked_quad(state->glyphs, 512,512, c, &x, &y, &q);
         w += x;
     }
     return w;

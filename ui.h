@@ -60,7 +60,7 @@ typedef struct {
 typedef struct cb_ui_state {
     gl_values values;
     u32 font_texture;
-    stbtt_bakedchar glyphs[128];
+    stbtt_bakedchar glyphs[96];
     mouse_data mouse;
 } cb_ui_state;
 

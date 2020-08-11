@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 //#include <sys/time.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -37,7 +38,7 @@ int get_ingame_buffer_size() {
 }
 
 int get_level_buffer_size() {
-    return sizeof(float) * MAX_WORLD_ENTITIES/4 * 36;
+    return sizeof(float) * MAX_WORLD_ENTITIES * 36;
 }
 
 int load_shader(shader_data* shader, char* vertex_path, char* fragment_path) {
@@ -464,6 +465,7 @@ int render_game_scene(renderer* r, world* w) {
     update_vertex_buffer(r, w);
     glLinkProgram(r->ingame_shader.shader_program);
     glUseProgram(r->ingame_shader.shader_program);
+    glViewport(0, 0, r->size[0], r->size[1]);
     // glUniform1i(glGetUniformLocation(r->ingame_shader.shader_program, "spritesheet"), 0);
     // glUniform1i(glGetUniformLocation(r->ingame_shader.shader_program, "sdfsheet"), 1);
     glActiveTexture(GL_TEXTURE0);
@@ -484,7 +486,6 @@ int render_game_scene(renderer* r, world* w) {
     int uni_time = glGetUniformLocation(r->ingame_shader.shader_program, "time");
     glUniform1f(uni_ybyx, r->size[1]*1.0/r->size[0]);
     glUniform1f(uni_time, w->seconds);
-    glViewport(0, 0, r->size[0], r->size[1]);
     glDrawArrays(GL_TRIANGLES, 0, r->ingame_buffer.buffer_size);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -599,7 +600,7 @@ int draw_single_line(renderer* r, float x1, float y1, float x2, float y2, float 
     float vy1 = bg_texture_pixel_to_vertex_y(r, y1);
     float vx2 = bg_texture_pixel_to_vertex_x(r, x2);
     float vy2 = bg_texture_pixel_to_vertex_y(r, y2);
-    add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, opacity, 2.0);
+    add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, opacity, 3.0);
     return 0;
 }
 
@@ -634,6 +635,32 @@ int draw_line_connections(renderer* r, world* w, level_connection con) {
     return 0;
 }
 
+float get_connection_length(world* w, int con_index) {
+    level_connection con = w->level_select.connections[con_index];
+    level_option l1 = w->level_select.levels[con.head_index];
+    level_option l2 = w->level_select.levels[con.tail_index];
+    return sqrt(pow(l1.xpos-l2.xpos, 2.0) + pow(l1.ypos-l2.ypos, 2.0));
+}
+
+float get_min_connection_length(world* w, level_option lev) {
+    float radius = LEVEL_BACKGROUND_SDF_WIDTH;
+    level_connection con;
+    int next;
+    next = lev.up_index;
+    if (next != -1)
+        radius = min(radius, get_connection_length(w, next));
+    next = lev.left_index;
+    if (next != -1)
+        radius = min(radius, get_connection_length(w, next));
+    next = lev.down_index;
+    if (next != -1)
+        radius = min(radius, get_connection_length(w, next));
+    next = lev.right_index;
+    if (next != -1)
+        radius = min(radius, get_connection_length(w, next));
+    return radius;
+}
+
 int update_level_vertex_background_sdf_buffer(renderer* r, world* w) {
     level_option active_level = w->level_select.levels[w->level_select.current_level];
     float circle_sprite = 1.0;
@@ -643,13 +670,15 @@ int update_level_vertex_background_sdf_buffer(renderer* r, world* w) {
         level_option level = w->level_select.levels[i];
         if (!level.completed)
             continue;
+        float radius = get_min_connection_length(w, level);
+        radius = LEVEL_BACKGROUND_SDF_WIDTH;
         float lx = (level.xpos);
         float ly = LS_HEIGHT-(level.ypos);
         float extent = 3.0 * pow(my_min((w->seconds - level.complete_time) / 2.0, 1.0), 0.7);
-        float vx1 = bg_texture_pixel_to_vertex_x(r, lx-LEVEL_BACKGROUND_SDF_WIDTH*extent/2.0);
-        float vy1 = bg_texture_pixel_to_vertex_y(r, ly-LEVEL_BACKGROUND_SDF_HEIGHT*extent/2.0);
-        float vx2 = bg_texture_pixel_to_vertex_x(r, lx+LEVEL_BACKGROUND_SDF_WIDTH*extent/2.0);
-        float vy2 = bg_texture_pixel_to_vertex_y(r, ly+LEVEL_BACKGROUND_SDF_HEIGHT*extent/2.0);
+        float vx1 = bg_texture_pixel_to_vertex_x(r, lx-radius*extent/2.0);
+        float vy1 = bg_texture_pixel_to_vertex_y(r, ly-radius*extent/2.0);
+        float vx2 = bg_texture_pixel_to_vertex_x(r, lx+radius*extent/2.0);
+        float vy2 = bg_texture_pixel_to_vertex_y(r, ly+radius*extent/2.0);
         add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, 0.0, circle_sprite);
     }
     // render the lines sdf for lines connecting levels
