@@ -333,8 +333,11 @@ void add_single_vertex_to_buffer(buffer_data* buffer, float vx1, float vy1, floa
 }
 
 void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x_size, float y_size, float depth, float sprite_position, int orientation) {
-    float blockx = BLOCK_WIDTH*1.0 / r->size[0]*1.0;
-    float blocky = BLOCK_HEIGHT*1.0 / r->size[1]*1.0;
+    float window_width = r->size[0];
+    float block_width = window_width*BLOCK_WIDTH;
+    float block_height = window_width*BLOCK_HEIGHT;
+    float blockx = block_width*1.0 / r->size[0]*1.0;
+    float blocky = block_height*1.0 / r->size[1]*1.0;
     float tx1, ty1, tx2, ty2;
     if (orientation == 0) {
         tx1 = 0.0; ty1 = 0.0; tx2 = 1.0; ty2 = 1.0;

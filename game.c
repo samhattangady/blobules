@@ -27,8 +27,9 @@ void set_renderer(void* r) {
 float get_x_padding(world* w) {
     // we want the world to be centered based on how big the level is
     float window_width = global_r->size[0];
+    float block_width = window_width*BLOCK_WIDTH;
     float cols = w->x_size;
-    float occupied = (cols * BLOCK_WIDTH/2.0) / window_width;
+    float occupied = (cols * block_width/2.0) / window_width;
     // this is some fuckall math. basically the padding is a negative value
     // that is added. so it's not the padding from the border, rather the padding
     // from the center outward. also since gl has screen middle as 0.0, and total
@@ -39,9 +40,11 @@ float get_x_padding(world* w) {
 
 float get_y_padding(world* w) {
     // we want the world to be centered based on how big the level is
+    float window_width = global_r->size[0];
     float window_height = global_r->size[1];
+    float block_height = window_width*BLOCK_HEIGHT;
     float rows = w->y_size;
-    float occupied = (rows * BLOCK_HEIGHT/2.0) / window_height;
+    float occupied = (rows * block_height/2.0) / window_height;
     return -occupied;
 }
 
@@ -54,18 +57,22 @@ int get_position_index(world* w, int x, int y, int z) {
 }
 
 int get_world_x(world* w) {
+    float window_width = global_r->size[0];
+    float block_width = window_width*BLOCK_WIDTH;
     double xpos = global_w->mouse.current_x;
     double x_padding = get_x_padding(w);
-    return (int) (((xpos - (x_padding*WINDOW_WIDTH/2.0) - (WINDOW_WIDTH/2.0)) /
-                   (BLOCK_WIDTH/2.0))
+    return (int) (((xpos - (x_padding*window_width/2.0) - (window_width/2.0)) /
+                   (block_width/2.0))
                   );
 }
 
 int get_world_y(world* w) {
+    float window_width = global_r->size[0];
+    float block_height = window_width*BLOCK_HEIGHT;
     double ypos = global_w->mouse.current_y;
     double y_padding = get_y_padding(w);
     return (int) (0.0 - ((ypos+ (y_padding*WINDOW_HEIGHT/2.0) - WINDOW_HEIGHT/2.0) /
-                         (BLOCK_HEIGHT/2.0))
+                         (block_height/2.0))
                   );
 }
 
@@ -404,6 +411,7 @@ int complete_level(world* w, int l_index) {
             }
         }
     }
+    save_game_progress(w);
     return 0;
 }
 
@@ -516,8 +524,52 @@ int load_levels_list(level_select_struct* l) {
     return 0;
 }
 
-int save_game(world* w) {
-    // what all do we need to save.
+int save_game_progress(world* w) {
+    FILE* save_file = fopen(SAVEFILE, "w");
+    // first line has the settings saved
+    fprintf(save_file, "beta v0.0\n");
+    fprintf(save_file, "%i %i %i %i\n", w->level_select.current_level, global_r->fullscreen, w->level_select.total_levels, w->level_select.total_connections);
+    for (int i=0; i<w->level_select.total_levels; i++) {
+        level_option lev = w->level_select.levels[i];
+        fprintf(save_file, "L %i %i %i\n", lev.unlocked, lev.discovered, lev.completed);
+    }
+    for (int i=0; i<w->level_select.total_connections; i++) {
+        level_connection con = w->level_select.connections[i];
+        fprintf(save_file, "C %i\n", con.discovered);
+    }
+    fclose(save_file);
+    return 0;
+}
+
+int load_game_progress(world* w) {
+    FILE* save_file = fopen(SAVEFILE, "r");
+    int total_levels, total_connections;
+    int major_version, minor_version, rando;
+    // getting file version
+    fscanf(save_file, "beta v%i.%i\n", &major_version, &minor_version);
+    // TODO (12 Aug 2020 sam): Check version here.
+    // getting saved settings
+    fscanf(save_file, "%i %i %i %i\n", &w->level_select.current_level, &rando, &total_levels, &total_connections);
+    printf("total levels: %i\t total connections: %i\n", total_levels, total_connections);
+    // TODO (12 Aug 2020 sam): Make sure there aren't more levels/connections than data loaded.
+    for (int i=0; i<total_levels; i++) {
+        int unlocked, discovered, completed;
+        fscanf(save_file, "L %i %i %i\n", &unlocked, &discovered, &completed);
+        w->level_select.levels[i].unlocked = unlocked;
+        w->level_select.levels[i].discovered = discovered;
+        w->level_select.levels[i].completed = completed;
+        printf("L%i %i %i %i\n", i, unlocked, discovered, completed);
+    }
+    for (int i=0; i<total_connections; i++) {
+        int discovered;
+        fscanf(save_file, "C %i\n", &discovered);
+        w->level_select.connections[i].discovered = discovered;
+    }
+    fclose(save_file);
+    level_option lev = w->level_select.levels[w->level_select.current_level];
+    w->level_select.cx = lev.xpos;
+    w->level_select.cy = lev.ypos;
+    return 0;
 }
 
 // int save_levels_list(world* w) {
@@ -678,6 +730,7 @@ int init_world(world* w, u32 number) {
     w->movements = (char*)w->data+(grid_data_size+entity_data_size);
     w->animations = (char*)w->data+(grid_data_size+entity_data_size+movement_data_size);
     w->animation_seconds_update = 0.0;
+    load_game_progress(w);
     save_level_history(w);
     load_level(w);
     return 0;
@@ -1685,6 +1738,8 @@ int process_input_event(world* w, SDL_Event event) {
                 complete_current_level(w);
             if (key == SDLK_q)
                 unlock_all_levels(w);
+            if (key == SDLK_i)
+                save_game_progress(w);
             if (key == SDLK_f)
                 toggle_fullscreen(global_r);
             if (key == SDLK_f)

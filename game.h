@@ -173,7 +173,7 @@ typedef struct {
 typedef struct {
     bool playable;
     bool unlocked;
-    bool discovered;
+    bool discovered; // TODO (12 Aug 2020 sam): now that we have connections, this may be unused
     bool completed;
     // when one bonus is unlock+discovered, we need to unlock and discover
     // all
