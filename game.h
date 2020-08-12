@@ -221,6 +221,7 @@ typedef struct {
 } level_select_struct;
 
 typedef struct {
+    bool currently_moving;
     u32 size;
     u32 x_size;
     u32 y_size;
@@ -229,7 +230,6 @@ typedef struct {
     main_menu_struct main_menu;
     level_editor_modes level_mode;
     level_select_struct level_select;
-    bool currently_moving;
     u32 entities_occupied;
     u32 movements_occupied;
     u32 animations_occupied;

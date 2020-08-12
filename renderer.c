@@ -182,7 +182,7 @@ int init_renderer(renderer* r, char* window_name) {
     shader_data level_background_shader;
     buffer_data ingame_buffer;
     buffer_data level_buffer;
-    renderer r_ = { window, { (int)window_width, (int)window_height },
+    renderer r_ = { false, window, { (int)window_width, (int)window_height },
                     ingame_shader, level_background_shader, level_shader, ingame_buffer, level_buffer, NULL };
     *r = r_;
     init_shader_data(&r->ingame_shader, "static/spritesheet.png", "static/spritesheet.png");
@@ -860,3 +860,27 @@ int render_scene(renderer* r, world* w) {
     return 0;
 }
 
+int set_fullscreen(renderer* r, bool flag) {
+    r->fullscreen = flag;
+    int mode;
+    if (flag)
+        mode = SDL_WINDOW_FULLSCREEN_DESKTOP;
+    else
+        mode = 0;
+    SDL_SetWindowFullscreen(r->window, mode);
+    SDL_DisplayMode DM;
+    SDL_GetCurrentDisplayMode(0, &DM);
+    if (flag) {
+        r->size[0] = DM.w;
+        r->size[1] = DM.h;
+    } else {
+        r->size[0] = WINDOW_WIDTH;
+        r->size[1] = WINDOW_HEIGHT;
+    }
+    return 0;
+}
+
+int toggle_fullscreen(renderer* r) {
+    set_fullscreen(r, !r->fullscreen);
+    return 0;
+}

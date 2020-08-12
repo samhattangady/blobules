@@ -12,6 +12,7 @@
 #define INPUT_LAG 0.05
 #define LEVEL "levels/000.txt"
 #define LEVEL_LISTING "levels/data.txt"
+#define SAVEFILE "savefile.txt"
 #define PI 3.14159265
 
 // TODO (18 Apr 2020 sam): This is required to get the inputs working correctly
@@ -513,6 +514,10 @@ int load_levels_list(level_select_struct* l) {
     l->history.history = level_frames;
 	printf("got levels\n");
     return 0;
+}
+
+int save_game(world* w) {
+    // what all do we need to save.
 }
 
 // int save_levels_list(world* w) {
@@ -1680,13 +1685,8 @@ int process_input_event(world* w, SDL_Event event) {
                 complete_current_level(w);
             if (key == SDLK_q)
                 unlock_all_levels(w);
-            if (key == SDLK_f) {
-                SDL_SetWindowFullscreen(global_r->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-                SDL_DisplayMode DM;
-                SDL_GetCurrentDisplayMode(0, &DM);
-                global_r->size[0] = DM.w;
-                global_r->size[1] = DM.h;
-            }
+            if (key == SDLK_f)
+                toggle_fullscreen(global_r);
             if (key == SDLK_f)
                 load_shaders(global_r);
             if (key == SDLK_n)

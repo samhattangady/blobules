@@ -30,6 +30,7 @@ typedef struct {
 } buffer_data;
 
 typedef struct {
+    bool fullscreen;
     SDL_Window* window;
     int size[2];
     shader_data ingame_shader;
@@ -43,5 +44,7 @@ typedef struct {
 int init_renderer(renderer* r, char* window_name);
 int render_scene(renderer* r, world* w);
 int load_shaders(renderer* r);
+int set_fullscreen(renderer* r, bool flag);
+int toggle_fullscreen(renderer* r);
 
 #endif
