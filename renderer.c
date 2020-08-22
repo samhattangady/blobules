@@ -7,6 +7,10 @@
 #include "renderer.h"
 #include "game_settings.h"
 
+#define SPRITE_DATA "static/sprite_data.txt"
+#define SPRITE_HEIGHT 200
+#define SPRITE_WIDTH 280
+
 float ICE_EDGE_TOP = 12;
 float ICE_EDGE_LEFT = 13;
 float ICE_EDGE_CORNER = 14;
@@ -155,6 +159,20 @@ int init_buffer_data(buffer_data* buffer, int buffer_size) {
     return 0;
 }
 
+int init_sprite_data(renderer* r) {
+    int n = 0;
+    FILE* sprite_datafile = fopen(SPRITE_DATA, "r");
+    fscanf(sprite_datafile, "%i\n", &n);
+    r->sprites = (sprite_data*) malloc(n*sizeof(sprite_data));
+    for (int i=0; i<n; i++) {
+        sprite_data sd;
+        fscanf(sprite_datafile, "%i %i %f %f %f %f\n", &sd.w, &sd.h, &sd.x1, &sd.y1, &sd.x2, &sd.y2);
+        r->sprites[i] = sd;
+    }
+    fclose(sprite_datafile);
+    return 0;
+}
+
 int init_renderer(renderer* r, char* window_name) {
 	printf("init renderer\n");
     SDL_Window *window;
@@ -199,6 +217,8 @@ int init_renderer(renderer* r, char* window_name) {
     r->ground_entities = (entity_type*) malloc(sizeof(entity_type)*MAX_WORLD_ENTITIES/2);
     load_shaders(r);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    init_sprite_data(r);
 	printf("renderer has been initted\n");
     return 0;
 }
@@ -211,47 +231,50 @@ float get_player_animation_frame(world* w, entity_data ed) {
     return (float) f;
 }
 
-float get_entity_sprite_position(entity_data ed, world* w) {
+int get_sprite_position(entity_type et)  {
+    switch (et) {
+        case CUBE : return 0;
+        case WALL : return 1;
+        case GROUND : return 2;
+        case HOT_TARGET : return 3;
+        case COLD_TARGET : return 4;
+        case FURNITURE : return 5;
+        case PLAYER : return 6;
+        case SLIPPERY_GROUND : return 7;
+    }
+    return 0;
+}
+
+int get_entity_sprite_position(entity_data ed, world* w) {
     entity_type type = ed.type;
     if (type == PLAYER)
-        return 6.0; // + get_player_animation_frame(w, ed);
+        return 6; // + get_player_animation_frame(w, ed);
     if (type == CUBE)
-        return 0.0;
+        return 0;
     if (type == WALL)
-        return 1.0;
+        return 1;
     if (type == GROUND)
-        return 2.0;
+        return 2;
     if (type == SLIPPERY_GROUND)
-        return 7.0;
+        return 7;
     if (type == HOT_TARGET)
-        return 3.0;
+        return 3;
     if (type == COLD_TARGET)
-        return 4.0;
+        return 4;
     if (type == FURNITURE)
-        return 5.0;
-    if (type == REFLECTOR)
-        return 6.0;
-    return -1.0;
+        return 5;
+    return 0;
 }
 
-float get_block_size_x(entity_type type) {
-    // if (type == PLAYER)
-    //     return 0.8;
-    // if (type == CUBE)
-    //     return 0.8;
-    // if (type == FURNITURE)
-    //     return 0.6;
-    return 1.0;
+
+float get_block_size_x(renderer* r, entity_type type) {
+    int pos = get_sprite_position(type);
+    return 1.0 * r->sprites[pos].w / SPRITE_WIDTH;
 }
 
-float get_block_size_y(entity_type type) {
-    if (type == NONE)
-        return 1.0;
-    // if (type==SLIPPERY_GROUND)
-    //     return 1.0;
-    if (type == GROUND || type == SLIPPERY_GROUND)
-        return 1.0;
-    return 2.0;
+float get_block_size_y(renderer* r, entity_type type) {
+    int pos = get_sprite_position(type);
+    return 1.0 * r->sprites[pos].h / SPRITE_HEIGHT;
 }
 
 float get_x_pos(world* w, entity_data ed) {
@@ -337,28 +360,34 @@ void add_single_vertex_to_buffer(buffer_data* buffer, float vx1, float vy1, floa
     return;
 }
 
-void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x_size, float y_size, float depth, float sprite_position, int orientation) {
+void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x_size, float y_size, float depth, int sprite_position, int orientation) {
     float window_width = r->size[0];
     float block_width = window_width*BLOCK_WIDTH;
     float block_height = window_width*BLOCK_HEIGHT;
     float blockx = block_width*1.0 / r->size[0]*1.0;
     float blocky = block_height*1.0 / r->size[1]*1.0;
+    sprite_data sd = r->sprites[sprite_position];
     float tx1, ty1, tx2, ty2;
-    if (orientation == 0) {
-        tx1 = 0.0; ty1 = 0.0; tx2 = 1.0; ty2 = 1.0;
-    } else if (orientation == 1) {
-        tx1 = 1.0; ty1 = 0.0; tx2 = 0.0; ty2 = 1.0;
-    } else if (orientation == 2) {
-        tx1 = 1.0; ty1 = 1.0; tx2 = 0.0; ty2 = 0.0;
-    } else if (orientation == 3) {
-        tx1 = 0.0; ty1 = 1.0; tx2 = 1.0; ty2 = 0.0;
-    }
     float x_padding = get_x_padding(w);
     float y_padding = get_y_padding(w);
     float vx1 = x_padding + (blockx * xpos);
     float vy1 = y_padding + (blocky * ypos);
     float vx2 = x_padding + (blockx * xpos) + (x_size*blockx);
     float vy2 = y_padding + (blocky * ypos) + (y_size*blocky);
+    if (orientation == 0) {
+        tx1 = sd.x1; ty1 = sd.y1; tx2 = sd.x2; ty2 = sd.y2;
+    } else if (orientation == 1) {
+        tx1 = sd.x2; ty1 = sd.y2; tx2 = sd.x1; ty2 = sd.y2;
+    } else if (orientation == 2) {
+        tx1 = sd.x2; ty1 = sd.y2; tx2 = sd.x1; ty2 = sd.y1;
+        vy1 = y_padding + (blocky * ypos) + ((1.0-y_size)*blocky);
+        vy2 = y_padding + (blocky * ypos) + (1.0*blocky);
+    } else if (orientation == 3) {
+        tx1 = sd.x1; ty1 = sd.y2; tx2 = sd.x2; ty2 = sd.y1;
+        // TODO (22 Aug 2020 sam): Add the x reversal stuff as well.
+        vy1 = y_padding + (blocky * ypos) + ((1.0-y_size)*blocky);
+        vy2 = y_padding + (blocky * ypos) + (1.0*blocky);
+    }
     add_single_vertex_to_buffer(&r->ingame_buffer, vx1, vy1, vx2, vy2, tx1, ty1, tx2, ty2, depth, sprite_position);
 }
 
@@ -367,10 +396,10 @@ void add_ground_at_pos(renderer* r, world* w, int x, int y) {
     depth += (float) y/100.0;
     float xpos = x;
     float ypos = y;
-    float x_size = get_block_size_x(GROUND);
-    float y_size = get_block_size_y(GROUND);
+    float x_size = get_block_size_x(r, GROUND);
+    float y_size = get_block_size_y(r, GROUND);
     // FIXME (26 Jun 2020 sam): Hardcoded value. Fix.
-    float sprite_position = 2.0;
+    int sprite_position = 2;
     add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position, 0);
 } 
 
@@ -381,12 +410,13 @@ entity_type get_ground_et_at(renderer* r, world* w, int x, int y) {
     return r->ground_entities[index];
 }
 
-void draw_additional_sprite(renderer* r, world* w, int x, int y, float sprite_position, int orientation, float depth) {
+void draw_additional_sprite(renderer* r, world* w, int x, int y, int sprite_position, int orientation, float depth) {
     depth += (float) y/100.0;
     float xpos = x;
     float ypos = y;
-    float x_size = get_block_size_x(GROUND);
-    float y_size = get_block_size_y(GROUND);
+    // TODO (22 Aug 2020 sam): cleanup the functions so that we don't have to do this calculation here.
+    float x_size = 1.0 * r->sprites[sprite_position].w / SPRITE_WIDTH;
+    float y_size = 1.0 * r->sprites[sprite_position].h / SPRITE_HEIGHT;
     add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position, orientation);
     return;
 }
@@ -454,8 +484,8 @@ void add_ground_edges(renderer* r, world* w) {
             if (n9 && !n8 && !n6)
                 draw_additional_sprite(r, w, x, y, GROUND_EDGE_CORNER, 0, -0.1);
             if (n2) {
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_BELOW, 0, -0.08);
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_TOP, 2, -0.1);
+                // draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_BELOW, 0, -0.08);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_TOP, 3, -0.1);
             }
             if (n8)
                 draw_additional_sprite(r, w, x, y, GROUND_EDGE_TOP, 0, -0.1);
@@ -483,11 +513,11 @@ void render_entity(renderer* r, world* w, entity_data ed) {
         depth -= 0.1;
     if (et==HOT_TARGET || et==COLD_TARGET)
         depth -= 0.8;
-    float sprite_position = get_entity_sprite_position(ed, w);
+    int sprite_position = get_entity_sprite_position(ed, w);
     if (sprite_position < 0.0)
         return;
-    float x_size = get_block_size_x(et);
-    float y_size = get_block_size_y(et);
+    float x_size = get_block_size_x(r, et);
+    float y_size = get_block_size_y(r, et);
     float xpos = get_x_pos(w, ed);
     float ypos = get_y_pos(w, ed);
     add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position, 0);

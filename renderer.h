@@ -30,6 +30,15 @@ typedef struct {
 } buffer_data;
 
 typedef struct {
+    int w;
+    int h;
+    float x1;
+    float y1;
+    float x2;
+    float y2;
+} sprite_data;
+
+typedef struct {
     bool fullscreen;
     SDL_Window* window;
     int size[2];
@@ -38,6 +47,7 @@ typedef struct {
     shader_data level_shader;
     buffer_data ingame_buffer;
     buffer_data level_buffer;
+    sprite_data* sprites;
     entity_type* ground_entities;
 } renderer;
 
