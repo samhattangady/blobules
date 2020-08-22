@@ -1,4 +1,5 @@
 #include "SDL.h"
+#include "SDL_mixer.h"
 #include <stdio.h>
 #include <stdbool.h>
 #define STB_TRUETYPE_IMPLEMENTATION
@@ -42,6 +43,12 @@ int main(int argc, char** argv) {
         }
     }
 
+    // Init sounds stuff.
+    Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 4096);
+    Mix_Chunk *music = NULL;
+    music = Mix_LoadWAV("static/music1.wav");
+    Mix_PlayChannel(-1, music, -1);
+
     u32 frame = 0;
     u32 start_time;
     u32 clock_time;
@@ -57,7 +64,6 @@ int main(int argc, char** argv) {
     start_time = clock();
     printf("starting game loop\n");
     SDL_Event event;
-    // set_callbacks(r.window);
     while (w.active_mode != EXIT) {
         frame += 1;
         handle_input_state(&w, controller);

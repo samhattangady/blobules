@@ -7,9 +7,13 @@
 #include "renderer.h"
 #include "game_settings.h"
 
-float ICE_EDGE_TOP = 38;
-float ICE_EDGE_LEFT = 39;
-float ICE_EDGE_CORNER = 40;
+float ICE_EDGE_TOP = 12;
+float ICE_EDGE_LEFT = 13;
+float ICE_EDGE_CORNER = 14;
+float GROUND_EDGE_TOP = 8;
+float GROUND_EDGE_LEFT = 9;
+float GROUND_EDGE_CORNER = 11;
+float GROUND_EDGE_LEVEL_BELOW = 10;
 float LS_WIDTH = 4000.0;
 float LS_HEIGHT = 4000.0;
 float LEVEL_SPRITE_WIDTH = 90.0;
@@ -185,7 +189,7 @@ int init_renderer(renderer* r, char* window_name) {
     renderer r_ = { false, window, { (int)window_width, (int)window_height },
                     ingame_shader, level_background_shader, level_shader, ingame_buffer, level_buffer, NULL };
     *r = r_;
-    init_shader_data(&r->ingame_shader, "static/spritesheet.png", "static/spritesheet.png");
+    init_shader_data(&r->ingame_shader, "static/fillsheet.png", "static/sdfsheet.png");
     init_shader_data(&r->level_background_shader, "static/brani2.png", "static/ls_sdf.png");
     init_shader_data(&r->level_shader, "static/lev1.png", "static/lev1.png");
     u32 framebuffer;
@@ -210,7 +214,7 @@ float get_player_animation_frame(world* w, entity_data ed) {
 float get_entity_sprite_position(entity_data ed, world* w) {
     entity_type type = ed.type;
     if (type == PLAYER)
-        return 7.0 + get_player_animation_frame(w, ed);
+        return 6.0; // + get_player_animation_frame(w, ed);
     if (type == CUBE)
         return 0.0;
     if (type == WALL)
@@ -218,7 +222,7 @@ float get_entity_sprite_position(entity_data ed, world* w) {
     if (type == GROUND)
         return 2.0;
     if (type == SLIPPERY_GROUND)
-        return 37.0;
+        return 7.0;
     if (type == HOT_TARGET)
         return 3.0;
     if (type == COLD_TARGET)
@@ -261,6 +265,7 @@ float get_x_pos(world* w, entity_data ed) {
         else
             xpos = w->movements[movement_index].x;
     }
+    return xpos;
     if (ed.animation_index > 0) {
         animation_state as = w->animations[ed.animation_index];
         animation_frames_data afd = as.animation_data[as.current_animation_index];
@@ -370,12 +375,13 @@ void add_ground_at_pos(renderer* r, world* w, int x, int y) {
 } 
 
 entity_type get_ground_et_at(renderer* r, world* w, int x, int y) {
+    if (x >= w->x_size || y >= w->y_size)
+       return NONE; 
     int index = x + y*w->x_size;
     return r->ground_entities[index];
 }
 
-void draw_ice_edge(renderer* r, world* w, int x, int y, float sprite_position, int orientation) {
-    float depth = -0.1;    
+void draw_additional_sprite(renderer* r, world* w, int x, int y, float sprite_position, int orientation, float depth) {
     depth += (float) y/100.0;
     float xpos = x;
     float ypos = y;
@@ -403,24 +409,63 @@ void add_ice_edges(renderer* r, world* w) {
             n8 = get_ground_et_at(r, w, x+0, y-1) == SLIPPERY_GROUND;
             n9 = get_ground_et_at(r, w, x+1, y-1) == SLIPPERY_GROUND;
             if (n1 && !n2 && !n4)
-                draw_ice_edge(r, w, x, y, ICE_EDGE_CORNER, 0);
+                draw_additional_sprite(r, w, x, y, ICE_EDGE_CORNER, 0, -0.1);
             if (n3 && !n2 && !n6)
-                draw_ice_edge(r, w, x, y, ICE_EDGE_CORNER, 1);
+                draw_additional_sprite(r, w, x, y, ICE_EDGE_CORNER, 1, -0.1);
             if (n7 && !n8 && !n4)
-                draw_ice_edge(r, w, x, y, ICE_EDGE_CORNER, 3);
+                draw_additional_sprite(r, w, x, y, ICE_EDGE_CORNER, 3, -0.1);
             if (n9 && !n8 && !n6)
-                draw_ice_edge(r, w, x, y, ICE_EDGE_CORNER, 2);
+                draw_additional_sprite(r, w, x, y, ICE_EDGE_CORNER, 2, -0.1);
             if (n2)
-                draw_ice_edge(r, w, x, y, ICE_EDGE_TOP, 0);
+                draw_additional_sprite(r, w, x, y, ICE_EDGE_TOP, 0, -0.1);
             if (n8)
-                draw_ice_edge(r, w, x, y, ICE_EDGE_TOP, 2);
+                draw_additional_sprite(r, w, x, y, ICE_EDGE_TOP, 2, -0.1);
             if (n4)
-                draw_ice_edge(r, w, x, y, ICE_EDGE_LEFT, 0);
+                draw_additional_sprite(r, w, x, y, ICE_EDGE_LEFT, 0, -0.1);
             if (n6)
-                draw_ice_edge(r, w, x, y, ICE_EDGE_LEFT, 2);
+                draw_additional_sprite(r, w, x, y, ICE_EDGE_LEFT, 2, -0.1);
         }
     }
-} 
+}
+
+void add_ground_edges(renderer* r, world* w) {
+    int x, y;
+    for (int x=0; x<w->x_size; x++) {
+        for (int y=0; y<w->y_size; y++) {
+            entity_type et = get_ground_et_at(r, w, x, y);
+            if (et!=NONE)
+                continue;
+            // So we assign neighbours like a numpad. 1 at top left
+            bool n1, n2, n3, n4, n6, n7, n8, n9;
+            n1 = get_ground_et_at(r, w, x-1, y+1) != NONE;
+            n2 = get_ground_et_at(r, w, x+0, y+1) != NONE;
+            n3 = get_ground_et_at(r, w, x+1, y+1) != NONE;
+            n4 = get_ground_et_at(r, w, x-1, y+0) != NONE;
+            n6 = get_ground_et_at(r, w, x+1, y+0) != NONE;
+            n7 = get_ground_et_at(r, w, x-1, y-1) != NONE;
+            n8 = get_ground_et_at(r, w, x+0, y-1) != NONE;
+            n9 = get_ground_et_at(r, w, x+1, y-1) != NONE;
+            if (n1 && !n2 && !n4)
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_CORNER, 2, -0.1);
+            if (n3 && !n2 && !n6)
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_CORNER, 3, -0.1);
+            if (n7 && !n8 && !n4)
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_CORNER, 1, -0.1);
+            if (n9 && !n8 && !n6)
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_CORNER, 0, -0.1);
+            if (n2) {
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_BELOW, 0, -0.08);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_TOP, 2, -0.1);
+            }
+            if (n8)
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_TOP, 0, -0.1);
+            if (n4)
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEFT, 2, -0.1);
+            if (n6)
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEFT, 0, -0.1);
+        }
+    }
+}
 
 void render_entity(renderer* r, world* w, entity_data ed) {
     entity_type et = ed.type;
@@ -437,7 +482,7 @@ void render_entity(renderer* r, world* w, entity_data ed) {
     if (et==SLIPPERY_GROUND)
         depth -= 0.1;
     if (et==HOT_TARGET || et==COLD_TARGET)
-        depth -= 1.0;
+        depth -= 0.8;
     float sprite_position = get_entity_sprite_position(ed, w);
     if (sprite_position < 0.0)
         return;
@@ -461,6 +506,7 @@ int update_vertex_buffer(renderer* r, world* w) {
         render_entity(r, w, ed);
     }
     add_ice_edges(r, w);
+    add_ground_edges(r, w);
     return 0;
 }
 
@@ -469,13 +515,12 @@ int render_game_scene(renderer* r, world* w) {
     glLinkProgram(r->ingame_shader.shader_program);
     glUseProgram(r->ingame_shader.shader_program);
     glViewport(0, 0, r->size[0], r->size[1]);
-    // glUniform1i(glGetUniformLocation(r->ingame_shader.shader_program, "spritesheet"), 0);
-    // glUniform1i(glGetUniformLocation(r->ingame_shader.shader_program, "sdfsheet"), 1);
+    glUniform1i(glGetUniformLocation(r->ingame_shader.shader_program, "spritesheet"), 0);
+    glUniform1i(glGetUniformLocation(r->ingame_shader.shader_program, "sdfsheet"), 1);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, r->ingame_shader.fill_texture);
-    // glBindTexture(GL_TEXTURE_2D, textures[0]);
-    // glActiveTexture(GL_TEXTURE1);
-    // glBindTexture(GL_TEXTURE_2D, textures[1]);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, r->ingame_shader.sdf_texture);
     glBindVertexArray(r->ingame_buffer.vao);
     glBindBuffer(GL_ARRAY_BUFFER, r->ingame_buffer.vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, r->ingame_buffer.buffer_size, r->ingame_buffer.vertex_buffer);
@@ -492,9 +537,9 @@ int render_game_scene(renderer* r, world* w) {
     glDrawArrays(GL_TRIANGLES, 0, r->ingame_buffer.buffer_size);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-    // glActiveTexture(GL_TEXTURE0+0);
-    // glBindTexture(GL_TEXTURE_2D, 0);
-    // glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(GL_TEXTURE0+0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, 0);
     memset(r->ingame_buffer.vertex_buffer, 0, r->ingame_buffer.buffer_size);
     r->ingame_buffer.buffer_occupied = 0;

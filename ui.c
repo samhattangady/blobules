@@ -303,7 +303,7 @@ int cb_ui_render_line(cb_ui_state* state, float xpos1, float ypos1, float xpos2,
 }
 
 void get_baked_quad(const stbtt_bakedchar *chardata, int pw, int ph, int char_index, float *xpos, float *ypos, stbtt_aligned_quad *q) {
-    // This function is a copy of sbtt_GetBakedQuad, but modified to support opengl y grows up.
+    // This function is a copy of stbtt_GetBakedQuad, but modified to support opengl y grows up.
     float ipw = 1.0f / pw, iph = 1.0f / ph;
     const stbtt_bakedchar *b = chardata + char_index;
     int round_x = floor((*xpos + b->xoff) + 0.5f);
@@ -381,7 +381,7 @@ float get_text_width(cb_ui_state* state, char* text) {
     float x = 0.0;
     float y = 0.0;
     for (int i=0; i<strlen(text); i++) {
-        char c = text[i];
+        char c = text[i] - 32;
         stbtt_aligned_quad q;
         x = 0.0;
         get_baked_quad(state->glyphs, 512,512, c, &x, &y, &q);

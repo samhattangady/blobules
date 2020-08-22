@@ -20,8 +20,8 @@
 #define MIN_ALPHA 0.7
 #define MAX_PIXEL_DISTANCE 127
 #define u8 uint8_t 
-#define WINDOW_HEIGHT 512
-#define WINDOW_WIDTH 512
+#define WINDOW_HEIGHT 200
+#define WINDOW_WIDTH 280
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Errors: %s\n", description);
@@ -83,6 +83,7 @@ int save_sdf_file(GLFWwindow* window, char* fillname, char* shadname, char* line
     unsigned char *body = stbi_load(fillname,&width,&height,&nrChannels,0);
     unsigned char *shad = stbi_load(shadname,&width,&height,&nrChannels,0);
     unsigned char *line = stbi_load(linename,&width,&height,&nrChannels,0);
+    glfwSetWindowSize(window, width, height);
     glGenTextures(3, &textures);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textures[0]);
@@ -158,8 +159,6 @@ int main(int argc, char** argv) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     GLFWwindow* window;
-    int window_height = WINDOW_HEIGHT;
-    int window_width = WINDOW_WIDTH;
     printf("trying to create window\n");
     glfwWindowHint(GLFW_SAMPLES, 16);
     window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "gpu_sdf", NULL, NULL);
@@ -191,7 +190,22 @@ int main(int argc, char** argv) {
     //     save_sdf_file(window, fillname, shadname, linename, outfname);
     //     printf("done %s...\n", outfname);
     // }
-    save_sdf_file(window, "static/sdf_circle.png",  "static/sdf_circle.png", "static/sdf_circle.png" , "static/ls_sdf.png");
+    // save_sdf_file(window, "static/player_Fill.png",  "static/player_Shadow.png", "static/player_Line.png" , "static/player_sdf.png");
+    // save_sdf_file(window, "static/wall_Fill.png",  "static/wall_Shadow.png", "static/wall_Line.png" , "static/wall_sdf.png");
+    // save_sdf_file(window, "static/target_Fill.png",  "static/target_Shadow.png", "static/target_Line.png" , "static/target_sdf.png");
+    // save_sdf_file(window, "static/target2_Fill.png",  "static/target2_Shadow.png", "static/target2_Line.png" , "static/target2_sdf.png");
+    // save_sdf_file(window, "static/cube_Fill.png",  "static/cube_Shadow.png", "static/cube_Line.png" , "static/cube_sdf.png");
+    // save_sdf_file(window, "static/furn_Fill.png",  "static/furn_Shadow.png", "static/furn_Line.png" , "static/furn_sdf.png");
+    // // width 200
+    // save_sdf_file(window, "static/ground_Fill.png",  "static/ground_Shadow.png", "static/ground_Line.png" , "static/ground_sdf.png");
+    // save_sdf_file(window, "static/slippery_Fill.png",  "static/slippery_Shadow.png", "static/slippery_Line.png" , "static/slippery_sdf.png");
+    save_sdf_file(window, "static/ground1_Fill.png",  "static/ground1_Shadow.png", "static/ground1_Line.png" , "static/ground1_sdf.png");
+    save_sdf_file(window, "static/ground2_Fill.png",  "static/ground2_Shadow.png", "static/ground2_Line.png" , "static/ground2_sdf.png");
+    save_sdf_file(window, "static/ground3_Fill.png",  "static/ground3_Shadow.png", "static/ground3_Line.png" , "static/ground3_sdf.png");
+    save_sdf_file(window, "static/ground4_Fill.png",  "static/ground4_Shadow.png", "static/ground4_Line.png" , "static/ground4_sdf.png");
+    save_sdf_file(window, "static/ice1_Fill.png",  "static/ice1_Shadow.png", "static/ice1_Line.png" , "static/ice1_sdf.png");
+    save_sdf_file(window, "static/ice2_Fill.png",  "static/ice2_Shadow.png", "static/ice2_Line.png" , "static/ice2_sdf.png");
+    save_sdf_file(window, "static/ice3_Fill.png",  "static/ice3_Shadow.png", "static/ice3_Line.png" , "static/ice3_sdf.png");
     start_time = clock() - start_time;
     printf("processing complete in %f seconds\n", (double)start_time/CLOCKS_PER_SEC);
     printf("done.\n");

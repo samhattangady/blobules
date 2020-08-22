@@ -9,7 +9,7 @@ uniform sampler2D sdfsheet;
 uniform float time;
 uniform float opacity;
 float PI = 3.141596;
-float NUMBER_OF_SPRITES = 41.0;
+float NUMBER_OF_SPRITES = 15.0;
 float STROKE_THICKNESS = 4.0;
 
 //	Classic Perlin 2D Noise 
@@ -53,23 +53,48 @@ float cnoise(vec2 P){
 
 void main() {
     vec4 col;
-    if (texCoord.z < 0.0) 
-        col = texture(spritesheet, texCoord.xy);
+    vec2 tx = texCoord.xy;
+    int sno = int(texCoord.z);
+    if (texCoord.z < -0.2) 
+        tx = texCoord.xy;
     else
-        col = texture(spritesheet, vec2((texCoord.z/NUMBER_OF_SPRITES)+(texCoord.x/NUMBER_OF_SPRITES), texCoord.y));
-    if (col.a < 0.5) {
+        tx = vec2((texCoord.z/NUMBER_OF_SPRITES)+(tx.x/NUMBER_OF_SPRITES), tx.y);
+    if (sno == 2 || sno == 7 || sno == 8 || sno == 9 || sno == 10 || sno == 11 ||
+                    sno == 12 || sno == 13 || sno == 14)
+        tx.y = 0.5 + tx.y/2;
+    if (texCoord.z < 0.0) 
+        col = texture(spritesheet, tx);
+    else
+        col = texture(spritesheet, tx);
+    if (col.a < 0.5)
         discard;
-    }
     fragColor = col;
     return;
-    // vec2 tx = texCoord.xy + 0.0004*cnoise(fragCoord.xy*15.0)*sin(time/3.5);
+
+    /*
+    // vec2 tx = texCoord.xy;
+    // tx = tx + 0.004*cnoise(fragCoord.xy*15.0)*sin(time/3.5);
     // tx = tx + 0.008*cnoise(fragCoord.xy*2.4)*sin(time/1.8);
+    // tx.x = clamp(tx.x, 0.01, 0.99);
+    // tx.y = clamp(tx.y, 0.01, 0.99);
+    // if (texCoord.z < -0.2) 
+    //     tx = texCoord.xy;
+    // else
+    //     tx = vec2((texCoord.z/NUMBER_OF_SPRITES)+(tx.x/NUMBER_OF_SPRITES), tx.y);
+    // int sno = int(texCoord.z);
+    // if (sno == 2 || sno == 7 || sno == 8 || sno == 9 || sno == 10 || sno == 11 ||
+    //                 sno == 12 || sno == 13 || sno == 14)
+    //     tx.y = 0.5 + tx.y/2;
+    // vec2 txc;
     // vec4 col = texture(spritesheet, tx);
+    // // if (col.a < 0.5) {
+    // //     discard;
+    // // }
     // vec4 shadow = texture(sdfsheet, tx);
     // shadow.g += 0.02*cnoise(fragCoord.xy*10.0)*sin(time/5.5);
     // float fill_dist = min(shadow.r, shadow.g);
     // fill_dist = min(shadow.b, fill_dist);
-    // if (fill_dist > 0.52)
+    // if (fill_dist > 0.499)
     //     discard;
     // // if (shadow.a > 0.4)
     // //     col = mix(col, vec4(0.0, 0.0, 0.0, 0.22), shadow.a);
@@ -77,10 +102,10 @@ void main() {
     // col = mix(col, vec4(0.0, 0.0, 0.0, 1.0), shadow_dist*(0.4));//* 0.06*cnoise(fragCoord.xy*100.0))); 
     // if (opacity > 0.01)
     //     fragColor = vec4(col.xyz, opacity*col.w);
-    // col += 0.03*vec4(cnoise(fragCoord.xy*40.0))*sin(time/5.0);
-    // col += 0.02*vec4(cnoise(fragCoord.xy*400.0))*sin(time/3.0);
-    // col += 0.03*vec4(cnoise(fragCoord.xy*4.0))*sin(time/2.0);
-    // col += 0.02*vec4(cnoise(fragCoord.xy*2000.0))*sin(time/4.0);
+    // col += 0.003*vec4(cnoise(fragCoord.xy*40.0))*sin(time/5.0);
+    // col += 0.002*vec4(cnoise(fragCoord.xy*400.0))*sin(time/3.0);
+    // col += 0.003*vec4(cnoise(fragCoord.xy*4.0))*sin(time/2.0);
+    // col += 0.002*vec4(cnoise(fragCoord.xy*2000.0))*sin(time/4.0);
     // if (col.a >0.9)
     //     col.a = smoothstep(0.65, 0.459, fill_dist);
     // if (fill_dist > 0.32) {
@@ -96,4 +121,6 @@ void main() {
     // col = mix(col, vec4(0.1, 0.1, 0.1, 1.0), line);
     // fragColor = col;
     // return;
+    //
+    */
 }

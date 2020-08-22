@@ -334,12 +334,8 @@ int load_previous_freezeframe(world* w) {
     if (w->history.index <= 1) return 0;
     w->history.index--;
     index = w->history.index;
-    if (w->history.history[index].current_level != w->level_select.current_level) {
-        // TODO (27 Apr 2020 sam): Changing level requires us to press z twice?
-        // Bug needs to be found and fixed.
-        w->level_select.current_level = w->history.history[index].current_level;
-        load_level(w);
-    }
+    if (w->history.history[index].current_level != w->level_select.current_level)
+        return 0;
     init_entities(w);
     for (i=0; i<w->size; i++) {
         entity_type et = get_entity_type(w->history.history[index].entities[i]);
@@ -646,7 +642,7 @@ int load_level(world* w) {
     }
     fclose(level_file);
     global_w = w;
-    clear_world_history(w);
+    // clear_world_history(w);
     save_freezeframe(w);
     return 0;
 }
@@ -706,7 +702,7 @@ int init_world(world* w, u32 number) {
     // TODO (12 Jun 2020 sam): See whether there is a cleaner way to set this all to 0;
     memset(&tmp, 0, sizeof(world));
     tmp.input = input;
-    tmp.active_mode = MAIN_MENU;
+    tmp.active_mode = IN_GAME;
     tmp.level_select = level_select;
     init_main_menu(&tmp);
     tmp.player = ALIVE;
@@ -860,6 +856,7 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
     }
     // see what's already in desired place
     int target_pos_index = get_position_index(w, x+dx, y+dy, z+dz);
+    int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);
     if (get_entity_at(w, target_pos_index) != NONE) {
         if (can_stop_cube_slide(get_entity_at(w, target_pos_index))) {
             if (get_entity_at(w, target_pos_index) == CUBE)
@@ -871,6 +868,7 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
             // check if win.
             if (get_entity_at(w, on_index) == HOT_TARGET) {
                 schedule_entity_removal(w, cube_index, depth);
+                schedule_entity_removal(w, w->grid_data[on_index], depth);
                 set_entity_position(w, cube_index, x, y, z);
                 set_none(w, index);
                 set_cold_target(w, x, y, z-1);
@@ -879,7 +877,6 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
         }
         // what if it's player?
     }
-    int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);
     if (!can_support_cube(get_entity_at(w, target_on_index))) {
         // remove cube
         // TODO (07 May 2020 sam): Figure out how to handle animations here?
@@ -1742,7 +1739,7 @@ int process_input_event(world* w, SDL_Event event) {
                 save_game_progress(w);
             if (key == SDLK_f)
                 toggle_fullscreen(global_r);
-            if (key == SDLK_f)
+            if (key == SDLK_g)
                 load_shaders(global_r);
             if (key == SDLK_n)
                 set_input(w, NEXT_LEVEL);

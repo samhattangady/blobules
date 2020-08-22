@@ -1,9 +1,65 @@
 from krita import *
 import os
 import pathlib
-#import Pillow
 
 dirpath = pathlib.Path(__file__).parent.absolute() 
+required_layers = ['Line', 'Shadow', 'Fill']
+files = ['player', 'wall', 'ground', 'slippery', 'target', 'target2', 'cube', 'furn', 'ground1', 'ground2', 'ground3', 'ground4', 'ice1', 'ice2', 'ice3']
+files = ['ground4', 'ice1', 'ice2', 'ice3']
+
+
+def all_layers_present(doc):
+    layers = []
+    nodes = doc.topLevelNodes()
+    for node in nodes:
+        layers.append(node.name())
+    for rl in required_layers:
+        if rl not in layers:
+            return False
+    return True
+
+def set_other_layers_transparent(doc, layer):
+    print('setting transparetn')
+    nodes = doc.topLevelNodes()
+    for node in nodes:
+        while node.visible():
+            node.setVisible(False)
+            node.setOpacity(255)
+    node = doc.nodeByName(layer)
+    while not node.visible():
+        node.setVisible(True)
+    print(f'{node.name()} visibility is {node.visible()}')
+
+def save_all_layers(doc, name):
+    if not all_layers_present(doc):
+        print(f'{f} does not have all the required layers.')
+        return
+    doc.setBatchmode(True)
+    print("set batchmode")
+    for rl in required_layers:
+        fname = os.path.join(dirpath, f'{name}_{rl}.png')
+        if os.path.exists(fname):
+            os.remove(fname)
+        set_other_layers_transparent(doc, rl)
+        doc.save()
+        doc.refreshProjection()
+        while not os.path.exists(fname):
+            doc.exportImage(fname, InfoObject())
+        print(f"exported image {fname}")
+
+def main():
+    for f in files:
+        print('\n')
+        print("get krita")
+        doc = Krita.instance().openDocument(os.path.join(dirpath, f'{f}.kra'))
+        print("open doc")
+        Krita.instance().activeWindow().addView(doc)
+        # Krita.instance().action('export_layers').trigger()
+        print("set active doc")
+        save_all_layers(doc, f)
+        doc.close()
+
+'''
 export_all = False
 export_slippery=False
 export_player = False
@@ -55,3 +111,4 @@ if export_main_menu:
         doc.exportImage(fname, InfoObject())
         if os.path.exists(fname):
             current_frame += 1
+'''
