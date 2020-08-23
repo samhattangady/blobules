@@ -30,6 +30,7 @@ int main(int argc, char** argv) {
     init_ui(&ui_state);
     w.editor.ui_state = &ui_state;
     set_renderer(&r);
+    set_global_renderer(&r);
 
     SDL_GameController *controller = NULL;
     for (int i=0; i<SDL_NumJoysticks(); i++) {
@@ -170,8 +171,8 @@ int main(int argc, char** argv) {
         char fps_counter[48];
         char cps_counter[48];
         sprintf(fps_counter, "%.2f fps", 1.0/frame_time);
-        cb_ui_render_text(&ui_state, fps_counter, WINDOW_WIDTH-100, 20);
-        cb_ui_render_text(&ui_state, cps_counter, WINDOW_WIDTH-100, 40);
+        if (DEBUG_BUILD)
+            cb_ui_render_text(&ui_state, fps_counter, WINDOW_WIDTH-100, 20);
         render_ui(&ui_state);
         reset_inputs(&w);
         SDL_GL_SwapWindow(r.window);

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ui.h"
+#include "renderer.h"
 #include "cb_lib/cb_string.h"
 #include "cb_lib/cb_types.h"
 #include "game_settings.h"
@@ -12,6 +13,21 @@
 // needs 24 floats. So there tends to be a bunch of confusion about that. Needs to be
 // standardized.
 #define CHAR_BUFFER_SIZE 2048
+
+renderer* global_r;
+
+int set_global_renderer(void* r) {
+    global_r = (renderer*) r;
+    return 0;
+}
+
+int get_window_width() {
+    return global_r->size[0];
+}
+
+int get_window_height() {
+    return global_r->size[1];
+}
 
 int cb_ui_test_shader_compilation(u32 shader, char* type) {
     int status;
@@ -139,7 +155,9 @@ int render_chars(cb_ui_state* state) {
     glDisable(GL_MULTISAMPLE_ARB);
     glLinkProgram(state->values.shader_program);
     glUseProgram(state->values.shader_program);
-    glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), WINDOW_WIDTH, WINDOW_HEIGHT);
+    int window_height = get_window_height();
+    int window_width = get_window_width();
+    glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), window_width, window_height);
     glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 1, 1, 1, 1);
     glUniform1i(glGetUniformLocation(state->values.shader_program, "mode"), 1);
     glEnable(GL_TEXTURE_2D);
@@ -164,7 +182,9 @@ int render_rectangles(cb_ui_state* state) {
     glDepthFunc(GL_GEQUAL);
     glLinkProgram(state->values.shader_program);
     glUseProgram(state->values.shader_program);
-    glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), WINDOW_WIDTH, WINDOW_HEIGHT);
+    int window_height = get_window_height();
+    int window_width = get_window_width();
+    glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), window_width, window_height);
     glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 0.2, 0.2, 0.23, 0.2);
     glUniform1i(glGetUniformLocation(state->values.shader_program, "mode"), 2);
     glEnable(GL_TEXTURE_2D);
@@ -188,7 +208,9 @@ int render_lines(cb_ui_state* state) {
     glDepthFunc(GL_GEQUAL);
     glLinkProgram(state->values.shader_program);
     glUseProgram(state->values.shader_program);
-    glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), WINDOW_WIDTH, WINDOW_HEIGHT);
+    int window_height = get_window_height();
+    int window_width = get_window_width();
+    glUniform2f(glGetUniformLocation(state->values.shader_program, "window_size"), window_width, window_height);
     glUniform4f(glGetUniformLocation(state->values.shader_program, "textColor"), 0.5, 0.5, 0.63, 0.4);
     glUniform1i(glGetUniformLocation(state->values.shader_program, "mode"), 2);
     glEnable(GL_TEXTURE_2D);
@@ -216,7 +238,8 @@ int cb_ui_render_rectangle(cb_ui_state* state, float xpos, float ypos, float w, 
     // TODO (18 Jun 2020 sam): We have removed the opacity functionality when we started
     // batch drawing the rectangles. Might need to be fixed.
     // we want text coordinates to be passed with top left of window as (0,0)
-    ypos = WINDOW_HEIGHT-ypos;
+    int window_height = get_window_height();
+    ypos = window_height-ypos;
     u32 index = state->values.rect_buffer.occupied;
     if (index >= CHAR_BUFFER_SIZE*24) {
         render_rectangles(state);
@@ -254,8 +277,9 @@ int cb_ui_render_line(cb_ui_state* state, float xpos1, float ypos1, float xpos2,
     // TODO (18 Jun 2020 sam): We have removed the opacity functionality when we started
     // batch drawing the rectangles. Might need to be fixed.
     // we want text coordinates to be passed with top left of window as (0,0)
-    ypos1 = WINDOW_HEIGHT-ypos1;
-    ypos2 = WINDOW_HEIGHT-ypos2;
+    int window_height = get_window_height();
+    ypos1 = window_height-ypos1;
+    ypos2 = window_height-ypos2;
     float x1, y1, x2, y2;
     if (xpos1>xpos2) {
         x1 = xpos1;//min(xpos1, xpos2);
@@ -324,7 +348,8 @@ void get_baked_quad(const stbtt_bakedchar *chardata, int pw, int ph, int char_in
 
 int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y) {
     // we want text coordinates to be passed with top left of window as (0,0)
-    y = WINDOW_HEIGHT-y;
+    int window_height = get_window_height();
+    y = window_height-y;
     y -= PIXEL_SIZE - BUTTON_PADDING;
     for (int i=0; i<strlen(text); i++) {
         char c = text[i] - 32;
@@ -388,6 +413,12 @@ float get_text_width(cb_ui_state* state, char* text) {
         w += x;
     }
     return w;
+}
+
+int cb_ui_render_text_centered_x(cb_ui_state* state, char* text, float x, float y) {
+    float width = get_text_width(state, text);
+    cb_ui_render_text(state, text, x-width/2.0, y);
+    return 0;
 }
 
 int append_widget(cb_widget_array* array, cb_widget w) {

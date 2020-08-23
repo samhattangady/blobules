@@ -66,6 +66,7 @@ typedef struct cb_ui_state {
 
 int init_ui(cb_ui_state* state);
 int cb_ui_render_text(cb_ui_state* state, char* text, float x, float y);
+int cb_ui_render_text_centered_x(cb_ui_state* state, char* text, float x, float y);
 int cb_ui_render_rectangle(cb_ui_state* state, float xpos, float ypos, float w, float h, float opactity);
 int cb_ui_render_line(cb_ui_state* state, float xpos, float ypos, float w, float h, float opactity);
 int init_gl_values(cb_ui_state* state);
@@ -78,5 +79,6 @@ int vert_spacer(cb_ui_state* state, cb_window* window, bool padding);
 int cb_render_window(cb_ui_state* state, cb_window* window);
 int render_chars(cb_ui_state* state);
 int render_ui(cb_ui_state* state);
+int set_global_renderer(void* r);
 
 #endif

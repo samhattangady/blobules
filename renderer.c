@@ -581,11 +581,16 @@ int render_game_scene(renderer* r, world* w) {
 
 int render_menu_scene(renderer* r, world* w) {
     // TODO (14 Jun 2020 sam): Keep the ui state in a more accessible location
+    glViewport(0, 0, r->size[0], r->size[1]);
+    render_level_select(r, w, true);
+    cb_ui_render_rectangle(w->editor.ui_state, 0, 0, r->size[0], r->size[1], 0.3);
+    cb_ui_render_text_centered_x(w->editor.ui_state, "Mouse in Slippers", r->size[0]*0.5, r->size[1]*0.3);
     for (int i=0; i<w->main_menu.total_options; i++) {
-        cb_ui_render_text(w->editor.ui_state, w->main_menu.options[i].text.text,
-                          100, 100+(i*30));
+        cb_ui_render_text_centered_x(w->editor.ui_state, w->main_menu.options[i].text.text,
+                          r->size[0]*0.5, r->size[1]*0.7+(i*30));
     }
-    cb_ui_render_rectangle(w->editor.ui_state, 95, 95+(w->main_menu.active_option*30), 100, 21, 0.5);
+    cb_ui_render_rectangle(w->editor.ui_state, r->size[0]*0.4, r->size[1]*0.7+(w->main_menu.active_option*30)-5,
+                           r->size[0]*0.2, 21, 0.5);
     return 0;
 }
 
@@ -742,7 +747,7 @@ float get_min_connection_length(world* w, level_option lev) {
     return radius;
 }
 
-int update_level_vertex_background_sdf_buffer(renderer* r, world* w) {
+int update_level_vertex_background_sdf_buffer(renderer* r, world* w, bool just_background) {
     level_option active_level = w->level_select.levels[w->level_select.current_level];
     float circle_sprite = 1.0;
     float line_sprite = 2.0;
@@ -764,6 +769,8 @@ int update_level_vertex_background_sdf_buffer(renderer* r, world* w) {
     }
     // render the lines sdf for lines connecting levels
     // currently we are only drawing the left, up links (as a left will have a right, that will be same)
+    if (just_background)
+        return 0;
     for (int i=0; i<w->level_select.total_connections; i++) {
         level_connection con = w->level_select.connections[i];
         if (!con.discovered)
@@ -800,13 +807,13 @@ int update_level_select_vertex_buffer(renderer* r, world* w) {
     return 0;
 }
 
-int render_level_select(renderer* r, world* w) {
+int render_level_select(renderer* r, world* w, bool just_background) {
     int position_attribute, tex_attribute, uni_ybyx, uni_time;
     // background sdf -> drawing is done in the shader. We just want to pass in the coords
     glBindFramebuffer(GL_FRAMEBUFFER, r->level_background_shader.framebuffer);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    update_level_vertex_background_sdf_buffer(r, w);
+    update_level_vertex_background_sdf_buffer(r, w, just_background);
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT); 
     glLinkProgram(r->level_background_shader.shader_program);
@@ -876,6 +883,8 @@ int render_level_select(renderer* r, world* w) {
     glBindTexture(GL_TEXTURE_2D, 0);
     memset(r->level_buffer.vertex_buffer, 0, r->level_buffer.buffer_size);
     r->level_buffer.buffer_occupied = 0;
+    if (just_background)
+        return 0;
     // level options
     update_level_select_vertex_buffer(r, w);
     glLinkProgram(r->level_shader.shader_program);
@@ -920,7 +929,6 @@ int render_level_select(renderer* r, world* w) {
     //     cb_ui_render_rectangle(w->editor.ui_state, lx-10, ly-5, 200, 21, 0.5);
     // }
     // cb_ui_render_rectangle(w->editor.ui_state, r->size[0]/2-10, r->size[1]/2-5, 200, 21, 0.5);
-
     return 0;
 }
 
@@ -937,7 +945,7 @@ int render_scene(renderer* r, world* w) {
     if (w->active_mode == MAIN_MENU)
         render_menu_scene(r, w);
     if (w->active_mode == LEVEL_SELECT)
-        render_level_select(r, w);
+        render_level_select(r, w, false);
     return 0;
 }
 

@@ -2,6 +2,7 @@
 #define CHAPLIBOY_TYPES_DEFINED
 
 #define u32 unsigned int
+#define u8 unsigned char
 
 typedef struct {
     float x;

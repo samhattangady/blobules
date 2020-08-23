@@ -745,7 +745,7 @@ int init_world(world* w, u32 number) {
     // TODO (12 Jun 2020 sam): See whether there is a cleaner way to set this all to 0;
     memset(&tmp, 0, sizeof(world));
     tmp.input = input;
-    tmp.active_mode = IN_GAME;
+    tmp.active_mode = MAIN_MENU;
     tmp.level_select = level_select;
     init_main_menu(&tmp);
     tmp.player = ALIVE;
@@ -903,8 +903,11 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
     int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);
     if (get_entity_at(w, target_pos_index) != NONE) {
         if (can_stop_cube_slide(get_entity_at(w, target_pos_index))) {
-            if (get_entity_at(w, target_pos_index) == CUBE)
+            sound_type st = CUBE_STOP;
+            if (get_entity_at(w, target_pos_index) == CUBE) {
                 maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth);
+                st = CUBE_TO_CUBE;
+            }
             if (get_entity_at(w, target_pos_index) == REFLECTOR)
                 maybe_reflect_cube(w, x, y, x+dx, y+dy, z, dx, dy, dz, depth);
             if (get_entity_at(w, target_pos_index) == FURNITURE)
@@ -917,9 +920,9 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
                 set_none(w, index);
                 set_cold_target(w, x, y, z-1);
             }
+            add_sound_to_queue(w, st, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
             return 1;
         }
-        // what if it's player?
     }
     if (!can_support_cube(get_entity_at(w, target_on_index))) {
         // remove cube
@@ -935,6 +938,8 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
     set_none(w, index);
     add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
     maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1);
+    if (depth == 0)
+        add_sound_to_queue(w, CUBE_MOVE, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
     return 0;
 }
 
@@ -975,6 +980,9 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, 
     w->grid_data[target_pos_index] = furniture_index;
     set_none(w, index);
     add_interpolation(w, furniture_index, x, y, z, dx, dy, depth);
+    if (depth == 0) {
+        add_sound_to_queue(w, FURN_MOVE, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
+    }
     if (get_entity_at(w, target_on_index) == SLIPPERY_GROUND)
         maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1);
     return 0;
@@ -1084,7 +1092,7 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
             sound_to_queue = PLAYER_STOP;
         } else {
             anim_to_queue = PUSHING_LEFT;
-            sound_to_queue = PLAYER_STOP;
+            sound_to_queue = PLAYER_MOVE;
         }
         if (can_push_player_back(get_entity_at(w, target_index)) && !force) {
             if (get_entity_at(w, ground_index) == SLIPPERY_GROUND) {
@@ -1126,7 +1134,8 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     }
     if (anim_to_queue == STATIC && force && should_move_player) {
         anim_to_queue = SLIPPING;
-        sound_to_queue = PLAYER_SLIP;
+        if (depth==0)
+            sound_to_queue = PLAYER_SLIP;
     }
     if (anim_to_queue == STATIC && should_move_player) {
         sound_to_queue = PLAYER_MOVE;
@@ -1136,8 +1145,8 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
             anim_to_queue = MOVING_LEFT;
     }
     queue_player_animation(w, player_index, anim_to_queue);
-    if (!force)
-        add_sound_to_queue(w, sound_to_queue, w->seconds);
+    if (sound_to_queue != NO_SOUND)
+        add_sound_to_queue(w, sound_to_queue, w->seconds + depth*ANIMATION_SINGLE_STEP_TIME);
     if (should_schedule_removal)
         schedule_entity_removal(w, player_index, depth);
     if (should_move_player) {
@@ -1295,13 +1304,15 @@ void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action,
 
 int init_main_menu(world* w) {
     menu_option new_game = {string_from("Play")};
-    menu_option reset_progress = {string_from("Reset Progress")};
-    menu_option exit = {string_from("Exit")};
-    w->main_menu.total_options = 3;
+    menu_option fullscreen = {string_from("Toggle Fullscreen")};
+    menu_option reset_progress = {string_from("Reset Progess")};
+    menu_option exit = {string_from("Save and Quit")};
+    w->main_menu.total_options = 4;
     w->main_menu.active_option = 0;
     w->main_menu.options[0] = new_game;
-    w->main_menu.options[1] = reset_progress;
-    w->main_menu.options[2] = exit;
+    w->main_menu.options[1] = fullscreen;
+    w->main_menu.options[2] = reset_progress;
+    w->main_menu.options[3] = exit;
     return 0;
 }
 
@@ -1319,27 +1330,16 @@ int previous_option(world* w) {
     return 0;
 }
 
-/*
-void main_menu_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        previous_option(global_w);
-    if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        next_option(global_w);
-    if (key == GLFW_KEY_ENTER && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        select_active_option(global_w);
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        global_w->active_mode = EXIT;
-}
-*/
-
 int select_active_option(world* w) {
     // TODO (14 Jun 2020 sam): Figure out better way to link option with action?
     if (w->main_menu.active_option == 0)
-	    w->active_mode = LEVEL_SELECT;
+        w->active_mode = LEVEL_SELECT;
     if (w->main_menu.active_option == 1)
-        reset_game_progress(w);
+        toggle_fullscreen(global_r);
     if (w->main_menu.active_option == 2)
-	    w->active_mode = EXIT;
+        reset_game_progress(w);
+    if (w->main_menu.active_option == 3)
+        w->active_mode = EXIT;
     return 0;
 }
 
