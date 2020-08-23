@@ -1,12 +1,35 @@
 #ifndef BLOBULES_GAME_DEFINED
 #define BLOBULES_GAME_DEFINED
 #include "SDL.h"
+#include "SDL_mixer.h"
 #include <stdbool.h>
 #include "cb_lib/cb_types.h"
 #include "ui.h"
-#include "boombox.h"
 #include "game_settings.h"
 #include "common.h"
+
+typedef enum {
+    NO_SOUND,
+    PLAYER_MOVE,
+    PLAYER_SLIP,
+    PLAYER_PUSH,
+    PLAYER_STOP,
+    PLAYER_WIN,
+    CUBE_MOVE,
+    CUBE_TO_CUBE,
+    CUBE_STOP,
+    FURN_MOVE,
+    SOUNDS_COUNT,
+} sound_type;
+
+typedef struct {
+    Mix_Chunk* data;   
+} sound_data;
+
+typedef struct {
+    sound_type sound;
+    float seconds;
+} sound_queue_item;
 
 typedef enum {
     PLAYER,
@@ -249,6 +272,8 @@ typedef struct {
     float animation_seconds_update;
     editor_data editor;
     world_history history;
+    sound_data* sounds;
+    sound_queue_item* sound_queue;
 } world;
 
 int init_main_menu(world* w);

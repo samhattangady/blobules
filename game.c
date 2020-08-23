@@ -5,7 +5,6 @@
 #include "cb_lib/cb_types.h"
 #include "cb_lib/cb_string.h"
 #include "game.h"
-#include "boombox.h"
 #include "game_settings.h"
 #include "renderer.h"
 
@@ -164,8 +163,6 @@ char get_entity_char(entity_type et) {
     return ' ';
 }
 
-
-
 bool has_movements(entity_type et) {
     return true;
     // TODO (25 Jun 2020 sam): See what all need to be here. Should it
@@ -193,7 +190,6 @@ animations get_anim_from_name(char* a) {
         return STOPPING_HARD_LEFT;
     return ANIMATIONS_COUNT;
 }
-
 
 int load_player_animations(world* w, u32 anim_index) {
     FILE* anim_file = fopen("player_animations.txt", "r");
@@ -686,6 +682,35 @@ int load_previous_level(world* w) {
     return 0;
 }
 
+int add_sound_to_queue(world* w, sound_type sound, float seconds) {
+    for (int i=0; i<SOUND_QUEUE_LENGTH; i++) {
+        if (w->sound_queue[i].sound == NO_SOUND) {
+            printf("adding to queue at position %i\n", i);
+            w->sound_queue[i].sound = sound;
+            w->sound_queue[i].seconds = seconds;
+            break;
+        }
+    }
+    return 0;
+}
+
+int load_sounds(world* w) {
+    w->sounds = (sound_data*) malloc(SOUNDS_COUNT * sizeof(sound_data));
+    w->sounds[PLAYER_MOVE].data = Mix_LoadWAV("static/sounds/moving.wav");
+    w->sounds[PLAYER_SLIP].data = Mix_LoadWAV("static/sounds/slipping.wav");
+    w->sounds[PLAYER_PUSH].data = Mix_LoadWAV("static/sounds/pushing.wav");
+    w->sounds[PLAYER_STOP].data = Mix_LoadWAV("static/sounds/stopping.wav");
+    w->sounds[PLAYER_WIN].data = Mix_LoadWAV("static/sounds/dive.wav");
+    w->sounds[CUBE_MOVE].data = Mix_LoadWAV("static/sounds/ice_slide.wav");
+    w->sounds[CUBE_TO_CUBE].data = Mix_LoadWAV("static/sounds/ice_to_ice.wav");
+    w->sounds[CUBE_STOP].data = Mix_LoadWAV("static/sounds/thud.wav");
+    w->sounds[FURN_MOVE].data = Mix_LoadWAV("static/sounds/box_slide.wav");
+    w->sound_queue = (sound_queue_item*) malloc(SOUND_QUEUE_LENGTH * sizeof(sound_queue_item));
+    for (int i=0; i<SOUND_QUEUE_LENGTH; i++)
+        w->sound_queue[i].sound = NO_SOUND;
+    return 0;
+}
+
 int init_world(world* w, u32 number) {
     player_input input = {NO_INPUT, 0.0};
     world_freezeframe* frames = (world_freezeframe*) malloc(HISTORY_STEPS * sizeof(world_freezeframe));
@@ -726,6 +751,7 @@ int init_world(world* w, u32 number) {
     w->movements = (char*)w->data+(grid_data_size+entity_data_size);
     w->animations = (char*)w->data+(grid_data_size+entity_data_size+movement_data_size);
     w->animation_seconds_update = 0.0;
+    load_sounds(w);
     load_game_progress(w);
     save_level_history(w);
     load_level(w);
@@ -1022,6 +1048,7 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     bool should_schedule_removal = false;
     int new_dx, new_dy, new_dz;
     animations anim_to_queue = STATIC;
+    sound_type sound_to_queue = NO_SOUND;
     // check out of bounds;
     if ((pos.x+dx < 0 || pos.x+dx > w->x_size-1) ||
         (pos.y+dy < 0 || pos.y+dy > w->y_size-1) ||
@@ -1034,10 +1061,13 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     // see what's already in desired place
     if (get_entity_at(w, target_index) != NONE) {
         should_move_player = false;
-        if (force)
+        if (force) {
             anim_to_queue = STOPPING_HARD_LEFT;
-        else
+            sound_to_queue = PLAYER_STOP;
+        } else {
             anim_to_queue = PUSHING_LEFT;
+            sound_to_queue = PLAYER_STOP;
+        }
         if (can_push_player_back(get_entity_at(w, target_index)) && !force) {
             if (get_entity_at(w, ground_index) == SLIPPERY_GROUND) {
                 should_call_maybe_move = true;
@@ -1063,6 +1093,7 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     if (get_entity_at(w, ground_index) == SLIPPERY_GROUND && !force && !should_call_maybe_move) {
         should_move_player = false;
         anim_to_queue = SLIPPING;
+        sound_to_queue = PLAYER_SLIP;
     }
     if (get_entity_at(w, target_ground_index) == SLIPPERY_GROUND && should_move_player) {
         should_call_maybe_move = true;
@@ -1070,17 +1101,25 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
         new_dy = dy;
         new_dz = dz;
     }
-    if (get_entity_at(w, target_ground_index) == COLD_TARGET)
+    if (get_entity_at(w, target_ground_index) == COLD_TARGET) {
+        // TODO (23 Aug 2020 sam): This should be scheduled.
         w->player = WIN;
-    if (anim_to_queue == STATIC && force && should_move_player)
+        sound_to_queue = PLAYER_WIN;
+    }
+    if (anim_to_queue == STATIC && force && should_move_player) {
         anim_to_queue = SLIPPING;
+        sound_to_queue = PLAYER_SLIP;
+    }
     if (anim_to_queue == STATIC && should_move_player) {
+        sound_to_queue = PLAYER_MOVE;
         if (dx > 0)
             anim_to_queue = MOVING_RIGHT;
         else
             anim_to_queue = MOVING_LEFT;
     }
     queue_player_animation(w, player_index, anim_to_queue);
+    if (!force)
+        add_sound_to_queue(w, sound_to_queue, w->seconds);
     if (should_schedule_removal)
         schedule_entity_removal(w, player_index, depth);
     if (should_move_player) {
@@ -1581,6 +1620,14 @@ int simulate_world(world* w, float seconds) {
         run_editor_functions(w);
     if (w->active_mode == LEVEL_SELECT)
         run_level_select_functions(w);
+    for (int i=0; i<SOUND_QUEUE_LENGTH; i++) {
+        sound_queue_item sqi = w->sound_queue[i];
+        if (sqi.sound != NO_SOUND && w->seconds > sqi.seconds) {
+            printf("playing queued sound %i\n", sqi.sound);
+            Mix_PlayChannel(-1, w->sounds[sqi.sound].data, 0);
+            w->sound_queue[i].sound = NO_SOUND;
+        }
+    }
     copy_grid_data_to_entities(w);
     remove_scheduled_entities(w);
     return 0;

@@ -378,13 +378,16 @@ void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x
         tx1 = sd.x1; ty1 = sd.y1; tx2 = sd.x2; ty2 = sd.y2;
     } else if (orientation == 1) {
         tx1 = sd.x2; ty1 = sd.y2; tx2 = sd.x1; ty2 = sd.y2;
+        vx1 = x_padding + (blockx * xpos) + ((1.0-x_size)*blockx);
+        vx2 = x_padding + (blockx * xpos) + (1.0*blockx);
     } else if (orientation == 2) {
         tx1 = sd.x2; ty1 = sd.y2; tx2 = sd.x1; ty2 = sd.y1;
         vy1 = y_padding + (blocky * ypos) + ((1.0-y_size)*blocky);
         vy2 = y_padding + (blocky * ypos) + (1.0*blocky);
     } else if (orientation == 3) {
         tx1 = sd.x1; ty1 = sd.y2; tx2 = sd.x2; ty2 = sd.y1;
-        // TODO (22 Aug 2020 sam): Add the x reversal stuff as well.
+        vx1 = x_padding + (blockx * xpos) + ((1.0-x_size)*blockx);
+        vx2 = x_padding + (blockx * xpos) + (1.0*blockx);
         vy1 = y_padding + (blocky * ypos) + ((1.0-y_size)*blocky);
         vy2 = y_padding + (blocky * ypos) + (1.0*blocky);
     }
@@ -484,7 +487,7 @@ void add_ground_edges(renderer* r, world* w) {
             if (n9 && !n8 && !n6)
                 draw_additional_sprite(r, w, x, y, GROUND_EDGE_CORNER, 0, -0.1);
             if (n2) {
-                // draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_BELOW, 0, -0.08);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_BELOW, 0, -0.08);
                 draw_additional_sprite(r, w, x, y, GROUND_EDGE_TOP, 3, -0.1);
             }
             if (n8)

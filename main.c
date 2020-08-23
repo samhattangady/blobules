@@ -7,7 +7,6 @@
 #include "renderer.h"
 #include "cb_lib/cb_string.h"
 #include "game.h"
-#include "boombox.h"
 #include "game_settings.h"
 #define STB_LEAKCHECK_IMPLEMENTATION
 #define STB_LEAKCHECK_SHOWALL
@@ -17,6 +16,7 @@
 int main(int argc, char** argv) {
     // TODO (31 Mar 2020 sam): Name this window according to the current version;
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
+    Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 4096);
     world w;
     init_world(&w, 1024);
     printf("initted world\n");
@@ -44,10 +44,12 @@ int main(int argc, char** argv) {
     }
 
     // Init sounds stuff.
-    Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 4096);
     Mix_Chunk *music = NULL;
-    music = Mix_LoadWAV("static/music1.wav");
+    music = Mix_LoadWAV("static/sounds/music1.wav");
+    Mix_Chunk *ambient1 = NULL;
+    ambient1 = Mix_LoadWAV("static/sounds/ambience1.wav");
     Mix_PlayChannel(-1, music, -1);
+    Mix_PlayChannel(-1, ambient1, -1);
 
     u32 frame = 0;
     u32 start_time;
