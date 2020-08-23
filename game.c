@@ -564,6 +564,24 @@ int load_game_progress(world* w) {
     return 0;
 }
 
+int reset_game_progress(world* w) {
+    for (int i=0; i<w->level_select.total_levels; i++) {
+        w->level_select.levels[i].unlocked = false;
+        w->level_select.levels[i].discovered = false;
+        w->level_select.levels[i].completed = false;
+    }
+    for (int i=0; i<w->level_select.total_connections; i++) {
+        w->level_select.connections[i].discovered = false;
+    }
+    w->level_select.levels[0].unlocked = true;
+    w->level_select.levels[0].discovered = true;
+    w->level_select.current_level = 0;
+    w->level_select.cx = w->level_select.levels[0].xpos;
+    w->level_select.cy = w->level_select.levels[0].ypos;
+    save_game_progress(w);
+    return 0;
+}
+
 // int save_levels_list(world* w) {
 //     printf("saving level_select list\n");
 //     FILE* level_listing_file = fopen(LEVEL_LISTING, "w");
@@ -1277,11 +1295,13 @@ void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action,
 
 int init_main_menu(world* w) {
     menu_option new_game = {string_from("Play")};
+    menu_option reset_progress = {string_from("Reset Progress")};
     menu_option exit = {string_from("Exit")};
-    w->main_menu.total_options = 2;
+    w->main_menu.total_options = 3;
     w->main_menu.active_option = 0;
     w->main_menu.options[0] = new_game;
-    w->main_menu.options[1] = exit;
+    w->main_menu.options[1] = reset_progress;
+    w->main_menu.options[2] = exit;
     return 0;
 }
 
@@ -1317,6 +1337,8 @@ int select_active_option(world* w) {
     if (w->main_menu.active_option == 0)
 	    w->active_mode = LEVEL_SELECT;
     if (w->main_menu.active_option == 1)
+        reset_game_progress(w);
+    if (w->main_menu.active_option == 2)
 	    w->active_mode = EXIT;
     return 0;
 }
