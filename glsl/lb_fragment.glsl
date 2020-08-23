@@ -63,6 +63,10 @@ float sdSegment(vec2 p, vec2 a, vec2 b ) {
     return length( pa - ba*h );
 }
 
+float normpdf(in float x, in float sigma) {
+	return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
+}
+
 void main() {
     vec2 tx = texCoord.xy + 0.0004*cnoise(fragCoord.xy*15.0)*sin(time/3.5);
     tx = tx + 0.008*cnoise(fragCoord.xy*2.4)*sin(time/1.8);
@@ -86,6 +90,14 @@ void main() {
         col.a *= smoothstep(0.0, 0.5, sdf.r);
         col = mix(col,vec4(0.1, 0.1, 0.1, 1.0), sdf.g);
         col = mix(col, bg, sdf.b);
+    } else if (mode == 3) {
+        col = texture2D(spritesheet, tx);
+        vec4 sdf = texture2D(sdfsheet, texCoord.xy);
+        col.a *= smoothstep(0.0, 0.5, sdf.r);
+        col = mix(col,vec4(0.1, 0.1, 0.1, 1.0), sdf.g);
+        col = mix(col, bg, sdf.b);
+        // TODO (23 Aug 2020 sam: Figure out how to blur here instead of reducing alpha
+        col.a *= 0.5;
     }
     fragColor = col;
     return;

@@ -583,7 +583,6 @@ int render_menu_scene(renderer* r, world* w) {
     // TODO (14 Jun 2020 sam): Keep the ui state in a more accessible location
     glViewport(0, 0, r->size[0], r->size[1]);
     render_level_select(r, w, true);
-    cb_ui_render_rectangle(w->editor.ui_state, 0, 0, r->size[0], r->size[1], 0.3);
     cb_ui_render_text_centered_x(w->editor.ui_state, "Mouse in Slippers", r->size[0]*0.5, r->size[1]*0.3);
     for (int i=0; i<w->main_menu.total_options; i++) {
         cb_ui_render_text_centered_x(w->editor.ui_state, w->main_menu.options[i].text.text,
@@ -870,7 +869,7 @@ int render_level_select(renderer* r, world* w, bool just_background) {
     uni_time = glGetUniformLocation(r->level_background_shader.shader_program, "time");
     glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "spritesheet"), 0);
     glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "sdfsheet"), 1);
-    glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "mode"), 2);
+    glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "mode"), 2+(int)just_background);
     glUniform1f(uni_ybyx, r->size[1]*1.0/r->size[0]);
     glUniform1f(uni_time, w->seconds);
     glViewport(0, 0, r->size[0], r->size[1]);
