@@ -377,7 +377,7 @@ void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x
     if (orientation == 0) {
         tx1 = sd.x1; ty1 = sd.y1; tx2 = sd.x2; ty2 = sd.y2;
     } else if (orientation == 1) {
-        tx1 = sd.x2; ty1 = sd.y2; tx2 = sd.x1; ty2 = sd.y2;
+        tx1 = sd.x2; ty1 = sd.y1; tx2 = sd.x1; ty2 = sd.y2;
         vx1 = x_padding + (blockx * xpos) + ((1.0-x_size)*blockx);
         vx2 = x_padding + (blockx * xpos) + (1.0*blockx);
     } else if (orientation == 2) {
