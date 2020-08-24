@@ -16,7 +16,6 @@ typedef struct {
     u32 fragment_shader;
     u32 shader_program;
     u32 fill_texture;
-    u32 sdf_texture;
     u32 framebuffer;
     u32 rendered_texture;
 } shader_data;
@@ -48,6 +47,7 @@ typedef struct {
     buffer_data ingame_buffer;
     buffer_data level_buffer;
     sprite_data* sprites;
+    sprite_data* level_sprites;
     entity_type* ground_entities;
 } renderer;
 

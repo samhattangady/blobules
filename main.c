@@ -17,11 +17,11 @@ int main(int argc, char** argv) {
     // TODO (31 Mar 2020 sam): Name this window according to the current version;
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
     Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 4096);
+    renderer r;
+    init_renderer(&r, "blobules");
     world w;
     init_world(&w, 1024);
     printf("initted world\n");
-    renderer r;
-    init_renderer(&r, "blobules");
     // boombox b;
     // init_boombox(&b);
     // w.boom = &b;

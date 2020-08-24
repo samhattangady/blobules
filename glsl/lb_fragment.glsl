@@ -70,6 +70,7 @@ float normpdf(in float x, in float sigma) {
 void main() {
     vec2 tx = texCoord.xy + 0.0004*cnoise(fragCoord.xy*15.0)*sin(time/3.5);
     tx = tx + 0.008*cnoise(fragCoord.xy*2.4)*sin(time/1.8);
+    tx = texCoord.xy;
     vec4 col = vec4(0.0);
     if (mode == 1) {
         col.a = 1.0;

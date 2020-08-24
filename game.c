@@ -18,9 +18,11 @@
 // with callbacks. See if there is a better way to accomplish this.
 world* global_w;
 renderer* global_r;
+int global_fullscreen;
 
 void set_renderer(void* r) {
     global_r = (renderer*) r;
+    set_fullscreen(r, global_fullscreen);
 }
 
 float get_x_padding(world* w) {
@@ -536,12 +538,12 @@ int save_game_progress(world* w) {
 int load_game_progress(world* w) {
     FILE* save_file = fopen(SAVEFILE, "r");
     int total_levels, total_connections;
-    int major_version, minor_version, rando;
+    int major_version, minor_version;
     // getting file version
     fscanf(save_file, "beta v%i.%i\n", &major_version, &minor_version);
     // TODO (12 Aug 2020 sam): Check version here.
     // getting saved settings
-    fscanf(save_file, "%i %i %i %i\n", &w->level_select.current_level, &rando, &total_levels, &total_connections);
+    fscanf(save_file, "%i %i %i %i\n", &w->level_select.current_level, &global_fullscreen, &total_levels, &total_connections);
     printf("total levels: %i\t total connections: %i\n", total_levels, total_connections);
     // TODO (12 Aug 2020 sam): Make sure there aren't more levels/connections than data loaded.
     for (int i=0; i<total_levels; i++) {
@@ -1064,7 +1066,7 @@ int queue_player_animation(world* w , u32 index, animations a) {
 }
 
 int schedule_player_win(world* w, int depth) {
-    w->win_schedule_time = w->seconds + depth*ANIMATION_SINGLE_STEP_TIME;
+    w->win_schedule_time = w->seconds + (depth+1)*ANIMATION_SINGLE_STEP_TIME;
     w->win_scheduled = true;
     return 0;
 }
@@ -1850,7 +1852,7 @@ int handle_input_state(world* w, SDL_GameController* controller) {
         set_input(w, UNDO_MOVE);
     if (keyboard[SDL_SCANCODE_R])
         set_input(w, RESTART_LEVEL);
-    if (keyboard[SDL_SCANCODE_RETURN] || keyboard[SDL_SCANCODE_KP_ENTER])
+    if (keyboard[SDL_SCANCODE_RETURN] || keyboard[SDL_SCANCODE_KP_ENTER] || keyboard[SDL_SCANCODE_SPACE] || keyboard[SDL_SCANCODE_X])
         set_input(w, ENTER);
     // controller buttons
     if (controller != NULL) {

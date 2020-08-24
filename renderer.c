@@ -8,6 +8,7 @@
 #include "game_settings.h"
 
 #define SPRITE_DATA "static/sprite_data.txt"
+#define LEVEL_SPRITE_DATA "static/level_sprite_data.txt"
 #define SPRITE_HEIGHT 200
 #define SPRITE_WIDTH 280
 
@@ -74,7 +75,7 @@ int load_shaders(renderer* r) {
     return 0;
 }
 
-int init_shader_data(shader_data* shader, char* fill_path, char* sdf_path) {
+int init_shader_data(shader_data* shader, char* fill_path) {
     u32 vertex_shader;
     u32 fragment_shader;
     u32 shader_program;
@@ -83,7 +84,6 @@ int init_shader_data(shader_data* shader, char* fill_path, char* sdf_path) {
     int width1, height1, nrChannels1;
     stbi_set_flip_vertically_on_load(true);
     unsigned char *fill_data = stbi_load(fill_path,&width,&height,&nrChannels,0);
-    unsigned char *sdf_data = stbi_load(sdf_path,&width1,&height1,&nrChannels1,0);
 
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -99,20 +99,7 @@ int init_shader_data(shader_data* shader, char* fill_path, char* sdf_path) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glGenerateMipmap(GL_TEXTURE_2D);
-
-    u32 sdf_texture;
-    glGenTextures(1, &sdf_texture);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, sdf_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width1, height1, 0, GL_RGBA, GL_UNSIGNED_BYTE, sdf_data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
     stbi_image_free(fill_data);
-    stbi_image_free(sdf_data);
 
     u32 framebuffer;
     glGenFramebuffers(1, &framebuffer);
@@ -137,7 +124,6 @@ int init_shader_data(shader_data* shader, char* fill_path, char* sdf_path) {
     shader->fragment_shader = fragment_shader;
     shader->shader_program = shader_program;
     shader->fill_texture = fill_texture;
-    shader->sdf_texture = sdf_texture;
     shader->framebuffer = framebuffer;
     shader->rendered_texture = rendered_texture;
     return 0;
@@ -168,6 +154,17 @@ int init_sprite_data(renderer* r) {
         sprite_data sd;
         fscanf(sprite_datafile, "%i %i %f %f %f %f\n", &sd.w, &sd.h, &sd.x1, &sd.y1, &sd.x2, &sd.y2);
         r->sprites[i] = sd;
+    }
+    fclose(sprite_datafile);
+
+    n = 0;
+    sprite_datafile = fopen(LEVEL_SPRITE_DATA, "r");
+    fscanf(sprite_datafile, "%i\n", &n);
+    r->level_sprites = (sprite_data*) malloc(n*sizeof(sprite_data));
+    for (int i=0; i<n; i++) {
+        sprite_data sd;
+        fscanf(sprite_datafile, "%i %i %f %f %f %f\n", &sd.w, &sd.h, &sd.x1, &sd.y1, &sd.x2, &sd.y2);
+        r->level_sprites[i] = sd;
     }
     fclose(sprite_datafile);
     return 0;
@@ -207,9 +204,9 @@ int init_renderer(renderer* r, char* window_name) {
     renderer r_ = { false, window, { (int)window_width, (int)window_height },
                     ingame_shader, level_background_shader, level_shader, ingame_buffer, level_buffer, NULL };
     *r = r_;
-    init_shader_data(&r->ingame_shader, "static/fillsheet.png", "static/sdfsheet.png");
-    init_shader_data(&r->level_background_shader, "static/brani2.png", "static/ls_sdf.png");
-    init_shader_data(&r->level_shader, "static/lev1.png", "static/lev1.png");
+    init_shader_data(&r->ingame_shader, "static/fillsheet.png");
+    init_shader_data(&r->level_background_shader, "static/brani2.png");
+    init_shader_data(&r->level_shader, "static/level_fillsheet.png");
     u32 framebuffer;
 
     init_buffer_data(&r->ingame_buffer, get_ingame_buffer_size());
@@ -552,8 +549,6 @@ int render_game_scene(renderer* r, world* w) {
     glUniform1i(glGetUniformLocation(r->ingame_shader.shader_program, "sdfsheet"), 1);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, r->ingame_shader.fill_texture);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, r->ingame_shader.sdf_texture);
     glBindVertexArray(r->ingame_buffer.vao);
     glBindBuffer(GL_ARRAY_BUFFER, r->ingame_buffer.vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, r->ingame_buffer.buffer_size, r->ingame_buffer.vertex_buffer);
@@ -571,8 +566,6 @@ int render_game_scene(renderer* r, world* w) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     glActiveTexture(GL_TEXTURE0+0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, 0);
     memset(r->ingame_buffer.vertex_buffer, 0, r->ingame_buffer.buffer_size);
     r->ingame_buffer.buffer_occupied = 0;
@@ -697,11 +690,11 @@ int draw_line_connections(renderer* r, world* w, level_connection con) {
     float lx2 = (next_level.xpos);
     float ly2 = LS_HEIGHT-(next_level.ypos);
     if (con.is_left_right) {
-        lx1 += 20.0;
-        lx2 -= 20.0;
+        lx1 += 40.0;
+        lx2 -= 40.0;
     } else {
-        ly1 -= 20.0;
-        ly2 += 20.0;
+        ly1 -= 40.0;
+        ly2 += 40.0;
     }
     float opacity = 0.5 * pow(my_min(1.0, (w->seconds - con.draw_time)/2.0), 0.7);
     float extent = 3.0 * pow(my_min((w->seconds - level.complete_time) / 2.0, 1.0), 0.7);
@@ -756,7 +749,7 @@ int update_level_vertex_background_sdf_buffer(renderer* r, world* w, bool just_b
         if (!level.completed)
             continue;
         float radius = get_min_connection_length(w, level);
-        radius = LEVEL_BACKGROUND_SDF_WIDTH;
+        radius = my_min(radius, LEVEL_BACKGROUND_SDF_WIDTH);
         float lx = (level.xpos);
         float ly = LS_HEIGHT-(level.ypos);
         float extent = 3.0 * pow(my_min((w->seconds - level.complete_time) / 2.0, 1.0), 0.7);
@@ -779,13 +772,40 @@ int update_level_vertex_background_sdf_buffer(renderer* r, world* w, bool just_b
     return 0;
 }
 
+int draw_connection_arrows(renderer* r, world* w, float vx1, float vy1, float vx2, float vy2, level_option level) {
+    int next;
+    sprite_data sd;
+    sd = r->level_sprites[3];
+    next = level.up_index;
+    if (next >= 0) {
+        level_connection con = w->level_select.connections[next];
+        if (con.discovered)
+            add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, -0.2, -1.0);
+    }
+    next = level.down_index;
+    if (next >= 0) {
+        level_connection con = w->level_select.connections[next];
+        if (con.discovered)
+            add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, sd.x2, sd.y2, sd.x1, sd.y1, -0.2, -1.0);
+    }
+    sd = r->level_sprites[4];
+    next = level.left_index;
+    if (next >= 0) {
+        level_connection con = w->level_select.connections[next];
+        if (con.discovered)
+            add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, sd.x2, sd.y1, sd.x1, sd.y2, -0.2, -1.0);
+    }
+    next = level.right_index;
+    if (next >= 0) {
+        level_connection con = w->level_select.connections[next];
+        if (con.discovered)
+            add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, -0.2, -1.0);
+    }
+    return 0;
+}
+
 int update_level_select_vertex_buffer(renderer* r, world* w) {
     // we want a single smaller circle in middle of screen always
-    float vx1 = screen_pixel_to_vertex_x(r, r->size[0]/2-LEVEL_SPRITE_WIDTH/4.0);
-    float vy1 = screen_pixel_to_vertex_y(r, r->size[1]/2-LEVEL_SPRITE_HEIGHT/4.0);
-    float vx2 = screen_pixel_to_vertex_x(r, r->size[0]/2+LEVEL_SPRITE_WIDTH/4.0);
-    float vy2 = screen_pixel_to_vertex_y(r, r->size[1]/2+LEVEL_SPRITE_HEIGHT/4.0);
-    add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, -0.1, -1.0);
     level_option active_level = w->level_select.levels[w->level_select.current_level];
     float cx = w->level_select.cx - r->size[0]/2;
     float cy = w->level_select.cy - r->size[1]/2;
@@ -793,16 +813,27 @@ int update_level_select_vertex_buffer(renderer* r, world* w) {
         level_option level = w->level_select.levels[i];
         if (!level.unlocked)
             continue;
+        sprite_data sd;
+        if (level.completed)
+            sd = r->level_sprites[0];
+        else
+            sd = r->level_sprites[1];
         float lx = (level.xpos-cx);
         float ly = r->size[1]-(level.ypos-cy);
         float vx1 = screen_pixel_to_vertex_x(r, lx-LEVEL_SPRITE_WIDTH/2.0);
         float vy1 = screen_pixel_to_vertex_y(r, ly-LEVEL_SPRITE_HEIGHT/2.0);
         float vx2 = screen_pixel_to_vertex_x(r, lx+LEVEL_SPRITE_WIDTH/2.0);
         float vy2 = screen_pixel_to_vertex_y(r, ly+LEVEL_SPRITE_HEIGHT/2.0);
-        add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, -0.1, -1.0);
-        if (i == w->level_select.current_level) {
-        }
+        add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, -0.1, -1.0);
+        draw_connection_arrows(r, w, vx1, vy1, vx2, vy2, level);
     }
+    sprite_data sd;
+    sd = r->level_sprites[2];
+    float vx1 = screen_pixel_to_vertex_x(r, r->size[0]/2-LEVEL_SPRITE_WIDTH/4.0);
+    float vy1 = screen_pixel_to_vertex_y(r, r->size[1]/2-LEVEL_SPRITE_HEIGHT/4.0);
+    float vx2 = screen_pixel_to_vertex_x(r, r->size[0]/2+LEVEL_SPRITE_WIDTH/4.0);
+    float vy2 = screen_pixel_to_vertex_y(r, r->size[1]/2+LEVEL_SPRITE_HEIGHT/4.0);
+    add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, -0.1, -1.0);
     return 0;
 }
 
@@ -820,7 +851,7 @@ int render_level_select(renderer* r, world* w, bool just_background) {
     glActiveTexture(GL_TEXTURE0);
     glEnable(GL_BLEND);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, r->level_background_shader.sdf_texture);
+    glBindTexture(GL_TEXTURE_2D, r->level_background_shader.fill_texture);
     glBindVertexArray(r->level_buffer.vao);
     glBindBuffer(GL_ARRAY_BUFFER, r->level_buffer.vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, r->level_buffer.buffer_size, r->level_buffer.vertex_buffer);
@@ -891,7 +922,7 @@ int render_level_select(renderer* r, world* w, bool just_background) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, r->level_shader.sdf_texture);
+    glBindTexture(GL_TEXTURE_2D, r->level_shader.fill_texture);
     glBindVertexArray(r->level_buffer.vao);
     glBindBuffer(GL_ARRAY_BUFFER, r->level_buffer.vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, r->level_buffer.buffer_size, r->level_buffer.vertex_buffer);
