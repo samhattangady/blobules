@@ -246,6 +246,7 @@ typedef struct {
 
 typedef struct {
     bool currently_moving;
+    bool win_scheduled;
     u32 size;
     u32 x_size;
     u32 y_size;
@@ -271,6 +272,7 @@ typedef struct {
     // levels_list levels;
     float seconds;
     float animation_seconds_update;
+    float win_schedule_time;
     editor_data editor;
     world_history history;
     sound_data* sounds;

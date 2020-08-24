@@ -752,6 +752,7 @@ int init_world(world* w, u32 number) {
     tmp.level_mode = NEUTRAL;
     tmp.editor.editor_enabled = false;
     tmp.currently_moving = false;
+    tmp.win_scheduled = false;
     tmp.mouse = mouse;
     tmp.editor.z_level = 0;
     tmp.editor.active_type = GROUND;
@@ -1062,6 +1063,12 @@ int queue_player_animation(world* w , u32 index, animations a) {
     return 0;
 }
 
+int schedule_player_win(world* w, int depth) {
+    w->win_schedule_time = w->seconds + depth*ANIMATION_SINGLE_STEP_TIME;
+    w->win_scheduled = true;
+    return 0;
+}
+
 int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     vec3i pos = w->player_position;
     int position_index = get_position_index(w, pos.x, pos.y, pos.z);
@@ -1128,9 +1135,7 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
         new_dz = dz;
     }
     if (get_entity_at(w, target_ground_index) == COLD_TARGET) {
-        // TODO (23 Aug 2020 sam): This should be scheduled.
-        w->player = WIN;
-        sound_to_queue = PLAYER_WIN;
+        schedule_player_win(w, depth);
     }
     if (anim_to_queue == STATIC && force && should_move_player) {
         anim_to_queue = SLIPPING;
@@ -1593,6 +1598,7 @@ int simulate_world(world* w, float seconds) {
     if (w->active_mode == LEVEL_SELECT)
         simulate_level_select(w);
     if (w->player == WIN && w->active_mode==IN_GAME) {
+        w->win_scheduled = false;
         go_to_level_select(w);
         complete_current_level(w);
     }
@@ -1637,6 +1643,10 @@ int simulate_world(world* w, float seconds) {
                 w->animations[i] = as;
             }
         }
+    }
+    if (w->win_scheduled && w->seconds > w->win_schedule_time) {
+        w->player = WIN;
+        add_sound_to_queue(w, PLAYER_WIN, w->seconds);
     }
     if (w->editor.editor_enabled)
         run_editor_functions(w);
