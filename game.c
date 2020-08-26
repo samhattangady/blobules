@@ -354,11 +354,11 @@ int set_none(world* w, int index) {
     w->grid_data[index] = 0;
     return 0;
 }
-int set_slippery(world* w, int x, int y, int z) {
+int set_slippery(world* w, int x, int y, int z, float seconds) {
     add_entity(w, SLIPPERY_GROUND, x, y, z);
     return 0;
 }
-int set_cold_target(world* w, int x, int y, int z) {
+int set_cold_target(world* w, int x, int y, int z, float seconds) {
     add_entity(w, COLD_TARGET, x, y, z);
     return 0;
 }
@@ -826,7 +826,7 @@ int set_entity_position(world* w, u32 index, int x, int y, int z) {
 }
 
 int schedule_entity_removal(world*w, u32 index, int depth) {
-    w->entities[index].removal_time = w->seconds + (2+depth)*ANIMATION_SINGLE_STEP_TIME;
+    w->entities[index].removal_time = w->seconds + (3+depth)*ANIMATION_SINGLE_STEP_TIME;
     return 0;
 }
 
@@ -886,7 +886,7 @@ int maybe_reflect_cube(world* w, int ogx, int ogy, int x, int y, int z, int dx, 
 int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int depth) {
     int on_index = get_position_index(w, x, y, z-1);
     if (get_entity_at(w, on_index) != HOT_TARGET)
-        set_slippery(w, x, y, z-1);
+        set_slippery(w, x, y, z-1, w->seconds+ANIMATION_SINGLE_STEP_TIME*depth);
     int index = get_position_index(w, x, y, z);
     int cube_index = w->grid_data[index];
     if ((x+dx < 0 || x+dx > w->x_size-1) ||
@@ -921,7 +921,7 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
                 schedule_entity_removal(w, w->grid_data[on_index], depth);
                 set_entity_position(w, cube_index, x, y, z);
                 set_none(w, index);
-                set_cold_target(w, x, y, z-1);
+                set_cold_target(w, x, y, z-1, w->seconds+ANIMATION_SINGLE_STEP_TIME*depth);
             }
             add_sound_to_queue(w, st, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
             return 1;

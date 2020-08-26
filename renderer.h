@@ -20,6 +20,13 @@ typedef struct {
     u32 rendered_texture;
 } shader_data;
 
+typedef enum {
+    FLIP_NONE,
+    FLIP_VERTICAL,
+    FLIP_HORIZONTAL,
+    FLIP_DIAGONAL,
+} orientation_t;
+
 typedef struct {
     u32 vao;
     u32 vbo;
@@ -31,10 +38,10 @@ typedef struct {
 typedef struct {
     int w;
     int h;
-    float x1;
-    float y1;
-    float x2;
-    float y2;
+    double x1;
+    double y1;
+    double x2;
+    double y2;
 } sprite_data;
 
 typedef struct {

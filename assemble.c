@@ -29,8 +29,8 @@ int main(int argc, char** argv) {
     filenames[9] = "static/ground2";
     filenames[10] = "static/ground3";
     filenames[11] = "static/ground4";
-    filenames[12] = "static/ice1";
-    filenames[13] = "static/ice2";
+    filenames[12] = "static/ground5";
+    filenames[13] = "static/ground6";
     filenames[14] = "static/ice3";
 
     for (int i=0; i<TOTAL_NUMBER; i++) {
@@ -76,14 +76,16 @@ int main(int argc, char** argv) {
     for (int i=0; i<TOTAL_NUMBER; i++) {
         // w h tx1 ty1 tx2 ty2
         stbrp_rect rect = rects[i];
-        float x1 = 1.0 * rect.x / total_width;
+        double x1 = 1.0 * rect.x / total_width;
         // this is because data is saved upside down compared to opengl loader.
-        float y1 = 1.0 * (total_height - (rect.y + rect.h)) / total_height;
-        float x2 = 1.0 * (rect.x + rect.w) / total_width;
-        float y2 = 1.0 * (total_height-rect.y) / total_height;
-        fprintf(sprite_data, "%i %i %f %f %f %f\n", rect.w, rect.h, x1, y1, x2, y2);
+        double y1 = 1.0 * (total_height - (rect.y + rect.h)) / total_height;
+        double x2 = 1.0 * (rect.x + rect.w) / total_width;
+        double y2 = 1.0 * (total_height-rect.y) / total_height;
+        fprintf(sprite_data, "%i %i %lf %lf %lf %lf\n", rect.w, rect.h, x1, y1, x2, y2);
     }
     fclose(sprite_data);
+
+    
     printf("exitting.\n");
     return 0;
 }
