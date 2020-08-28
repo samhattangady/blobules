@@ -1030,11 +1030,17 @@ int render_level_select(renderer* r, world* w, bool just_background) {
     // level options
     if (just_background) {
         // draw the main menu graphic
-        float vx1 = screen_pixel_to_vertex_x(r, 2.0*r->size[0]/6.0);
-        float vy1 = screen_pixel_to_vertex_y(r, 6.0*r->size[1]/12.0);
-        float vx2 = screen_pixel_to_vertex_x(r, 4.0*r->size[0]/6.0);
-        float vy2 = screen_pixel_to_vertex_y(r, 9.0*r->size[1]/12.0);
         sprite_data sd = r->level_sprites[6];
+        float width = r->size[0] * 1.0/3.0;
+        float height = width * 360.0/960.0;
+        float x1 = r->size[0]/2.0 - width/2.0;
+        float x2 = x1 + width;
+        float y1 = r->size[1]/2.5 + height/2.0;
+        float y2 = y1 + height;
+        float vx1 = screen_pixel_to_vertex_x(r, x1);
+        float vy1 = screen_pixel_to_vertex_y(r, y1);
+        float vx2 = screen_pixel_to_vertex_x(r, x2);
+        float vy2 = screen_pixel_to_vertex_y(r, y2);
         add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, 0.0, 0.0);
     } else {
         update_level_select_vertex_buffer(r, w);
