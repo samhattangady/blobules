@@ -690,6 +690,7 @@ int update_vertex_buffer(renderer* r, world* w) {
 }
 
 int render_game_scene(renderer* r, world* w) {
+    render_level_select(r, true, false);
     update_vertex_buffer(r, w);
     glLinkProgram(r->ingame_shader.shader_program);
     glUseProgram(r->ingame_shader.shader_program);
@@ -725,7 +726,7 @@ int render_game_scene(renderer* r, world* w) {
 int render_menu_scene(renderer* r, world* w) {
     // TODO (14 Jun 2020 sam): Keep the ui state in a more accessible location
     glViewport(0, 0, r->size[0], r->size[1]);
-    render_level_select(r, w, true);
+    render_level_select(r, w, true, true);
     for (int i=0; i<w->main_menu.total_options; i++) {
         cb_ui_render_text_centered_x(w->editor.ui_state, w->main_menu.options[i].text.text,
                           r->size[0]*0.5, r->size[1]*0.7+(i*30));
@@ -951,7 +952,7 @@ int update_level_select_vertex_buffer(renderer* r, world* w) {
     return 0;
 }
 
-int render_level_select(renderer* r, world* w, bool just_background) {
+int render_level_select(renderer* r, world* w, bool just_background, bool draw_menu) {
     int position_attribute, tex_attribute, uni_ybyx, uni_time;
     // background sdf -> drawing is done in the shader. We just want to pass in the coords
     glBindFramebuffer(GL_FRAMEBUFFER, r->level_background_shader.framebuffer);
@@ -1028,22 +1029,26 @@ int render_level_select(renderer* r, world* w, bool just_background) {
     memset(r->level_buffer.vertex_buffer, 0, r->level_buffer.buffer_size);
     r->level_buffer.buffer_occupied = 0;
     // level options
-    if (just_background) {
-        // draw the main menu graphic
-        sprite_data sd = r->level_sprites[6];
-        float width = r->size[0] * 1.0/3.0;
-        float height = width * 360.0/960.0;
-        float x1 = r->size[0]/2.0 - width/2.0;
-        float x2 = x1 + width;
-        float y1 = r->size[1]/2.5 + height/2.0;
-        float y2 = y1 + height;
-        float vx1 = screen_pixel_to_vertex_x(r, x1);
-        float vy1 = screen_pixel_to_vertex_y(r, y1);
-        float vx2 = screen_pixel_to_vertex_x(r, x2);
-        float vy2 = screen_pixel_to_vertex_y(r, y2);
-        add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, 0.0, 0.0);
-    } else {
+    if (!just_background) {
         update_level_select_vertex_buffer(r, w);
+    } else {
+        if (draw_menu) {
+            // draw the main menu graphic
+            sprite_data sd = r->level_sprites[6];
+            float width = r->size[0] * 1.0/3.0;
+            float height = width * 360.0/960.0;
+            float x1 = r->size[0]/2.0 - width/2.0;
+            float x2 = x1 + width;
+            float y1 = r->size[1]/2.5 + height/2.0;
+            float y2 = y1 + height;
+            float vx1 = screen_pixel_to_vertex_x(r, x1);
+            float vy1 = screen_pixel_to_vertex_y(r, y1);
+            float vx2 = screen_pixel_to_vertex_x(r, x2);
+            float vy2 = screen_pixel_to_vertex_y(r, y2);
+            add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, 0.0, 0.0);
+        }
+        else
+            return 0;
     }
     glLinkProgram(r->level_shader.shader_program);
     glUseProgram(r->level_shader.shader_program);
@@ -1103,7 +1108,7 @@ int render_scene(renderer* r, world* w) {
     if (w->active_mode == MAIN_MENU)
         render_menu_scene(r, w);
     if (w->active_mode == LEVEL_SELECT)
-        render_level_select(r, w, false);
+        render_level_select(r, w, false, false);
     return 0;
 }
 
