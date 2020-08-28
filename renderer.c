@@ -726,7 +726,6 @@ int render_menu_scene(renderer* r, world* w) {
     // TODO (14 Jun 2020 sam): Keep the ui state in a more accessible location
     glViewport(0, 0, r->size[0], r->size[1]);
     render_level_select(r, w, true);
-    cb_ui_render_text_centered_x(w->editor.ui_state, "Mouse in Slippers", r->size[0]*0.5, r->size[1]*0.3);
     for (int i=0; i<w->main_menu.total_options; i++) {
         cb_ui_render_text_centered_x(w->editor.ui_state, w->main_menu.options[i].text.text,
                           r->size[0]*0.5, r->size[1]*0.7+(i*30));
@@ -1028,10 +1027,18 @@ int render_level_select(renderer* r, world* w, bool just_background) {
     glBindTexture(GL_TEXTURE_2D, 0);
     memset(r->level_buffer.vertex_buffer, 0, r->level_buffer.buffer_size);
     r->level_buffer.buffer_occupied = 0;
-    if (just_background)
-        return 0;
     // level options
-    update_level_select_vertex_buffer(r, w);
+    if (just_background) {
+        // draw the main menu graphic
+        float vx1 = screen_pixel_to_vertex_x(r, 2.0*r->size[0]/6.0);
+        float vy1 = screen_pixel_to_vertex_y(r, 6.0*r->size[1]/12.0);
+        float vx2 = screen_pixel_to_vertex_x(r, 4.0*r->size[0]/6.0);
+        float vy2 = screen_pixel_to_vertex_y(r, 9.0*r->size[1]/12.0);
+        sprite_data sd = r->level_sprites[6];
+        add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, 0.0, 0.0);
+    } else {
+        update_level_select_vertex_buffer(r, w);
+    }
     glLinkProgram(r->level_shader.shader_program);
     glUseProgram(r->level_shader.shader_program);
     glEnable(GL_BLEND);

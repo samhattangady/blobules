@@ -1275,39 +1275,6 @@ int unlock_all_levels(world* w) {
     return 0;
 }
 
-/*
-void in_game_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (global_w->currently_moving)
-        return;
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-        go_to_level_select(global_w);
-    if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        set_input(global_w, MOVE_UP, global_seconds);
-    if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        set_input(global_w, MOVE_DOWN, global_seconds);
-    if (key == GLFW_KEY_A && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        set_input(global_w, MOVE_LEFT, global_seconds);
-    if (key == GLFW_KEY_D && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        set_input(global_w, MOVE_RIGHT, global_seconds);
-    if (key == GLFW_KEY_Z && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        set_input(global_w, UNDO_MOVE, global_seconds);
-    if (key == GLFW_KEY_R && action == GLFW_PRESS)
-        set_input(global_w, RESTART_LEVEL, global_seconds);
-    if (key == GLFW_KEY_N && action == GLFW_PRESS)
-        set_input(global_w, NEXT_LEVEL, global_seconds);
-    if (key == GLFW_KEY_P && action == GLFW_PRESS)
-        set_input(global_w, PREVIOUS_LEVEL, global_seconds);
-    if (key == GLFW_KEY_SPACE && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        global_w->editor.z_level = (global_w->editor.z_level+1) % 2;
-    if (key == GLFW_KEY_F && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        load_shaders(global_r);
-    if (key == GLFW_KEY_TAB && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        global_w->editor.active_type = (global_w->editor.active_type+1)  % INVALID;
-    if (key == GLFW_KEY_E && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        global_w->editor.editor_enabled =  !global_w->editor.editor_enabled;
-}
-*/
-
 int init_main_menu(world* w) {
     menu_option new_game = {string_from("Play")};
     menu_option fullscreen = {string_from("Toggle Fullscreen")};
@@ -1344,8 +1311,10 @@ int select_active_option(world* w) {
         toggle_fullscreen(global_r, w);
     if (w->main_menu.active_option == 2)
         reset_game_progress(w);
-    if (w->main_menu.active_option == 3)
+    if (w->main_menu.active_option == 3) {
+        save_game_progress(w);
         w->active_mode = EXIT;
+    }
     return 0;
 }
 
@@ -1414,41 +1383,6 @@ int enter_active_level(world* w) {
     w->active_mode = IN_GAME;
     return 0;
 }
-
-/*
-void level_select_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (global_w->level_select.moving)
-        return;
-    if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        set_next_level(global_w, LEVEL_UP);
-    if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        set_next_level(global_w, LEVEL_DOWN);
-    if (key == GLFW_KEY_ENTER && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        enter_active_level(global_w);
-    if (key == GLFW_KEY_SPACE && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        go_to_next_level_mode(global_w);
-    if (key == GLFW_KEY_F && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        load_shaders(global_r);
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-        go_to_main_menu(global_w);
-    if (key == GLFW_KEY_J && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        global_w->level_select.cy -= 10.0;
-    if (key == GLFW_KEY_K && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        global_w->level_select.cy += 10.0;
-    if (key == GLFW_KEY_H && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        global_w->level_select.cx -= 10.0;
-    if (key == GLFW_KEY_L && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        global_w->level_select.cx += 10.0;
-    if (key == GLFW_KEY_P && (action == GLFW_PRESS || action == GLFW_REPEAT))
-        save_levels_list(global_w);
-    if (key == GLFW_KEY_C && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-        global_w->level_select.levels[global_w->level_select.current_level].completed = true;
-        global_w->level_select.levels[global_w->level_select.current_level].complete_time = global_w->seconds;
-    }
-    if (key == GLFW_KEY_Q && action == GLFW_RELEASE)
-        unlock_all_levels(global_w);
-}
-*/
 
 void add_entity_at_mouse(world* w) {
     int x = get_world_x(w);
