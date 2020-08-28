@@ -62,6 +62,6 @@ int init_renderer(renderer* r, char* window_name);
 int render_scene(renderer* r, world* w);
 int load_shaders(renderer* r);
 int set_fullscreen(renderer* r, bool flag);
-int toggle_fullscreen(renderer* r);
+int toggle_fullscreen(renderer* r, world* w);
 
 #endif

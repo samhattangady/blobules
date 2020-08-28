@@ -20,10 +20,6 @@ float GROUND_EDGE_LEVEL_RIGHT = 12;
 float GROUND_EDGE_LEVEL_CORNER = 13;
 float LS_WIDTH = 4000.0;
 float LS_HEIGHT = 4000.0;
-float LEVEL_SPRITE_WIDTH = 90.0;
-float LEVEL_SPRITE_HEIGHT = 90.0;
-float LEVEL_BACKGROUND_SDF_WIDTH = 256.0;
-float LEVEL_BACKGROUND_SDF_HEIGHT = 256.0;
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Errors: %s\n", description);
@@ -41,12 +37,41 @@ int test_shader_compilation(u32 shader, char* type) {
     return 0;
 }
 
+float vertex_to_screen_pixel_x(renderer* r, float x) {
+    float window_width = (float)r->size[0];
+    float screen_x = (x+1.0) / 2.0; 
+    screen_x *= window_width;
+    printf("hi %f\n", screen_x);
+    return screen_x;
+}
+
+float vertex_to_screen_pixel_y(renderer* r, float y) {
+    float window_height = (float)r->size[1];
+    float screen_y = (y+1.0) / 2.0; 
+    screen_y *= window_height;
+    return screen_y;
+}
+
+float screen_pixel_to_vertex_x(renderer* r, float x) {
+    float window_width = (float)r->size[0];
+    float vertex_x = (x/window_width) * 2.0;
+    vertex_x -= 1.0;
+    return vertex_x;
+}
+
+float screen_pixel_to_vertex_y(renderer* r, float y) {
+    float window_height = (float)r->size[1];
+    float vertex_y = (y/window_height) * 2.0;
+    vertex_y -= 1.0;
+    return vertex_y;
+}
+
 int get_ingame_buffer_size() {
     return sizeof(float) * MAX_WORLD_ENTITIES * 36;
 }
 
 int get_level_buffer_size() {
-    return sizeof(float) * MAX_WORLD_ENTITIES * 36;
+    return sizeof(float) * 2.0 * MAX_WORLD_ENTITIES * 36;
 }
 
 int load_shader(shader_data* shader, char* vertex_path, char* fragment_path) {
@@ -69,7 +94,7 @@ int load_shader(shader_data* shader, char* vertex_path, char* fragment_path) {
 
 int load_shaders(renderer* r) {
     load_shader(&r->ingame_shader, "glsl/simple_vertex.glsl", "glsl/simple_fragment.glsl");
-    load_shader(&r->level_background_shader, "glsl/simple_vertex.glsl", "glsl/lb_fragment.glsl");
+    load_shader(&r->level_background_shader, "glsl/lb_vertex.glsl", "glsl/lb_fragment.glsl");
     load_shader(&r->level_shader, "glsl/simple_vertex.glsl", "glsl/simple_fragment.glsl");
     return 0;
 }
@@ -110,8 +135,8 @@ int init_shader_data(shader_data* shader, char* fill_path) {
     glGenTextures(1, &rendered_texture);
     glBindTexture(GL_TEXTURE_2D, rendered_texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, temp_bitmap);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, rendered_texture, 0);
     GLenum draw_buffers[1] = {GL_COLOR_ATTACHMENT0};
     glDrawBuffers(1, draw_buffers);
@@ -314,45 +339,145 @@ bool draw_ground_under(entity_type et) {
     return (et == SLIPPERY_GROUND || et == HOT_TARGET || et == COLD_TARGET);
 }
 
-void add_single_vertex_to_buffer(buffer_data* buffer, float vx1, float vy1, float vx2, float vy2, float tx1, float ty1, float tx2, float ty2, float depth, float sprite) {
+vec2 rotate_about_origin(vec2 point, float angle) {
+    float s = sin(angle);
+    float c = cos(angle);
+    vec2 rotated;
+    rotated.x = point.x * c - point.y * s;
+    rotated.y = point.x * s + point.y * c;
+    return rotated;
+}
+
+vec2 rotate_about_point(vec2 point, vec2 center, float angle) {
+    vec2 p;
+    p.x = point.x - center.x;
+    p.y = point.y - center.y;
+    vec2 r = rotate_about_origin(p, angle);
+    r.x += center.x;
+    r.y += center.y;
+    return r;
+}
+
+void add_single_vertex_to_buffer(renderer* r, buffer_data* buffer, float vx1, float vy1, float vx2, float vy2, float tx1, float ty1, float tx2, float ty2, float depth, float angle) {
     int j = buffer->buffer_occupied;
+    if (j >= buffer->buffer_size) {
+        // TODO (27 Aug 2020 sam): Draw the things that already exist here
+        return;
+    }
+    float x1, y1, x2, y2, x3, y3, x4, y4;
+    x1 = vx1;
+    y1 = vy1; 
+    x2 = vx1;
+    y2 = vy2;
+    x3 = vx2;
+    y3 = vy2;
+    x4 = vx2;
+    y4 = vy1;
     buffer->buffer_occupied++;
-    buffer->vertex_buffer[(36*j)+ 0] = vx1;
-    buffer->vertex_buffer[(36*j)+ 1] = vy1;
+    buffer->vertex_buffer[(36*j)+ 0] = x1;
+    buffer->vertex_buffer[(36*j)+ 1] = y1;
     buffer->vertex_buffer[(36*j)+ 2] = depth;
     buffer->vertex_buffer[(36*j)+ 3] = tx1;
     buffer->vertex_buffer[(36*j)+ 4] = ty1;
-    buffer->vertex_buffer[(36*j)+ 5] = sprite;
-    buffer->vertex_buffer[(36*j)+ 6] = vx2;
-    buffer->vertex_buffer[(36*j)+ 7] = vy1;
+    buffer->vertex_buffer[(36*j)+ 5] = angle;
+    buffer->vertex_buffer[(36*j)+ 6] = x4;
+    buffer->vertex_buffer[(36*j)+ 7] = y4;
     buffer->vertex_buffer[(36*j)+ 8] = depth;
     buffer->vertex_buffer[(36*j)+ 9] = tx2;
     buffer->vertex_buffer[(36*j)+10] = ty1;
-    buffer->vertex_buffer[(36*j)+11] = sprite;
-    buffer->vertex_buffer[(36*j)+12] = vx1;
-    buffer->vertex_buffer[(36*j)+13] = vy2;
+    buffer->vertex_buffer[(36*j)+11] = angle;
+    buffer->vertex_buffer[(36*j)+12] = x2;
+    buffer->vertex_buffer[(36*j)+13] = y2;
     buffer->vertex_buffer[(36*j)+14] = depth;
     buffer->vertex_buffer[(36*j)+15] = tx1;
     buffer->vertex_buffer[(36*j)+16] = ty2;
-    buffer->vertex_buffer[(36*j)+17] = sprite;
-    buffer->vertex_buffer[(36*j)+18] = vx1;
-    buffer->vertex_buffer[(36*j)+19] = vy2;
+    buffer->vertex_buffer[(36*j)+17] = angle;
+    buffer->vertex_buffer[(36*j)+18] = x2;
+    buffer->vertex_buffer[(36*j)+19] = y2;
     buffer->vertex_buffer[(36*j)+20] = depth;
     buffer->vertex_buffer[(36*j)+21] = tx1;
     buffer->vertex_buffer[(36*j)+22] = ty2;
-    buffer->vertex_buffer[(36*j)+23] = sprite;
-    buffer->vertex_buffer[(36*j)+24] = vx2;
-    buffer->vertex_buffer[(36*j)+25] = vy1;
+    buffer->vertex_buffer[(36*j)+23] = angle;
+    buffer->vertex_buffer[(36*j)+24] = x4;
+    buffer->vertex_buffer[(36*j)+25] = y4;
     buffer->vertex_buffer[(36*j)+26] = depth;
     buffer->vertex_buffer[(36*j)+27] = tx2;
     buffer->vertex_buffer[(36*j)+28] = ty1;
-    buffer->vertex_buffer[(36*j)+29] = sprite;
-    buffer->vertex_buffer[(36*j)+30] = vx2;
-    buffer->vertex_buffer[(36*j)+31] = vy2;
+    buffer->vertex_buffer[(36*j)+29] = angle;
+    buffer->vertex_buffer[(36*j)+30] = x3;
+    buffer->vertex_buffer[(36*j)+31] = y3;
     buffer->vertex_buffer[(36*j)+32] = depth;
     buffer->vertex_buffer[(36*j)+33] = tx2;
     buffer->vertex_buffer[(36*j)+34] = ty2;
-    buffer->vertex_buffer[(36*j)+35] = sprite;
+    buffer->vertex_buffer[(36*j)+35] = angle;
+    return;
+}
+
+void add_rotated_vertex_to_buffer(renderer* r, buffer_data* buffer, float sx1, float sy1, float sx2, float sy2, float tx1, float ty1, float tx2, float ty2, float depth, float angle) {
+    // this function takes in screen pixel coords, not vertex coords.
+    // we are rotating the sprite around it's centerpoint
+    int j = buffer->buffer_occupied;
+    if (j >= buffer->buffer_size) {
+        // TODO (27 Aug 2020 sam): Draw the things that already exist here
+        return;
+    }
+    float x1, y1, x2, y2, x3, y3, x4, y4;
+    vec2 center;
+    center.x = (sx1+sx2) / 2.0;
+    center.y = (sy1+sy2) / 2.0;
+    vec2 op1 = {sx1, sy1};
+    vec2 op2 = {sx1, sy2};
+    vec2 op3 = {sx2, sy2};
+    vec2 op4 = {sx2, sy1};
+    vec2 p1 = rotate_about_point(op1, center, angle);
+    vec2 p2 = rotate_about_point(op2, center, angle);
+    vec2 p3 = rotate_about_point(op3, center, angle);
+    vec2 p4 = rotate_about_point(op4, center, angle);
+    x1 = screen_pixel_to_vertex_x(r, p1.x);
+    y1 = screen_pixel_to_vertex_y(r, p1.y); 
+    x2 = screen_pixel_to_vertex_x(r, p2.x);
+    y2 = screen_pixel_to_vertex_y(r, p2.y);
+    x3 = screen_pixel_to_vertex_x(r, p3.x);
+    y3 = screen_pixel_to_vertex_y(r, p3.y);
+    x4 = screen_pixel_to_vertex_x(r, p4.x);
+    y4 = screen_pixel_to_vertex_y(r, p4.y);
+    buffer->buffer_occupied++;
+    buffer->vertex_buffer[(36*j)+ 0] = x1;
+    buffer->vertex_buffer[(36*j)+ 1] = y1;
+    buffer->vertex_buffer[(36*j)+ 2] = depth;
+    buffer->vertex_buffer[(36*j)+ 3] = tx1;
+    buffer->vertex_buffer[(36*j)+ 4] = ty1;
+    buffer->vertex_buffer[(36*j)+ 5] = angle;
+    buffer->vertex_buffer[(36*j)+ 6] = x4;
+    buffer->vertex_buffer[(36*j)+ 7] = y4;
+    buffer->vertex_buffer[(36*j)+ 8] = depth;
+    buffer->vertex_buffer[(36*j)+ 9] = tx2;
+    buffer->vertex_buffer[(36*j)+10] = ty1;
+    buffer->vertex_buffer[(36*j)+11] = angle;
+    buffer->vertex_buffer[(36*j)+12] = x2;
+    buffer->vertex_buffer[(36*j)+13] = y2;
+    buffer->vertex_buffer[(36*j)+14] = depth;
+    buffer->vertex_buffer[(36*j)+15] = tx1;
+    buffer->vertex_buffer[(36*j)+16] = ty2;
+    buffer->vertex_buffer[(36*j)+17] = angle;
+    buffer->vertex_buffer[(36*j)+18] = x2;
+    buffer->vertex_buffer[(36*j)+19] = y2;
+    buffer->vertex_buffer[(36*j)+20] = depth;
+    buffer->vertex_buffer[(36*j)+21] = tx1;
+    buffer->vertex_buffer[(36*j)+22] = ty2;
+    buffer->vertex_buffer[(36*j)+23] = angle;
+    buffer->vertex_buffer[(36*j)+24] = x4;
+    buffer->vertex_buffer[(36*j)+25] = y4;
+    buffer->vertex_buffer[(36*j)+26] = depth;
+    buffer->vertex_buffer[(36*j)+27] = tx2;
+    buffer->vertex_buffer[(36*j)+28] = ty1;
+    buffer->vertex_buffer[(36*j)+29] = angle;
+    buffer->vertex_buffer[(36*j)+30] = x3;
+    buffer->vertex_buffer[(36*j)+31] = y3;
+    buffer->vertex_buffer[(36*j)+32] = depth;
+    buffer->vertex_buffer[(36*j)+33] = tx2;
+    buffer->vertex_buffer[(36*j)+34] = ty2;
+    buffer->vertex_buffer[(36*j)+35] = angle;
     return;
 }
 
@@ -388,7 +513,7 @@ void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x
         vy1 = y_padding + (blocky * ypos) + ((1.0-y_size)*blocky);
         vy2 = y_padding + (blocky * ypos) + (1.0*blocky);
     }
-    add_single_vertex_to_buffer(&r->ingame_buffer, vx1, vy1, vx2, vy2, tx1, ty1, tx2, ty2, depth, sprite_position);
+    add_single_vertex_to_buffer(r, &r->ingame_buffer, vx1, vy1, vx2, vy2, tx1, ty1, tx2, ty2, depth, 0.0);
 }
 
 void add_ground_at_pos(renderer* r, world* w, int x, int y) {
@@ -593,6 +718,7 @@ int render_game_scene(renderer* r, world* w) {
     glBindTexture(GL_TEXTURE_2D, 0);
     memset(r->ingame_buffer.vertex_buffer, 0, r->ingame_buffer.buffer_size);
     r->ingame_buffer.buffer_occupied = 0;
+    cb_ui_render_text_centered_x(w->editor.ui_state, w->level_select.levels[w->level_select.current_level].name.text, r->size[0]*0.5, r->size[1]*0.9);
     return 0;
 }
 
@@ -639,22 +765,8 @@ int update_level_vertex_background_buffer(renderer* r, world* w) {
     tx2 = (cx + r->size[0]/2) / LS_WIDTH;
     ty1 = -(cy + r->size[1]/2) / LS_HEIGHT;
     ty2 = -(cy - r->size[1]/2) / LS_HEIGHT;
-    add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, tx1, ty1, tx2, ty2, depth, 0.1);
+    add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, tx1, ty1, tx2, ty2, depth, 0.0);
     return 0;
-}
-
-float screen_pixel_to_vertex_x(renderer* r, float x) {
-    float window_width = (float)r->size[0];
-    float vertex_x = (x/window_width) * 2.0;
-    vertex_x -= 1.0;
-    return vertex_x;
-}
-
-float screen_pixel_to_vertex_y(renderer* r, float y) {
-    float window_height = (float)r->size[1];
-    float vertex_y = (y/window_height) * 2.0;
-    vertex_y -= 1.0;
-    return vertex_y;
 }
 
 float bg_texture_pixel_to_vertex_x(renderer* r, float x) {
@@ -687,52 +799,61 @@ float my_abs(float a) {
     return a;
 }
 
-int draw_single_line(renderer* r, float x1, float y1, float x2, float y2, float opacity) {
-    // only meant for lines that are vertical/horizontal. (just fills full box)
-    float half_line_thickness = 3.0;
-    if (x1 == x2)  {
-        // line is vertical
-        x1 += half_line_thickness;
-        x2 -= half_line_thickness;
-    } else {
-        y1 -= half_line_thickness;
-        y2 += half_line_thickness;
-    }
-    float vx1 = bg_texture_pixel_to_vertex_x(r, x1);
-    float vy1 = bg_texture_pixel_to_vertex_y(r, y1);
-    float vx2 = bg_texture_pixel_to_vertex_x(r, x2);
-    float vy2 = bg_texture_pixel_to_vertex_y(r, y2);
-    add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, opacity, 3.0);
+int draw_single_line(renderer* r, float x, float y, float length, float angle) {
+    // extent = 0.8;
+    sprite_data sd = r->level_sprites[3];
+    float dx = length/2.0;
+    float dy = r->size[0]*LEVEL_LINE_HEIGHT/2;
+    float lx1 = x - dx;
+    float ly1 = y - dy;
+    float lx2 = x + dx;
+    float ly2 = y + dy;
+    add_rotated_vertex_to_buffer(r, &r->level_buffer, lx1, ly1, lx2, ly2, sd.x1, sd.y1, sd.x2, sd.y2, -0.25, angle);
+    return 0;
+}
+
+float get_length(float x1, float y1, float x2, float y2) {
+    return pow(pow(x2-x1, 2.0) + pow(y2-y1, 2.0), 0.5);
+}
+
+int draw_stretched_line(renderer* r, float lx1, float ly1, float lx2, float ly2, float angle) {
+    float length = get_length(lx1, ly1, lx2, ly2);
+    float x = (lx1+lx2)/2.0;
+    float y = (ly1+ly2)/2.0;
+    draw_single_line(r, x, y, length, angle);
     return 0;
 }
 
 int draw_line_connections(renderer* r, world* w, level_connection con) {
     level_option level = w->level_select.levels[con.head_index];
     level_option next_level = w->level_select.levels[con.tail_index];
-    float lx1 = (level.xpos);
-    float ly1 = LS_HEIGHT-(level.ypos);
-    float lx2 = (next_level.xpos);
-    float ly2 = LS_HEIGHT-(next_level.ypos);
+    float cx = w->level_select.cx - r->size[0]/2;
+    float cy = w->level_select.cy - r->size[1]/2;
+    float lx1 = level.xpos - cx;
+    float ly1 = r->size[1]-(level.ypos-cy);
+    float lx2 = next_level.xpos - cx;
+    float ly2 = r->size[1]-(next_level.ypos-cy);
+    float line_spacing = 0.8 * r->size[0] * LEVEL_LINE_WIDTH * (LEVEL_LINE_SPACING+1.0);
     if (con.is_left_right) {
-        lx1 += 40.0;
-        lx2 -= 40.0;
+        lx1 += line_spacing;
+        lx2 -= line_spacing;
     } else {
-        ly1 -= 40.0;
-        ly2 += 40.0;
+        ly1 -= line_spacing;
+        ly2 += line_spacing;
     }
-    float opacity = 0.5 * pow(my_min(1.0, (w->seconds - con.draw_time)/2.0), 0.7);
-    float extent = 3.0 * pow(my_min((w->seconds - level.complete_time) / 2.0, 1.0), 0.7);
+    float opacity = 0.5 * pow(my_min(1.0, (w->seconds - con.draw_time)/LEVEL_LINE_DRAW_TIME), 0.7);
+    sprite_data sd = r->level_sprites[3];
     // we want 3 lines, to form like a staircase between levels.
     if (con.is_left_right) {
         float mid_x = (lx1 + lx2) / 2.0;
-        draw_single_line(r, lx1, ly1, mid_x, ly1, opacity);
-        draw_single_line(r, mid_x, ly1, mid_x, ly2, opacity);
-        draw_single_line(r, mid_x, ly2, lx2, ly2, opacity);
+        draw_stretched_line(r, lx1, ly1, mid_x, ly1, 0.0);
+        draw_stretched_line(r, mid_x, ly1, mid_x, ly2, M_PI/2.0);
+        draw_stretched_line(r, mid_x, ly2, lx2, ly2, 0.0);
     } else {
         float mid_y = (ly1 + ly2) / 2.0;
-        draw_single_line(r, lx1, ly1, lx1, mid_y, opacity);
-        draw_single_line(r, lx1, mid_y, lx2, mid_y, opacity);
-        draw_single_line(r, lx2, mid_y, lx2, ly2, opacity);
+        draw_stretched_line(r, lx1, mid_y, lx1, ly1, M_PI/2.0);
+        draw_stretched_line(r, lx1, mid_y, lx2, mid_y, 0.0);
+        draw_stretched_line(r, lx2, ly2, lx2, mid_y, M_PI/2.0);
     }
     return 0;
 }
@@ -744,8 +865,8 @@ float get_connection_length(world* w, int con_index) {
     return sqrt(pow(l1.xpos-l2.xpos, 2.0) + pow(l1.ypos-l2.ypos, 2.0));
 }
 
-float get_min_connection_length(world* w, level_option lev) {
-    float radius = LEVEL_BACKGROUND_SDF_WIDTH;
+float get_min_connection_length(renderer* r, world* w, level_option lev) {
+    float radius = 100000.0;
     level_connection con;
     int next;
     next = lev.up_index;
@@ -760,6 +881,8 @@ float get_min_connection_length(world* w, level_option lev) {
     next = lev.right_index;
     if (next != -1)
         radius = min(radius, get_connection_length(w, next));
+    // this is to make the size relative to screen size (and not absolute pixel value)
+    radius *= 1.0 * r->size[0]/WINDOW_WIDTH;
     return radius;
 }
 
@@ -772,8 +895,7 @@ int update_level_vertex_background_sdf_buffer(renderer* r, world* w, bool just_b
         level_option level = w->level_select.levels[i];
         if (!level.completed)
             continue;
-        float radius = get_min_connection_length(w, level);
-        radius = my_min(radius, LEVEL_BACKGROUND_SDF_WIDTH);
+        float radius = get_min_connection_length(r, w, level);
         float lx = (level.xpos);
         float ly = LS_HEIGHT-(level.ypos);
         float extent = 3.0 * pow(my_min((w->seconds - level.complete_time) / 2.0, 1.0), 0.7);
@@ -781,12 +903,46 @@ int update_level_vertex_background_sdf_buffer(renderer* r, world* w, bool just_b
         float vy1 = bg_texture_pixel_to_vertex_y(r, ly-radius*extent/2.0);
         float vx2 = bg_texture_pixel_to_vertex_x(r, lx+radius*extent/2.0);
         float vy2 = bg_texture_pixel_to_vertex_y(r, ly+radius*extent/2.0);
-        add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, 0.0, circle_sprite);
+        add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0);
     }
     // render the lines sdf for lines connecting levels
     // currently we are only drawing the left, up links (as a left will have a right, that will be same)
     if (just_background)
         return 0;
+    return 0;
+}
+
+int update_level_select_vertex_buffer(renderer* r, world* w) {
+    // we want a single smaller circle in middle of screen always
+    level_option active_level = w->level_select.levels[w->level_select.current_level];
+    float sprite_size = r->size[0]*LEVEL_SPRITE_SIZE;
+    float cx = w->level_select.cx - r->size[0]/2;
+    float cy = w->level_select.cy - r->size[1]/2;
+    for (int i=0; i<w->level_select.total_levels; i++) {
+        level_option level = w->level_select.levels[i];
+        if (!level.unlocked)
+            continue;
+        sprite_data sd;
+        sd = r->level_sprites[1];
+        float lx = (level.xpos-cx);
+        float ly = r->size[1]-(level.ypos-cy);
+        float vx1 = screen_pixel_to_vertex_x(r, lx-sprite_size/2.0);
+        float vy1 = screen_pixel_to_vertex_y(r, ly-sprite_size/2.0);
+        float vx2 = screen_pixel_to_vertex_x(r, lx+sprite_size/2.0);
+        float vy2 = screen_pixel_to_vertex_y(r, ly+sprite_size/2.0);
+        add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, -0.1, 0.0);
+        if (level.completed) {
+            sd = r->level_sprites[0];
+            add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, -0.2, 0.0);
+        }
+    }
+    sprite_data sd;
+    sd = r->level_sprites[2];
+    float vx1 = screen_pixel_to_vertex_x(r, r->size[0]/2-sprite_size/2.0);
+    float vy1 = screen_pixel_to_vertex_y(r, r->size[1]/2-sprite_size/2.0);
+    float vx2 = screen_pixel_to_vertex_x(r, r->size[0]/2+sprite_size/2.0);
+    float vy2 = screen_pixel_to_vertex_y(r, r->size[1]/2+sprite_size/2.0);
+    add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, -0.3, 0.0);
     for (int i=0; i<w->level_select.total_connections; i++) {
         level_connection con = w->level_select.connections[i];
         if (!con.discovered)
@@ -796,77 +952,12 @@ int update_level_vertex_background_sdf_buffer(renderer* r, world* w, bool just_b
     return 0;
 }
 
-int draw_connection_arrows(renderer* r, world* w, float vx1, float vy1, float vx2, float vy2, level_option level) {
-    int next;
-    sprite_data sd;
-    sd = r->level_sprites[3];
-    next = level.up_index;
-    if (next >= 0) {
-        level_connection con = w->level_select.connections[next];
-        if (con.discovered)
-            add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, -0.2, -1.0);
-    }
-    next = level.down_index;
-    if (next >= 0) {
-        level_connection con = w->level_select.connections[next];
-        if (con.discovered)
-            add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, sd.x2, sd.y2, sd.x1, sd.y1, -0.2, -1.0);
-    }
-    sd = r->level_sprites[4];
-    next = level.left_index;
-    if (next >= 0) {
-        level_connection con = w->level_select.connections[next];
-        if (con.discovered)
-            add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, sd.x2, sd.y1, sd.x1, sd.y2, -0.2, -1.0);
-    }
-    next = level.right_index;
-    if (next >= 0) {
-        level_connection con = w->level_select.connections[next];
-        if (con.discovered)
-            add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, -0.2, -1.0);
-    }
-    return 0;
-}
-
-int update_level_select_vertex_buffer(renderer* r, world* w) {
-    // we want a single smaller circle in middle of screen always
-    level_option active_level = w->level_select.levels[w->level_select.current_level];
-    float cx = w->level_select.cx - r->size[0]/2;
-    float cy = w->level_select.cy - r->size[1]/2;
-    for (int i=0; i<w->level_select.total_levels; i++) {
-        level_option level = w->level_select.levels[i];
-        if (!level.unlocked)
-            continue;
-        sprite_data sd;
-        if (level.completed)
-            sd = r->level_sprites[0];
-        else
-            sd = r->level_sprites[1];
-        float lx = (level.xpos-cx);
-        float ly = r->size[1]-(level.ypos-cy);
-        float vx1 = screen_pixel_to_vertex_x(r, lx-LEVEL_SPRITE_WIDTH/2.0);
-        float vy1 = screen_pixel_to_vertex_y(r, ly-LEVEL_SPRITE_HEIGHT/2.0);
-        float vx2 = screen_pixel_to_vertex_x(r, lx+LEVEL_SPRITE_WIDTH/2.0);
-        float vy2 = screen_pixel_to_vertex_y(r, ly+LEVEL_SPRITE_HEIGHT/2.0);
-        add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, -0.1, -1.0);
-        draw_connection_arrows(r, w, vx1, vy1, vx2, vy2, level);
-    }
-    sprite_data sd;
-    sd = r->level_sprites[2];
-    float vx1 = screen_pixel_to_vertex_x(r, r->size[0]/2-LEVEL_SPRITE_WIDTH/4.0);
-    float vy1 = screen_pixel_to_vertex_y(r, r->size[1]/2-LEVEL_SPRITE_HEIGHT/4.0);
-    float vx2 = screen_pixel_to_vertex_x(r, r->size[0]/2+LEVEL_SPRITE_WIDTH/4.0);
-    float vy2 = screen_pixel_to_vertex_y(r, r->size[1]/2+LEVEL_SPRITE_HEIGHT/4.0);
-    add_single_vertex_to_buffer(&r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, -0.1, -1.0);
-    return 0;
-}
-
 int render_level_select(renderer* r, world* w, bool just_background) {
     int position_attribute, tex_attribute, uni_ybyx, uni_time;
     // background sdf -> drawing is done in the shader. We just want to pass in the coords
     glBindFramebuffer(GL_FRAMEBUFFER, r->level_background_shader.framebuffer);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     update_level_vertex_background_sdf_buffer(r, w, just_background);
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT); 
@@ -1023,7 +1114,8 @@ int set_fullscreen(renderer* r, bool flag) {
     return 0;
 }
 
-int toggle_fullscreen(renderer* r) {
+int toggle_fullscreen(renderer* r, world* w) {
     set_fullscreen(r, !r->fullscreen);
+    save_game_progress(w);
     return 0;
 }

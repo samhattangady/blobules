@@ -198,7 +198,6 @@ int load_player_animations(world* w, u32 anim_index) {
     for (int i=0; i<ANIMATIONS_COUNT; i++) {
         char* anim_name[128];
         fscanf(anim_file, "%s\n", &anim_name);
-        printf("loading animations %s\n", anim_name);
         animations a = get_anim_from_name(anim_name);
         animation_frames_data afd;
         afd.index = 0;
@@ -378,7 +377,7 @@ int complete_level(world* w, int l_index) {
         w->level_select.levels[l_index].complete_time = w->seconds;
     }
     int next;
-    int* cons[4];
+    int cons[4];
     cons[0] = lev.up_index;
     cons[1] = lev.left_index;
     cons[2] = lev.down_index;
@@ -425,23 +424,28 @@ int load_levels_list(level_select_struct* l) {
     // all the bools are either 0 or 1.
     printf("mallocing... load_levels_list\n");
     string levels_data = read_file(LEVEL_LISTING);
-    u32 n_levels = 0;
+    // n_levels is set to 1 because we check for \nL and the first line would not get counted
+    // in that case 
+    u32 n_levels = 1;
     u32 n_connections = 0;
     u32 n = 0;
     char c;
     for (int i=0; true; i++) {
         c = levels_data.text[i];
-        if (c == 'L')
-            n_levels++;
-        if (c == 'C')
-            n_connections++;
         if (c == '\0')
            break; 
+        if (c == '\n') {
+            c = levels_data.text[i+1];
+            if (c == 'L')
+                n_levels++;
+            if (c == 'C')
+                n_connections++;
+        }
     }    
     level_option* levels = (level_option*) malloc(sizeof(level_option)*n_levels);
     level_connection* connections = (level_connection*) malloc(sizeof(level_option)*n_connections);
     string tmp = empty_string();
-    bool levels_done;
+    bool levels_done = false;
     int index = 0;
     level_option lev;
     lev.unlocked = false;
@@ -459,11 +463,13 @@ int load_levels_list(level_select_struct* l) {
         if (c == ' ') {
             if (!levels_done) {
                 if (index == 1)
-                    lev.name = string_from(tmp.text);
+                    lev.path = string_from(tmp.text);
                 else if (index == 2)
                     lev.xpos = (float) atof(tmp.text);
                 else if (index == 3)
                     lev.ypos = (float) atof(tmp.text);
+                else if (index == 4)
+                    lev.name = string_from(tmp.text);
             } else {
                 if (index == 1)
                     con.head_index = atoi(tmp.text);
@@ -479,8 +485,10 @@ int load_levels_list(level_select_struct* l) {
             index++;
             clear_string(&tmp);
         } else if (c == '\n') {
-            if (!levels_done)
+            if (!levels_done) {
                 levels[n] = lev;
+                printf("%s %f %f\n", lev.path.text, lev.xpos, lev.ypos);
+            }
             else {
                 u32 con_index = n-n_levels;
                 connections[con_index] = con;
@@ -502,6 +510,8 @@ int load_levels_list(level_select_struct* l) {
         }
         else if (c == '\0')
             break;
+        else if (c == '_')
+            append_sprintf(&tmp, " ");
         else
             append_sprintf(&tmp, "%c", c);
     }
@@ -514,7 +524,6 @@ int load_levels_list(level_select_struct* l) {
     u32* level_frames = (u32*) calloc(HISTORY_STEPS, sizeof(u32));
     l->history.index = 0;
     l->history.history = level_frames;
-	printf("got levels\n");
     return 0;
 }
 
@@ -552,7 +561,6 @@ int load_game_progress(world* w) {
         w->level_select.levels[i].unlocked = unlocked;
         w->level_select.levels[i].discovered = discovered;
         w->level_select.levels[i].completed = completed;
-        printf("L%i %i %i %i\n", i, unlocked, discovered, completed);
     }
     for (int i=0; i<total_connections; i++) {
         int discovered;
@@ -589,7 +597,7 @@ int reset_game_progress(world* w) {
 //     FILE* level_listing_file = fopen(LEVEL_LISTING, "w");
 //     for (int n=0; n<w->level_select.total_levels; n++) {
 //         level_option lev = w->level_select.levels[n];
-//         fprintf(level_listing_file, "%s %f %f %i %i %i %i\n", lev.name.text, lev.xpos, lev.ypos, lev.up_index, lev.down_index, lev.left_index, lev.right_index);
+//         fprintf(level_listing_file, "%s %f %f %i %i %i %i\n", lev.path.text, lev.xpos, lev.ypos, lev.up_index, lev.down_index, lev.left_index, lev.right_index);
 //     }
 //     return 0;
 // }
@@ -623,17 +631,12 @@ int clear_world_history(world* w) {
 }
 
 int load_level(world* w) {
-    printf("setting player alive \n");
     w->player = ALIVE;
-    printf("setting player animations \n");
     w->currently_moving = false;
     init_entities(w);
-    printf("initted entities \n");
     int x, y, z;
     char c = ' ';
-    printf("getting level name\n");
-    char* level_name = w->level_select.levels[w->level_select.current_level].name.text;
-    printf("loading level %s\n", level_name);
+    char* level_name = w->level_select.levels[w->level_select.current_level].path.text;
     FILE* level_file = fopen(level_name, "r");
     fscanf(level_file, "%i %i %i\n", &x, &y, &z);
     w->size = x * y * z;
@@ -642,7 +645,6 @@ int load_level(world* w) {
     w->x_size = x;
     w->y_size = y;
     w->z_size = z;
-    printf("loading level data...\n");
     for (z=0; z<w->z_size; z++) {
         for (y=w->y_size-1; y>=0; y--) {
             for (x=0; x<w->x_size; x++) {
@@ -667,7 +669,7 @@ int save_level(world* w) {
     int x, y, z;
     int index;
     char c = ' ';
-    char* level_name = w->level_select.levels[w->level_select.current_level].name.text;
+    char* level_name = w->level_select.levels[w->level_select.current_level].path.text;
     printf("saving level %s\n", level_name);
     FILE* level_file = fopen(level_name, "w");
     fprintf(level_file, "%i %i %i\n", w->x_size, w->y_size, w->z_size);
@@ -705,7 +707,6 @@ int load_previous_level(world* w) {
 int add_sound_to_queue(world* w, sound_type sound, float seconds) {
     for (int i=0; i<SOUND_QUEUE_LENGTH; i++) {
         if (w->sound_queue[i].sound == NO_SOUND) {
-            printf("adding to queue at position %i\n", i);
             w->sound_queue[i].sound = sound;
             w->sound_queue[i].seconds = seconds;
             break;
@@ -725,6 +726,7 @@ int load_sounds(world* w) {
     w->sounds[CUBE_TO_CUBE].data = Mix_LoadWAV("static/sounds/ice_to_ice.wav");
     w->sounds[CUBE_STOP].data = Mix_LoadWAV("static/sounds/thud.wav");
     w->sounds[FURN_MOVE].data = Mix_LoadWAV("static/sounds/box_slide.wav");
+    w->sounds[TARGET_FILLING].data = Mix_LoadWAV("static/sounds/filling.wav");
     w->sound_queue = (sound_queue_item*) malloc(SOUND_QUEUE_LENGTH * sizeof(sound_queue_item));
     for (int i=0; i<SOUND_QUEUE_LENGTH; i++)
         w->sound_queue[i].sound = NO_SOUND;
@@ -894,7 +896,6 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
         (z+dz < 0 || z+dz > w->z_size-1)) {
         // remove cube
         // TODO (07 May 2020 sam): Figure out how to handle animations here?
-        printf("removing cube because oob\n");
         add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
         set_entity_position(w, cube_index, x+dx, y+dy, z+dz);
         schedule_entity_removal(w, cube_index, depth);
@@ -922,6 +923,7 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
                 set_entity_position(w, cube_index, x, y, z);
                 set_none(w, index);
                 set_cold_target(w, x, y, z-1, w->seconds+ANIMATION_SINGLE_STEP_TIME*depth);
+                add_sound_to_queue(w, TARGET_FILLING, w->seconds + ANIMATION_SINGLE_STEP_TIME*(depth+1));
             }
             add_sound_to_queue(w, st, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
             return 1;
@@ -930,7 +932,6 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
     if (!can_support_cube(get_entity_at(w, target_on_index))) {
         // remove cube
         // TODO (07 May 2020 sam): Figure out how to handle animations here?
-        printf("removing cube because no support\n");
         schedule_entity_removal(w, cube_index, depth);
         add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
         set_entity_position(w, cube_index, x+dx, y+dy, z+dz);
@@ -953,7 +954,6 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, 
     if ((x+dx < 0 || x+dx > w->x_size-1) ||
         (y+dy < 0 || y+dy > w->y_size-1) ||
         (z+dz < 0 || z+dz > w->z_size-1)) {
-        printf("removing furniture because oob\n");
         add_interpolation(w, furniture_index, x, y, z, dx, dy, depth);
         set_entity_position(w, furniture_index, x+dx, y+dy, z+dz);
         schedule_entity_removal(w, furniture_index, depth);
@@ -973,7 +973,6 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, 
     }
     int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);
     if (!can_support_furniture(get_entity_at(w, target_on_index))) {
-        printf("removing furniture because no support\n");
         add_interpolation(w, furniture_index, x, y, z, dx, dy, depth);
         set_entity_position(w, furniture_index, x+dx, y+dy, z+dz);
         schedule_entity_removal(w, furniture_index, depth);
@@ -998,7 +997,6 @@ int maybe_move_reflector(world* w, int x, int y, int z, int dx, int dy, int dz, 
     if ((x+dx < 0 || x+dx > w->x_size-1) ||
         (y+dy < 0 || y+dy > w->y_size-1) ||
         (z+dz < 0 || z+dz > w->z_size-1)) {
-        printf("removing reflector because oob\n");
         add_interpolation(w, reflector_index, x, y, z, dx, dy, depth);
         schedule_entity_removal(w, reflector_index, depth);
         set_entity_position(w, reflector_index, x+dx, y+dy, z+dz);
@@ -1021,7 +1019,6 @@ int maybe_move_reflector(world* w, int x, int y, int z, int dx, int dy, int dz, 
     }
     int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);
     if (!can_support_reflector(get_entity_at(w, target_on_index))) {
-        printf("removing reflector because no support\n");
         add_interpolation(w, reflector_index, x, y, z, dx, dy, depth);
         set_entity_position(w, reflector_index, x+dx, y+dy, z+dz);
         schedule_entity_removal(w, reflector_index, depth);
@@ -1269,8 +1266,10 @@ int set_input(world* w, input_type it) {
 
 int unlock_all_levels(world* w) {
     printf("unlocking levels...\n");
-    for (int i=0; i<w->level_select.total_levels; i++)
+    for (int i=0; i<w->level_select.total_levels; i++) {
         w->level_select.levels[i].unlocked = true;
+        w->level_select.levels[i].completed = true;
+    }
     for (int i=0; i<w->level_select.total_connections; i++)
         w->level_select.connections[i].discovered = true;
     return 0;
@@ -1342,7 +1341,7 @@ int select_active_option(world* w) {
     if (w->main_menu.active_option == 0)
         w->active_mode = LEVEL_SELECT;
     if (w->main_menu.active_option == 1)
-        toggle_fullscreen(global_r);
+        toggle_fullscreen(global_r, w);
     if (w->main_menu.active_option == 2)
         reset_game_progress(w);
     if (w->main_menu.active_option == 3)
@@ -1657,7 +1656,6 @@ int simulate_world(world* w, float seconds) {
     for (int i=0; i<SOUND_QUEUE_LENGTH; i++) {
         sound_queue_item sqi = w->sound_queue[i];
         if (sqi.sound != NO_SOUND && w->seconds > sqi.seconds) {
-            printf("playing queued sound %i\n", sqi.sound);
             Mix_PlayChannel(-1, w->sounds[sqi.sound].data, 0);
             w->sound_queue[i].sound = NO_SOUND;
         }
@@ -1819,19 +1817,13 @@ int process_input_event(world* w, SDL_Event event) {
             if (key == SDLK_i)
                 save_game_progress(w);
             if (key == SDLK_f)
-                toggle_fullscreen(global_r);
+                toggle_fullscreen(global_r, w);
             if (key == SDLK_g)
                 load_shaders(global_r);
             if (key == SDLK_n)
                 set_input(w, NEXT_LEVEL);
             if (key == SDLK_p)
                 set_input(w, PREVIOUS_LEVEL);
-            if (key == SDLK_j) {
-                for (int i=1; i<w->level_select.history.index; i++) {
-                    printf("%i: %i\t", i, w->level_select.history.history[i]);
-                }
-                printf("\n");
-            }
         }
     }
     return 0;

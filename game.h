@@ -19,6 +19,7 @@ typedef enum {
     CUBE_TO_CUBE,
     CUBE_STOP,
     FURN_MOVE,
+    TARGET_FILLING,
     SOUNDS_COUNT,
 } sound_type;
 
@@ -203,6 +204,7 @@ typedef struct {
     // all
     bool is_bonus;
     string name;
+    string path;
     // TODO (15 Jun 2020 sam): This is unused. Currently we still load data from file.
     string data;
     float xpos;
