@@ -1,0 +1,120 @@
+-- 1 ice
+001:
+Intro. all chill.
+
+003:
+Teach that you need a stopper to go to the goal.
+
+004:
+Teach about pushing off ice to win.
+
+
+-- 1 blocker + 1 ice 
+006:
+Introduce blockers.
+
+008:
+The first level.
+difficulty: 5
+
+009:
+difficulty: 5
+
+010:
+difficulty: 6
+
+011:
+optional
+difficulty:4 
+
+012:
+teach about pushing blocker through ice
+ifficulty: 3
+
+013:
+difficulty: 6
+
+014:
+difficulty: 6
+
+041:
+difficulty: 8
+rating: 9
+
+045: Ravi Varma
+difficulty: 8
+rating: 9
+
+031:
+difficulty: 6
+rating: 8
+
+-- 2 ice
+015:
+teach about ice-ice interaction
+difficulty: 4
+
+016:
+difficulty: 5
+
+019: super fun
+difficulty: 4
+
+-- 2 ice _ 1 blocker
+020:
+difficulty: 5
+
+027:
+diffiuculty: 8
+yes.
+
+028:
+optional
+difficulty: 4
+
+029: Ganga
+difficulty: 8
+
+030: Bramhaputra
+difficulty: 7
+
+044:
+difficulty: 7
+rating: 10
+
+046:
+difficulty: 6
+rating: 7
+
+038:
+difficulty: 7
+rating: 8
+
+039:
+difficulty: 4
+rating: 8
+
+040:
+difficulty: 5
+rating: 7
+might have multiple solutions...
+
+-- 1 ice + 2 blocker
+
+042:
+difficulty: 7
+
+036:
+difficulty: 5
+rating: 7
+
+037:
+difficulty: 6
+
+
+
+-- rework idea
+017
+035
+033
+034
