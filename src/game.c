@@ -634,11 +634,14 @@ int clear_world_history(world* w) {
 int load_level(world* w) {
     w->player = ALIVE;
     w->currently_moving = false;
+    printf("initting entities\n");
     init_entities(w);
     int x, y, z;
     char c = ' ';
+    printf("loading level data\n");
     char* level_name = w->level_select.levels[w->level_select.current_level].path.text;
     FILE* level_file = fopen(level_name, "r");
+    printf("opening level file %s\n", level_name); 
     fscanf(level_file, "%i %i %i\n", &x, &y, &z);
     w->size = x * y * z;
     if (w->size > MAX_WORLD_ENTITIES)
@@ -646,6 +649,7 @@ int load_level(world* w) {
     w->x_size = x;
     w->y_size = y;
     w->z_size = z;
+    printf("adding entities\n");
     for (z=0; z<w->z_size; z++) {
         for (y=w->y_size-1; y>=0; y--) {
             for (x=0; x<w->x_size; x++) {
@@ -776,9 +780,13 @@ int init_world(world* w, u32 number) {
     w->animations = (char*)w->data+(grid_data_size+entity_data_size+movement_data_size);
     w->animation_seconds_update = 0.0;
     load_sounds(w);
+    printf("loading game progress\n");
     load_game_progress(w);
+    printf("saving lelve history\n");
     save_level_history(w);
+    printf("loading level\n");
     load_level(w);
+    printf("initted world\n");
     return 0;
 }
 
