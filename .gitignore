@@ -8,6 +8,7 @@ prof_output
 *.obj
 *.pdb
 *.zip
+*.rdbg
 
 # symlinked libraries
 # cb_string.*
