@@ -129,6 +129,7 @@ typedef enum {
     PUSHING_LEFT,
     SLIPPING,
     STOPPING_HARD_LEFT,
+    JUMPING_LEFT,
     ANIMATIONS_COUNT,
 } animations;
 

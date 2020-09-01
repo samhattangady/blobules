@@ -9,9 +9,8 @@
 #include "renderer.h"
 
 #define INPUT_LAG 0.05
-#define LEVEL "levels/000.txt"
-#define LEVEL_LISTING "levels/data.txt"
-#define SAVEFILE "savefile.txt"
+#define LEVEL_LISTING "mis_data/levels/data.txt"
+#define SAVEFILE "mis_data/savefile.txt"
 #define PI 3.14159265
 
 // TODO (18 Apr 2020 sam): This is required to get the inputs working correctly
@@ -177,7 +176,6 @@ bool has_animations(entity_type et) {
 }
 
 animations get_anim_from_name(char* a) {
-    printf("checking %s len=%i\n", a, strlen(a));
     if (strcmp(a, "STATIC") == 0)
         return STATIC;
     if (strcmp(a, "MOVING_LEFT") == 0)
@@ -190,11 +188,14 @@ animations get_anim_from_name(char* a) {
         return SLIPPING;
     if (strcmp(a, "STOPPING_HARD_LEFT") == 0)
         return STOPPING_HARD_LEFT;
+    if (strcmp(a, "JUMPING_LEFT") == 0)
+        return JUMPING_LEFT;
     return ANIMATIONS_COUNT;
 }
 
 int load_player_animations(world* w, u32 anim_index) {
-    FILE* anim_file = fopen("player_animations.txt", "r");
+    // TODO (29 Aug 2020 sam): Should this all be done in init_world? Then loaded in later?
+    FILE* anim_file = fopen("mis_data/img/player_animations.txt", "r");
     for (int i=0; i<ANIMATIONS_COUNT; i++) {
         char* anim_name[128];
         fscanf(anim_file, "%s\n", &anim_name);
@@ -510,7 +511,7 @@ int load_levels_list(level_select_struct* l) {
         }
         else if (c == '\0')
             break;
-        else if (c == '_')
+        else if (c == '_' && index == 4)
             append_sprintf(&tmp, " ");
         else
             append_sprintf(&tmp, "%c", c);
@@ -717,16 +718,16 @@ int add_sound_to_queue(world* w, sound_type sound, float seconds) {
 
 int load_sounds(world* w) {
     w->sounds = (sound_data*) malloc(SOUNDS_COUNT * sizeof(sound_data));
-    w->sounds[PLAYER_MOVE].data = Mix_LoadWAV("static/sounds/moving.wav");
-    w->sounds[PLAYER_SLIP].data = Mix_LoadWAV("static/sounds/slipping.wav");
-    w->sounds[PLAYER_PUSH].data = Mix_LoadWAV("static/sounds/pushing.wav");
-    w->sounds[PLAYER_STOP].data = Mix_LoadWAV("static/sounds/stopping.wav");
-    w->sounds[PLAYER_WIN].data = Mix_LoadWAV("static/sounds/dive.wav");
-    w->sounds[CUBE_MOVE].data = Mix_LoadWAV("static/sounds/ice_slide.wav");
-    w->sounds[CUBE_TO_CUBE].data = Mix_LoadWAV("static/sounds/ice_to_ice.wav");
-    w->sounds[CUBE_STOP].data = Mix_LoadWAV("static/sounds/thud.wav");
-    w->sounds[FURN_MOVE].data = Mix_LoadWAV("static/sounds/box_slide.wav");
-    w->sounds[TARGET_FILLING].data = Mix_LoadWAV("static/sounds/filling.wav");
+    w->sounds[PLAYER_MOVE].data = Mix_LoadWAV("mis_data/sounds/moving.wav");
+    w->sounds[PLAYER_SLIP].data = Mix_LoadWAV("mis_data/sounds/slipping.wav");
+    w->sounds[PLAYER_PUSH].data = Mix_LoadWAV("mis_data/sounds/pushing.wav");
+    w->sounds[PLAYER_STOP].data = Mix_LoadWAV("mis_data/sounds/stopping.wav");
+    w->sounds[PLAYER_WIN].data = Mix_LoadWAV("mis_data/sounds/dive.wav");
+    w->sounds[CUBE_MOVE].data = Mix_LoadWAV("mis_data/sounds/ice_slide.wav");
+    w->sounds[CUBE_TO_CUBE].data = Mix_LoadWAV("mis_data/sounds/ice_to_ice.wav");
+    w->sounds[CUBE_STOP].data = Mix_LoadWAV("mis_data/sounds/thud.wav");
+    w->sounds[FURN_MOVE].data = Mix_LoadWAV("mis_data/sounds/box_slide.wav");
+    w->sounds[TARGET_FILLING].data = Mix_LoadWAV("mis_data/sounds/filling.wav");
     w->sound_queue = (sound_queue_item*) malloc(SOUND_QUEUE_LENGTH * sizeof(sound_queue_item));
     for (int i=0; i<SOUND_QUEUE_LENGTH; i++)
         w->sound_queue[i].sound = NO_SOUND;
@@ -1069,6 +1070,8 @@ int schedule_player_win(world* w, int depth) {
 }
 
 int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
+    if (w->currently_moving && depth==0)
+        return 0;
     vec3i pos = w->player_position;
     int position_index = get_position_index(w, pos.x, pos.y, pos.z);
     int ground_index = get_position_index(w, pos.x, pos.y, pos.z-1);
@@ -1122,6 +1125,10 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
         else
             should_move_player = false;
     }
+    if (get_entity_at(w, ground_index) == HOT_TARGET) {
+        // for bugs where player input was being accepted before entity could be deleted
+        should_move_player = false;
+    } 
     if (get_entity_at(w, ground_index) == SLIPPERY_GROUND && !force && !should_call_maybe_move) {
         should_move_player = false;
         anim_to_queue = SLIPPING;
@@ -1134,7 +1141,8 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
         new_dz = dz;
     }
     if (get_entity_at(w, target_ground_index) == COLD_TARGET) {
-        schedule_player_win(w, depth);
+        schedule_player_win(w, depth+1);
+        anim_to_queue = JUMPING_LEFT;
     }
     if (anim_to_queue == STATIC && force && should_move_player) {
         anim_to_queue = SLIPPING;
@@ -1192,13 +1200,14 @@ int remove_scheduled_entities(world* w) {
             w->entities[i].removal_time = -1.0;
         }
     }
+    return 0;
 }
 
 int set_input(world* w, input_type it) {
     if (w->seconds - w->input.time < ANIMATION_SINGLE_STEP_TIME)
         return 0;
     if (w->active_mode == IN_GAME) {
-        if (w->currently_moving)
+        if (w->win_scheduled)
             return 0;
         if (it == MOVE_UP)
             maybe_move_player(w, 0, 1, 0, false, 0);
@@ -1322,6 +1331,7 @@ int go_to_next_level_mode(world* w) {
     w->level_mode++;
     if (w->level_mode == LEVEL_EDITOR_MODES_COUNT)
         w->level_mode = NEUTRAL;
+    return 0;
 }
 
 int add_level_interpolation(world* w, int current, int next) {
@@ -1604,6 +1614,7 @@ int reset_inputs(world* w) {
     // the length of the tick.
     w->mouse.l_released = false;
     w->mouse.r_released = false;
+    return 0;
 }
 
 int change_world_xsize_right(world* w, int sign) {

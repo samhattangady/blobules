@@ -7,8 +7,8 @@
 #include "renderer.h"
 #include "game_settings.h"
 
-#define SPRITE_DATA "static/sprite_data.txt"
-#define LEVEL_SPRITE_DATA "static/level_sprite_data.txt"
+#define SPRITE_DATA "mis_data/img/sprite_data.txt"
+#define LEVEL_SPRITE_DATA "mis_data/img/level_sprite_data.txt"
 #define SPRITE_HEIGHT 200
 #define SPRITE_WIDTH 280
 
@@ -93,9 +93,9 @@ int load_shader(shader_data* shader, char* vertex_path, char* fragment_path) {
 }
 
 int load_shaders(renderer* r) {
-    load_shader(&r->ingame_shader, "glsl/simple_vertex.glsl", "glsl/simple_fragment.glsl");
-    load_shader(&r->level_background_shader, "glsl/lb_vertex.glsl", "glsl/lb_fragment.glsl");
-    load_shader(&r->level_shader, "glsl/simple_vertex.glsl", "glsl/simple_fragment.glsl");
+    load_shader(&r->ingame_shader, "mis_data/glsl/simple_vertex.glsl", "mis_data/glsl/simple_fragment.glsl");
+    load_shader(&r->level_background_shader, "mis_data/glsl/lb_vertex.glsl", "mis_data/glsl/lb_fragment.glsl");
+    load_shader(&r->level_shader, "mis_data/glsl/simple_vertex.glsl", "mis_data/glsl/simple_fragment.glsl");
     return 0;
 }
 
@@ -103,15 +103,18 @@ int init_shader_data(shader_data* shader, char* fill_path) {
     u32 vertex_shader;
     u32 fragment_shader;
     u32 shader_program;
+    printf("loading shader data for %s\n", fill_path);
 
     int width, height, nrChannels;
     int width1, height1, nrChannels1;
     stbi_set_flip_vertically_on_load(true);
     unsigned char *fill_data = stbi_load(fill_path,&width,&height,&nrChannels,0);
+    printf("loaded image %s\n", fill_path);
 
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     shader_program = glCreateProgram();
+    printf("basic glCreatestuffs\n");
 
     u32 fill_texture;
     glGenTextures(1, &fill_texture);
@@ -124,10 +127,12 @@ int init_shader_data(shader_data* shader, char* fill_path) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glGenerateMipmap(GL_TEXTURE_2D);
     stbi_image_free(fill_data);
+    printf("gl initialize stuff\n");
 
     u32 framebuffer;
     glGenFramebuffers(1, &framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    printf("framebuffer init\n");
 
     u32 rendered_texture;
     unsigned char* temp_bitmap = (unsigned char*) malloc(width*height*4);
@@ -143,6 +148,7 @@ int init_shader_data(shader_data* shader, char* fill_path) {
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         fprintf(stderr, "could not generate the framebuffer");
     free(temp_bitmap);
+    printf("textures generated\n");
 
     shader->vertex_shader = vertex_shader;
     shader->fragment_shader = fragment_shader;
@@ -220,19 +226,21 @@ int init_renderer(renderer* r, char* window_name) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_MULTISAMPLE);
-    shader_data ingame_shader;
-    shader_data level_shader;
-    shader_data level_background_shader;
-    buffer_data ingame_buffer;
-    buffer_data level_buffer;
+    shader_data ingame_shader = {0};
+    shader_data level_shader = {0};
+    shader_data level_background_shader = {0};
+    buffer_data ingame_buffer = {0};
+    buffer_data level_buffer = {0};
     renderer r_ = { false, window, { (int)window_width, (int)window_height },
                     ingame_shader, level_background_shader, level_shader, ingame_buffer, level_buffer, NULL };
     *r = r_;
-    init_shader_data(&r->ingame_shader, "static/fillsheet.png");
-    init_shader_data(&r->level_background_shader, "static/brani2.png");
-    init_shader_data(&r->level_shader, "static/level_fillsheet.png");
+    printf("initting shader data...\n");
+    init_shader_data(&r->ingame_shader, "mis_data/img/fillsheet.png");
+    init_shader_data(&r->level_background_shader, "mis_data/img/level_bg.png");
+    init_shader_data(&r->level_shader, "mis_data/img/level_fillsheet.png");
     u32 framebuffer;
 
+    printf("initting buffer data...\n");
     init_buffer_data(&r->ingame_buffer, get_ingame_buffer_size());
     init_buffer_data(&r->level_buffer, get_level_buffer_size());
     r->ground_entities = (entity_type*) malloc(sizeof(entity_type)*MAX_WORLD_ENTITIES/2);
@@ -269,7 +277,7 @@ int get_sprite_position(entity_type et)  {
 int get_entity_sprite_position(entity_data ed, world* w) {
     entity_type type = ed.type;
     if (type == PLAYER)
-        return 6; // + get_player_animation_frame(w, ed);
+        return 6 + get_player_animation_frame(w, ed);
     if (type == CUBE)
         return 0;
     if (type == WALL)
@@ -690,7 +698,7 @@ int update_vertex_buffer(renderer* r, world* w) {
 }
 
 int render_game_scene(renderer* r, world* w) {
-    render_level_select(r, true, false);
+    // render_level_select(r, true, false);
     update_vertex_buffer(r, w);
     glLinkProgram(r->ingame_shader.shader_program);
     glUseProgram(r->ingame_shader.shader_program);

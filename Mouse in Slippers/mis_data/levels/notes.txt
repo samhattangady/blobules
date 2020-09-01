@@ -1,0 +1,315 @@
+000:
+Catch: Icecube slides off if there's no blocker
+Insight: Blocker blocks cube
+Rating: 6
+Good to start. Understand the game.
+
+002:
+Catch: If there is no blocker, the icecube will not hit the target
+Insight: None
+Rating: 5
+Again. Very simple. But I think it does introduce you to the catch.
+
+001:
+Catch: If you push the block forward, you get push backward as well.
+Insight: None
+Rating: 9
+I really like it.
+
+003:
+Catch/Learning: You have to slide across the path you created to get to places you want.
+Insight: You can slide across slippery. Learn the pattern of the available ground.
+Rating: 4
+Fairly simple. But it's good. But there's always only one thing to do.
+
+004:
+Catch: None
+Insight: None
+Rating: 4
+No catch. But decently interesting level.
+It's alright. But it seems like in all places there is only one thing to do
+Nothing there that will mislead the player...
+
+005:
+Catch: You can push the cube to the target, but still be stuck on ice.
+Insight: None
+Rating: 5
+The catch is nice. But the solution itself is kinda boring.
+
+006:
+Catch: introducing furniture.
+Insight: Furniture can be moved and it blocks cube
+Rating: 3
+Yeah. Good enough. as introduction.
+
+007:
+Catch: introducing furniture.
+Insight: Furniture can be moved and it blocks cube
+Rating: 6
+Feels very similar to the previous level... Replacable basically. Also it's kinda
+"work". I forget the word.
+
+008:
+Catch: None
+Insight: you need the furniture to be in the correct place to stop your slide, so
+you can push the cube.
+Rating: 9
+Yeah. I quite like it. Forced the player to actually move the furniture in the way
+that I designed.
+
+009:
+Catch: You can't always easily push a furniture across slippery, because you will
+end up getting stuck on the slippery.
+Insight: None
+Rating: 8
+Yeah. The level will likely get you caught. There might be a possibility to do
+something a little more clever than the movement that is currently required. But
+yeah, lets see.. quite happy though
+
+010:
+Catch: None
+Insight: cube can block slide of furniture.
+Rating: 9
+Level is great. Also see how first the cube has to be pushed, only then do we get the
+furniture in correct position.
+
+011:
+Catch: If you use furniture to stop the cube in the correct place, you might have
+difficulty getting there yourself.
+Insight: You can use the furniture multiple times.
+Rating: 8
+It's fine. Semi interesting. Note that this is the first level where the furniture
+is not pushed off the map when hit correctly by the cube. Also, the furniture will
+trap you if you try to push the block left then up
+
+012:
+Catch: Because of the land and slippery, you cant push the furniture to the right
+Insight: You can bump the ice into the furniture in order to move it
+Rating: 9
+I'm quite happy with it. Just discovered the solution. Honestly, it's quite simple
+Can probably be moved up a bit. But certainly very interesting. FORCES you to learn
+
+013:
+Catch: difficult to move the furniture to the obvious blocking spot. If you do that
+there's no way to get off the slippery. Lots of different ways to get stuck. yay
+Insight. Use the furniture to set up the cube at the edge of the slippery
+Rating: 9
+
+014:
+Catch: cube slips
+Insight: you need to move the furniture and cube together or you get stuck.
+Rating: 8
+It's very interesting. But also it kinda solves itself? Like once you get the funrniture
+in the correct spot once, after that it's semi automatic. But it's actually really fun.
+
+015:
+Catch: none
+Insight: Hitting a cube against another causes it to slide. cube acts as blocker
+Rating: 6
+Does it's role well. Introducing the concept of two cubes.
+
+018:
+Catch: It's not possible to get to the square required to push the cube in
+Insight: You can use the other cube as a push off
+Rating: 8
+It's okay.
+
+016:
+Catch: There's no way to push the cube in
+Insight: When you're sandwiched between cubes, the ground becomes steady.
+Rating: 9
+It's really quite interesting the way you need to get between the cubes.
+
+019:
+Catch: the wall in the middle cannot be accessed for easy win.
+Insight: move the cubes around in loops till it's where you need it
+Rating: 9
+Yeah, it's fun to discover how the cubes push each other around the loops.
+
+017:
+Catch: ?
+Insight: you need to push the block to the correct place to use it as a pushoff
+Rating: 7
+It;s okay. I wanted to use just two cubes, but couldn't work it without the furn
+
+020:
+Catch: If you push the bottom cube, you get stuck on the ice. Both the cubes look
+similar, but have "unique" solutions.
+Insight: You need the second cube in the right place so that you're no longer sutck
+You have to push the cube the wrong way, before you can push it the correct way.
+Rating: 9
+It's good. Though both cubes look similar, they have fairly unique solutions, and that's
+a lot of fun. Good stuffs.
+
+021:
+Needs to be redone. Idea was implemented into 020
+
+022:
+Catch: introducing reflectors
+Insight: introducing reflectors
+Rating: 4
+Boring. But clear. Should be able to come up with a more interesting intro...
+
+023:
+Catch: You can't put the reflector where its needed. So you think you need to use
+3 reflectors.
+Insight: you can use 2 reflectors to push cube to wall. before that you have to set
+up the 3rd in correct place.
+Rating: 7
+Fairly nice. Initial setting pushes towards catch. It's interesting. But also I need
+to get a lot better at these games before I can possibly make levels that are truly
+challenging.
+
+026:
+Catch
+Insight: If you put a reflector against a wall, it acts like a blocker
+Rating: 7
+It's good. I think it guides you fairly well towards solving the problems.
+
+024:
+Catch:
+Insight: If you put a reflector against a wall, it acts like a blocker
+Rating: 9
+It's really nice. It forces you to realise the new rule. This is really hard without
+knowing the rule though, so I think we should put a level where that is introduced first.
+
+025:
+Catch:
+Insight: furniture can absorb the energy of the cubes? then you send the furn back to set up
+Rating: 8
+I'm a little on the fence about that specific mechanic. That a furniture stops a cube but
+doesn't transfer the momentum to the next cube. Right now we will keep it in and see.
+May be able to sell it with the animations.
+
+027:
+Catch: you can get the cube to the correct pos, but can't push in easily
+Insight: use the second cube to push off once the first cube is in pos
+Rating: 9
+I really like it. Just found the solution. feels smart bro. Actually wow. It's quite a
+hard level overall. Really need to make sure there's no other simple solution. Hopefully
+no other solution at all.
+
+028:
+Catch: ?
+Insight: ?
+Rating: 7
+It's a little straightforward what to do. But pushing things again and again in the same
+path is also kinda fun. so yeah.
+
+029:
+Catch: Since there is a column of ice, we can't easily position the furn
+Insight: really move the cubes to move the furn
+Rating: 9
+Wooow. I literally spent 20 mins just mucking around, and ended up solving it...
+It's really quite a hard level.
+
+030:
+Catch:
+Insight: Once you realise how the cubes have to be at the end it's easy
+Rating: 8
+Yeah, it's good I think. I don't know how easy it is. Because the answer is fairly clear
+once you know how the final arrangements of elements needs to be.
+
+031:
+Catch: the river doesnt allow us to park the furn exactly unless we use the outcrop
+Insight: Use furn as blocker?
+Rating: 8
+Should be a little earlier on.
+I still like the idea of the river. We haven't explored how having a single outcrop
+allows you to move the furn awat from the river.
+
+032:
+Catch: Introduce river
+Insight: Outcrop in river
+Rating: 8
+It's good.
+
+033:
+Catch: how to get to cube
+Insight: it's all a maze.
+Rating: 5
+It's a concept that needs to be explored. But I don't want it to be unecessarily hard.
+
+036:
+Insight, you need to use the slippery to your advantage.
+Rating: 7 I think
+I really think this would work well as a part of a larger puzzle.
+
+037:
+Rating: 2
+It's a bit boring. The only actual exciting thing is being forced to kick it
+off the map. But we're pretty used to that by now... So yeah;
+
+038:
+Catch: There is a cube blocking the path. So you have to figure out how to go
+around it. Cube can't easily be pushed, as you will get stuck
+Insight: the little outcrop on top allows you to loop around the block. Use
+one cube to push against the other.
+Rating : 7
+It's quite nice. Having the cube push the other is nice
+
+039:
+Insight, you need to use both outcrops to maneuvre the furn everywhere
+Rating: 4
+It's really boring. I Love the initial setup. where you cant take the furn
+across because you keep getting stuck on the ice. But the solution is super
+dull. And tedious. Which is the bigger issue.
+
+040:
+Catch: We meet a river in a different form. It doesn't extend all the way, but
+still we can push the furn through it
+Insight: Get rid of the icecube along the river. That will give us access to
+the regular river outcrop, and we can get the furn across.
+Rating:8
+It's quite nice.
+
+041:
+Catch: if you start of by aligning the cube, you cant put the furn in correct
+place to be a blocker
+Insight: you have to use the ice to create a path for the blocker later (path
+being below the start position of cube)
+Rating: 9
+Oh man, this took a long time to get working, had another version earlier, but
+taht had an easy level break. this one is really good. am proud.
+
+042:
+Catch: Hard to position the cube where you need it. You will get stuck on the ice
+Insight: Double the furns. You need one of the furns to get off the ice
+Rating: 8
+I think it's okay. pretty interesting. But decent.
+I really would like a level which forces you to double the furns and realise
+that thats what keep them on the board?
+
+043:
+Catch: can't push cube without getting stuck on ice.
+Insight: furn acts as a push off block.
+Rating: 8
+It's really interesting. I just don't know whether it can be a level of
+itself. Maybe should figure out how to make a longer level of it. To be fair,
+it does easily allow for expansion into a larger leve. Or maybe its just a
+great early level.
+Actually no. In this form it's far too simple. There is essentially no room
+for exploration and actually finding the solution. This needs to have some
+more elements, where this is just a small part of the level. Cannot stand
+alone like this.
+
+044:
+Catch: you can align the cubes, but cant really push without getting stuck
+Insight: you need to dislodge the furn at the corner, and use that to push a
+cibe inwards.
+Rating: 9
+Really nice level
+
+045:
+Catch if you immediately line up the cube, you'll not be able to get the furn
+into place to block the win
+Insight: you need to use the cube to create a path so that you can get the
+slippery out later.
+Rating: 9
+ayay. same as 041? haha, even the catch and insight are exactly the same.
+
+046:
+Catch: hard to get the cube to stop in mid path
+Insight: use cube as blocker
+Rating: 7
+It's kinda nice. Not too hard or interesting or fun though...

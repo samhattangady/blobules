@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
     Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 4096);
     renderer r;
-    init_renderer(&r, "blobules");
+    init_renderer(&r, "Mouse in Slippers");
     world w;
     init_world(&w, 1024);
     printf("initted world\n");
@@ -46,9 +46,9 @@ int main(int argc, char** argv) {
 
     // Init sounds stuff.
     Mix_Chunk *music = NULL;
-    music = Mix_LoadWAV("static/sounds/music1.wav");
+    music = Mix_LoadWAV("mis_data/sounds/music1.wav");
     Mix_Chunk *ambient1 = NULL;
-    ambient1 = Mix_LoadWAV("static/sounds/ambience1.wav");
+    ambient1 = Mix_LoadWAV("mis_data/sounds/ambience1.wav");
     Mix_PlayChannel(-1, music, -1);
     Mix_PlayChannel(-1, ambient1, -1);
 

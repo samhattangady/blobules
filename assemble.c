@@ -8,7 +8,7 @@
 #include "stb_image_write.h"
 
 #define u8 uint8_t
-#define TOTAL_NUMBER 15
+#define TOTAL_NUMBER 17
 #define NUMBER_OF_NODES 2048
 #define SPRITE_DATA_FILE "static/sprite_data.txt"
 
@@ -31,7 +31,9 @@ int main(int argc, char** argv) {
     filenames[11] = "static/ground4";
     filenames[12] = "static/ground5";
     filenames[13] = "static/ground6";
-    filenames[14] = "static/ice3";
+    filenames[14] = "static/player_push";
+    filenames[15] = "static/player_jump";
+    filenames[16] = "static/player_slip";
 
     for (int i=0; i<TOTAL_NUMBER; i++) {
         char fillname[50];

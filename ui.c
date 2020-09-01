@@ -42,13 +42,13 @@ int cb_ui_test_shader_compilation(u32 shader, char* type) {
 }
 
 int compile_and_link_text_shader(u32* vertex_shader, u32* fragment_shader, u32* shader_program) {
-    string vertex_source = read_file("glsl/text_vertex.glsl");
+    string vertex_source = read_file("mis_data/glsl/text_vertex.glsl");
     *vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(*vertex_shader, 1, &vertex_source.text, NULL);
     glCompileShader(*vertex_shader);
     cb_ui_test_shader_compilation(*vertex_shader, "text vertex");
 
-    string fragment_source = read_file("glsl/text_fragment.glsl");
+    string fragment_source = read_file("mis_data/glsl/text_fragment.glsl");
     *fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(*fragment_shader, 1, &fragment_source.text, NULL);
     glCompileShader(*fragment_shader);
@@ -132,7 +132,7 @@ int init_character_glyphs(cb_ui_state* state) {
     printf("initting character glyphs...\t");
     unsigned char* ttf_buffer = (unsigned char*) malloc(150000);
     unsigned char* temp_bitmap = (unsigned char*) malloc(512*512);
-    FILE* handler = fopen("fonts/shortstack.ttf", "rb");
+    FILE* handler = fopen("mis_data/fonts/shortstack.ttf", "rb");
     if (!handler)
         printf("error opening font file I guess...\n");
     fread(ttf_buffer, 1, 150000, handler);
