@@ -69,12 +69,12 @@ int main(int argc, char** argv) {
     SDL_Event event;
     while (w.active_mode != EXIT) {
         frame += 1;
-        handle_input_state(&w, controller);
         while (SDL_PollEvent(&event)) {
             process_input_event(&w, event);
             if (event.type == SDL_QUIT)
                 w.active_mode = EXIT;
         }
+        handle_input_queue(&w);
         clock_time = SDL_GetTicks();
         frame_time = ((double)clock_time-(double)start_time)/1000.0;
         start_time = clock_time;

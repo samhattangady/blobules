@@ -738,8 +738,18 @@ int load_sounds(world* w) {
     return 0;
 }
 
+int init_input_state(world* w) {
+    w->input_state = (input_state_type*) malloc(sizeof(input_state_type) * INPUT_TYPE_COUNT);
+    for (int i=0; i<INPUT_TYPE_COUNT; i++) {
+        w->input_state[i].down = false;
+    }
+    for (int i=0; i<INPUT_QUEUE_LENGTH; i++)
+        w->input_queue.inputs[i] = NO_INPUT;
+    w->input_queue.occupied = 0;
+    return 0;
+}
+
 int init_world(world* w, u32 number) {
-    player_input input = {NO_INPUT, 0.0};
     world_freezeframe* frames = (world_freezeframe*) malloc(HISTORY_STEPS * sizeof(world_freezeframe));
     world_history history = {0, frames};
     level_select_struct level_select;
@@ -753,7 +763,6 @@ int init_world(world* w, u32 number) {
     world tmp;
     // TODO (12 Jun 2020 sam): See whether there is a cleaner way to set this all to 0;
     memset(&tmp, 0, sizeof(world));
-    tmp.input = input;
     tmp.active_mode = MAIN_MENU;
     tmp.level_select = level_select;
     init_main_menu(&tmp);
@@ -765,8 +774,6 @@ int init_world(world* w, u32 number) {
     tmp.mouse = mouse;
     tmp.editor.z_level = 0;
     tmp.editor.active_type = GROUND;
-    // tmp.current_level=0;
-    // tmp.levels = list;
     tmp.history = history;
     *w = tmp;
     u32 grid_data_size = sizeof(u32) * MAX_WORLD_ENTITIES;
@@ -779,6 +786,7 @@ int init_world(world* w, u32 number) {
     w->movements = (char*)w->data+(grid_data_size+entity_data_size);
     w->animations = (char*)w->data+(grid_data_size+entity_data_size+movement_data_size);
     w->animation_seconds_update = 0.0;
+    init_input_state(w);
     load_sounds(w);
     printf("loading game progress\n");
     load_game_progress(w);
@@ -1212,8 +1220,8 @@ int remove_scheduled_entities(world* w) {
 }
 
 int set_input(world* w, input_type it) {
-    if (w->seconds - w->input.time < ANIMATION_SINGLE_STEP_TIME)
-        return 0;
+    // if (w->seconds - w->input.time < ANIMATION_SINGLE_STEP_TIME)
+    //     return 0;
     if (w->active_mode == IN_GAME) {
         if (w->win_scheduled)
             return 0;
@@ -1227,10 +1235,6 @@ int set_input(world* w, input_type it) {
             maybe_move_player(w, -1, 0, 0, false, 0);
         if (it == RESTART_LEVEL)
             load_level(w);
-        if (it == NEXT_LEVEL)
-            load_next_level(w);
-        if (it == PREVIOUS_LEVEL)
-            load_previous_level(w);
         if (it == UNDO_MOVE)
             load_previous_freezeframe(w);
         if (it == ESCAPE) {
@@ -1276,8 +1280,7 @@ int set_input(world* w, input_type it) {
                 w->active_mode = EXIT;
         }
     }
-    // play_sound(w->boom, BEEP, false, w->seconds);
-    w->input.time = w->seconds;
+    // w->input.time = w->seconds;
     return 0;
 }
 
@@ -1749,17 +1752,54 @@ int change_world_ysize(world* w, int direction, int sign) {
     return 0;
 }
 
+int set_key_down(world* w, input_type it) {
+    if (!w->input_state[it].down) {
+        w->input_state[it].down = true;
+        w->input_state[it].count = 0;
+        w->input_state[it].seconds = w->seconds;
+    }
+    return 0;
+}
+
+int set_key_up(world* w, input_type it) {
+    w->input_state[it].down = false;
+    return 0;
+}
+
 int process_input_event(world* w, SDL_Event event) {
     if (event.type == SDL_MOUSEMOTION)
         process_mouse_motion(w, event.motion);
     if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP)
         process_mouse_button(w, event.button, event.type);
+    if (event.type == SDL_KEYDOWN) {
+        SDL_Keycode key = event.key.keysym.sym;
+        if (key == SDLK_w)
+            set_key_down(w, MOVE_UP);
+        if (key == SDLK_a)
+            set_key_down(w, MOVE_LEFT);
+        if (key == SDLK_s)
+            set_key_down(w, MOVE_DOWN);
+        if (key == SDLK_d)
+            set_key_down(w, MOVE_RIGHT);
+    }
     if (event.type == SDL_KEYUP) {
         SDL_Keycode key = event.key.keysym.sym;
         if (key == SDLK_ESCAPE)
             set_input(w, ESCAPE);
         if (key == SDLK_RETURN || key == SDLK_KP_ENTER)
             set_input(w, ENTER);
+        if (key == SDLK_w)
+            set_key_up(w, MOVE_UP);
+        if (key == SDLK_a)
+            set_key_up(w, MOVE_LEFT);
+        if (key == SDLK_s)
+            set_key_up(w, MOVE_DOWN);
+        if (key == SDLK_d)
+            set_key_up(w, MOVE_RIGHT);
+        if (key == SDLK_z)
+            set_key_up(w, UNDO_MOVE);
+        if (key == SDLK_r)
+            set_key_up(w, RESTART_LEVEL);
         if (DEBUG_BUILD) {
             if (key == SDLK_e)
                 w->editor.editor_enabled =  !w->editor.editor_enabled;
@@ -1768,18 +1808,28 @@ int process_input_event(world* w, SDL_Event event) {
             if (key == SDLK_q)
                 unlock_all_levels(w);
             if (key == SDLK_i)
-                save_game_progress(w);
+                w->currently_moving = false;
             if (key == SDLK_f)
                 toggle_fullscreen(global_r, w);
             if (key == SDLK_g)
                 load_shaders(global_r);
             if (key == SDLK_n)
-                set_input(w, NEXT_LEVEL);
+                load_next_level(w);
             if (key == SDLK_p)
-                set_input(w, PREVIOUS_LEVEL);
+                load_previous_level(w);
         }
     }
     return 0;
+}
+
+int handle_input_queue(world* w) {
+    for (int i=1; i<INPUT_TYPE_COUNT; i++) {
+        if (w->input_state[i].down) {
+            input_state_type ist = w->input_state[i];
+            if ( (int)((w->seconds-ist.seconds)/INPUT_DOWN_REPEAT)-1 > ist.count)
+                set_input(w, i);
+        }
+    }
 }
 
 int handle_input_state(world* w, SDL_GameController* controller) {

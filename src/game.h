@@ -54,8 +54,6 @@ typedef enum {
     MOVE_LEFT,
     MOVE_RIGHT,
     RESTART_LEVEL,
-    NEXT_LEVEL,
-    PREVIOUS_LEVEL,
     UNDO_MOVE,
     ENTER,
     ESCAPE,
@@ -74,11 +72,6 @@ typedef enum {
     DEAD,
     WIN,
 } player_state;
-
-typedef struct {
-    input_type type;
-    float time;
-} player_input;
 
 typedef struct {
     u32 size;
@@ -248,6 +241,17 @@ typedef struct {
 } level_select_struct;
 
 typedef struct {
+    bool down;
+    u32 count;
+    float seconds;
+} input_state_type;
+
+typedef struct {
+    u32 occupied;
+    input_type inputs[INPUT_QUEUE_LENGTH];
+} input_queue_type;
+
+typedef struct {
     bool currently_moving;
     bool win_scheduled;
     u32 size;
@@ -261,7 +265,6 @@ typedef struct {
     u32 entities_occupied;
     u32 movements_occupied;
     u32 animations_occupied;
-    // boombox* boom;
     mouse_data mouse;
     void* data;
     u32* grid_data;
@@ -269,10 +272,7 @@ typedef struct {
     movement_state* movements;
     animation_state* animations;
     vec3i player_position;
-    player_input input;
     player_state player;
-    // u32 current_level;
-    // levels_list levels;
     float seconds;
     float animation_seconds_update;
     float win_schedule_time;
@@ -280,6 +280,8 @@ typedef struct {
     world_history history;
     sound_data* sounds;
     sound_queue_item* sound_queue;
+    input_state_type* input_state;
+    input_queue_type input_queue;
 } world;
 
 int init_main_menu(world* w);
@@ -302,5 +304,6 @@ int process_input_event(world* w, SDL_Event event);
 int handle_input_state(world* w, SDL_GameController* controller);
 float get_x_padding(world* w);
 float get_y_padding(world* w);
+int handle_input_queue(world* w);
 
 #endif
