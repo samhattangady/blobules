@@ -1086,8 +1086,6 @@ int schedule_player_win(world* w, int depth) {
 }
 
 int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
-    if (w->currently_moving && depth==0)
-        return 0;
     vec3i pos = w->player_position;
     int position_index = get_position_index(w, pos.x, pos.y, pos.z);
     int ground_index = get_position_index(w, pos.x, pos.y, pos.z-1);
@@ -1220,8 +1218,17 @@ int remove_scheduled_entities(world* w) {
 }
 
 int set_input(world* w, input_type it) {
-    // if (w->seconds - w->input.time < ANIMATION_SINGLE_STEP_TIME)
-    //     return 0;
+    if (w->currently_moving) {
+        // we want to cancel the animations that are playing
+        for (int i=0; i<w->movements_occupied; i++) {
+            if (!w->movements[i].currently_moving)
+                continue;
+            float elapsed = 1.0;
+            w->movements[i].currently_moving = false;
+            w->movements[i].x = w->movements[i].start_x + w->movements[i].dx;
+            w->movements[i].y = w->movements[i].start_y + w->movements[i].dy;
+        }
+    }
     if (w->active_mode == IN_GAME) {
         if (w->win_scheduled)
             return 0;
@@ -1280,7 +1287,6 @@ int set_input(world* w, input_type it) {
                 w->active_mode = EXIT;
         }
     }
-    // w->input.time = w->seconds;
     return 0;
 }
 
@@ -1603,6 +1609,7 @@ int simulate_world(world* w, float seconds) {
     if (w->win_scheduled && w->seconds > w->win_schedule_time) {
         w->player = WIN;
         add_sound_to_queue(w, PLAYER_WIN, w->seconds);
+        clear_world_history(w);
     }
     if (w->editor.editor_enabled)
         run_editor_functions(w);
@@ -1781,6 +1788,10 @@ int process_input_event(world* w, SDL_Event event) {
             set_key_down(w, MOVE_DOWN);
         if (key == SDLK_d)
             set_key_down(w, MOVE_RIGHT);
+        if (key == SDLK_z)
+            set_key_down(w, UNDO_MOVE);
+        if (key == SDLK_r)
+            set_key_down(w, RESTART_LEVEL);
     }
     if (event.type == SDL_KEYUP) {
         SDL_Keycode key = event.key.keysym.sym;
@@ -1823,11 +1834,18 @@ int process_input_event(world* w, SDL_Event event) {
 }
 
 int handle_input_queue(world* w) {
+    if (w->win_scheduled)
+        return 0;
     for (int i=1; i<INPUT_TYPE_COUNT; i++) {
         if (w->input_state[i].down) {
             input_state_type ist = w->input_state[i];
-            if ( (int)((w->seconds-ist.seconds)/INPUT_DOWN_REPEAT)-1 > ist.count)
+            if ( (int)((w->seconds-ist.seconds)/1.0/INPUT_DOWN_REPEAT)+1 > ist.count) {
+                if (ist.count > 0) {
+                    printf("repeat %i\n", ist.count);
+                }
+                w->input_state[i].count++;
                 set_input(w, i);
+            }
         }
     }
 }
