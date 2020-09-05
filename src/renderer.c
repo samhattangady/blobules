@@ -257,6 +257,9 @@ float get_player_animation_frame(world* w, entity_data ed) {
     animation_state as = w->animations[anim_index];
     animation_frames_data afd = as.animation_data[as.current_animation_index];
     int f = afd.frame_list[afd.index];
+    if (f>1000){
+        printf("gonna crash\n");
+    }
     return (float) f;
 }
 

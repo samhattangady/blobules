@@ -193,6 +193,7 @@ animations get_anim_from_name(char* a) {
     return ANIMATIONS_COUNT;
 }
 
+// TODO (03 Sep 2020 sam): Figure out how this can be done in init_world, and then loaded as needed
 int load_player_animations(world* w, u32 anim_index) {
     // TODO (29 Aug 2020 sam): Should this all be done in init_world? Then loaded in later?
     FILE* anim_file = fopen("mis_data/img/player_animations.txt", "r");
@@ -226,10 +227,6 @@ int add_entity(world* w, entity_type e, int x, int y, int z) {
     int entity_index;
     if (e == NONE)
         entity_index = 0;
-    // else if (e == GROUND)
-    //     entity_index = 1;
-    // else if (e == SLIPPERY_GROUND)
-    //     entity_index = 2;
     else {
         entity_index = w->entities_occupied;
         int movement_index = 0;
@@ -254,8 +251,6 @@ int add_entity(world* w, entity_type e, int x, int y, int z) {
             w->animations_occupied++;
         }
         entity_data ed = {e, movement_index, animation_index, x, y, z, -1.0};
-        // if (e == REFLECTOR)
-        //     ed.data = 1;
         w->entities[entity_index] = ed;
         w->entities_occupied++;
     }
@@ -347,6 +342,8 @@ int load_previous_freezeframe(world* w) {
             w->player_position = pos;
         }
     }
+    if (w->player == DEAD)
+        w->player = ALIVE;
     return 0;
 }
 
@@ -1072,7 +1069,7 @@ int set_player_animation(world* w, u32 index, animations a) {
 int queue_player_animation(world* w , u32 index, animations a) {
     u32 anim_index = w->entities[index].animation_index;
     animation_state as = w->animations[anim_index];
-    u32 queue_index = as.queue_length;;
+    u32 queue_index = as.queue_length;
     as.queue_length++;
     as.queue[queue_index] = a;
     w->animations[anim_index] = as;
@@ -1173,8 +1170,10 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     queue_player_animation(w, player_index, anim_to_queue);
     if (sound_to_queue != NO_SOUND)
         add_sound_to_queue(w, sound_to_queue, w->seconds + depth*ANIMATION_SINGLE_STEP_TIME);
-    if (should_schedule_removal)
+    if (should_schedule_removal) {
         schedule_entity_removal(w, player_index, depth);
+        w->player = DEAD;
+    }
     if (should_move_player) {
         w->player_position.x += dx;
         w->player_position.y += dy;
@@ -1217,29 +1216,51 @@ int remove_scheduled_entities(world* w) {
     return 0;
 }
 
-int set_input(world* w, input_type it) {
-    if (w->currently_moving) {
-        // we want to cancel the animations that are playing
-        for (int i=0; i<w->movements_occupied; i++) {
-            if (!w->movements[i].currently_moving)
-                continue;
-            float elapsed = 1.0;
-            w->movements[i].currently_moving = false;
-            w->movements[i].x = w->movements[i].start_x + w->movements[i].dx;
-            w->movements[i].y = w->movements[i].start_y + w->movements[i].dy;
+int clear_all_movement(world* w) {
+    for (int i=0; i<w->movements_occupied; i++) {
+        if (!w->movements[i].currently_moving)
+            continue;
+        float elapsed = 1.0;
+        w->movements[i].currently_moving = false;
+        w->movements[i].x = w->movements[i].start_x + w->movements[i].dx;
+        w->movements[i].y = w->movements[i].start_y + w->movements[i].dy;
+    }
+    return 0;
+}
+
+int clear_all_animations(world* w) {
+    for (int i=0; i<w->animations_occupied; i++) {
+        if (w->animations[i].currently_animating) {
+            animation_state as = w->animations[i];
+            as.animation_data[as.current_animation_index].index = 0;
+            as.current_animation_index = as.default_animation_index;
+            as.queue_length = 0;
+            w->animations[i] = as;
         }
     }
+    return 0;
+}
+
+int set_input(world* w, input_type it) {
+    if (w->currently_moving) {
+        // we want to cancel the interpolations that are playing
+        clear_all_movement(w);
+    }
+    // The new input will queue up an animation. So the existing ones can be cleared
+    clear_all_animations(w);
     if (w->active_mode == IN_GAME) {
         if (w->win_scheduled)
             return 0;
-        if (it == MOVE_UP)
-            maybe_move_player(w, 0, 1, 0, false, 0);
-        if (it == MOVE_DOWN)
-            maybe_move_player(w, 0, -1, 0, false, 0);
-        if (it == MOVE_RIGHT)
-            maybe_move_player(w, 1, 0, 0, false, 0);
-        if (it == MOVE_LEFT)
-            maybe_move_player(w, -1, 0, 0, false, 0);
+        if (w->player != DEAD) {
+            if (it == MOVE_UP)
+                maybe_move_player(w, 0, 1, 0, false, 0);
+            if (it == MOVE_DOWN)
+                maybe_move_player(w, 0, -1, 0, false, 0);
+            if (it == MOVE_RIGHT)
+                maybe_move_player(w, 1, 0, 0, false, 0);
+            if (it == MOVE_LEFT)
+                maybe_move_player(w, -1, 0, 0, false, 0);
+        }
         if (it == RESTART_LEVEL)
             load_level(w);
         if (it == UNDO_MOVE)
