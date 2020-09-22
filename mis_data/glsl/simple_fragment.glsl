@@ -13,8 +13,11 @@ void main() {
     vec4 col;
     vec2 tx = texCoord.xy;
     col = texture(spritesheet, tx);
-    if (col.a < 0.5)
+    if (col.a < 0.1)
         discard;
+    if (texCoord.z > 0.0) {
+        col.g += 0.02*texCoord.z;
+    }
     fragColor = col;
     return;
 }

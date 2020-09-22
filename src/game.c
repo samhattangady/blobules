@@ -172,49 +172,57 @@ bool has_movements(entity_type et) {
 }
 
 bool has_animations(entity_type et) {
-    return (et==PLAYER);
+    return (et==PLAYER || et==CUBE);
 }
 
 animations get_anim_from_name(char* a) {
     if (strcmp(a, "STATIC") == 0)
         return STATIC;
-    if (strcmp(a, "MOVING_LEFT") == 0)
-        return MOVING_LEFT;
-    if (strcmp(a, "MOVING_RIGHT") == 0)
-        return MOVING_RIGHT;
-    if (strcmp(a, "PUSHING_LEFT") == 0)
-        return PUSHING_LEFT;
+    if (strcmp(a, "MOVING") == 0)
+        return MOVING;
+    if (strcmp(a, "PUSHING_SIDE") == 0)
+        return PUSHING_SIDE;
+    if (strcmp(a, "PUSHING_UP") == 0)
+        return PUSHING_UP;
+    if (strcmp(a, "PUSHING_DOWN") == 0)
+        return PUSHING_DOWN;
     if (strcmp(a, "SLIPPING") == 0)
         return SLIPPING;
-    if (strcmp(a, "STOPPING_HARD_LEFT") == 0)
-        return STOPPING_HARD_LEFT;
-    if (strcmp(a, "JUMPING_LEFT") == 0)
-        return JUMPING_LEFT;
+    if (strcmp(a, "STOPPING_HARD") == 0)
+        return STOPPING_HARD;
+    if (strcmp(a, "JUMPING") == 0)
+        return JUMPING;
+    if (strcmp(a, "CUBE_DOWN") == 0)
+        return CUBE_DOWN;
+    if (strcmp(a, "CUBE_WAIT") == 0)
+        return CUBE_WAIT;
+    if (strcmp(a, "CUBE_JUMP") == 0)
+        return CUBE_JUMP;
     return ANIMATIONS_COUNT;
 }
 
-// TODO (03 Sep 2020 sam): Figure out how this can be done in init_world, and then loaded as needed
-int load_player_animations(world* w, u32 anim_index) {
-    // TODO (29 Aug 2020 sam): Should this all be done in init_world? Then loaded in later?
+int load_animations(world* w) {
     FILE* anim_file = fopen("mis_data/img/player_animations.txt", "r");
     for (int i=0; i<ANIMATIONS_COUNT; i++) {
         char* anim_name[128];
         fscanf(anim_file, "%s\n", &anim_name);
         animations a = get_anim_from_name(anim_name);
         animation_frames_data afd;
+        afd.looping = false;
         afd.index = 0;
         fscanf(anim_file, "%i\n", &afd.length);
         for (int j=0; j<afd.length; j++)
             fscanf(anim_file, "%i %f %f\n", &afd.frame_list[j], &afd.frame_positions[j].x, &afd.frame_positions[j].y);
-        w->animations[anim_index].animation_data[a] = afd;
+        for (int k=0; k<MAX_WORLD_ENTITIES; k++)
+            w->animations[k].animation_data[a] = afd;
+    }
+    for (int k=0; k<MAX_WORLD_ENTITIES; k++) {
+        w->animations[k].currently_animating = false;
+        w->animations[k].current_animation_index = 0;
+        w->animations[k].default_animation_index = 0;
+        w->animations[k].queue_length = 0;
     }
     fclose(anim_file);
-    return 0;
-}
-
-int load_entity_animations(world* w, entity_type et, u32 anim_index) {
-    if (et==PLAYER)
-        load_player_animations(w, anim_index);
     return 0;
 }
 
@@ -244,10 +252,14 @@ int add_entity(world* w, entity_type e, int x, int y, int z) {
         if (has_animations(e)) {
             animation_index = w->animations_occupied;
             w->animations[animation_index].currently_animating = true;
-            w->animations[animation_index].current_animation_index = 0;
-            w->animations[animation_index].default_animation_index = 0;
+            if (e == PLAYER) {
+                w->animations[animation_index].current_animation_index = STATIC;
+                w->animations[animation_index].default_animation_index = STATIC;
+            } else if (e == CUBE) {
+                w->animations[animation_index].current_animation_index = CUBE_DOWN;
+                w->animations[animation_index].default_animation_index = CUBE_DOWN;
+            }
             w->animations[animation_index].queue_length = 0;
-            load_entity_animations(w, e, animation_index);
             w->animations_occupied++;
         }
         entity_data ed = {e, movement_index, animation_index, x, y, z, -1.0};
@@ -768,6 +780,7 @@ int init_world(world* w, u32 number) {
     tmp.editor.editor_enabled = false;
     tmp.currently_moving = false;
     tmp.win_scheduled = false;
+    tmp.facing_right = false;
     tmp.mouse = mouse;
     tmp.editor.z_level = 0;
     tmp.editor.active_type = GROUND;
@@ -782,6 +795,7 @@ int init_world(world* w, u32 number) {
     w->entities = (char*) w->data+grid_data_size;
     w->movements = (char*)w->data+(grid_data_size+entity_data_size);
     w->animations = (char*)w->data+(grid_data_size+entity_data_size+movement_data_size);
+    load_animations(w);
     w->animation_seconds_update = 0.0;
     init_input_state(w);
     load_sounds(w);
@@ -895,11 +909,21 @@ int maybe_reflect_cube(world* w, int ogx, int ogy, int x, int y, int z, int dx, 
     // TODO (16 May 2020 sam): Check if there is ground available here or whatevs
     w->grid_data[target_pos_index] = cube_index;
     set_none(w, index);
-    maybe_move_cube(w, tx, ty, z, ndx, ndy, dz, depth+1);
+    maybe_move_cube(w, tx, ty, z, ndx, ndy, dz, depth+1, true);
     return 0;
 }
 
-int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int depth) {
+int queue_animation(world* w , u32 index, animations a) {
+    u32 anim_index = w->entities[index].animation_index;
+    animation_state as = w->animations[anim_index];
+    u32 queue_index = as.queue_length;
+    as.queue_length++;
+    as.queue[queue_index] = a;
+    w->animations[anim_index] = as;
+    return 0;
+}
+
+int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int depth, bool just_pushed) {
     int on_index = get_position_index(w, x, y, z-1);
     if (get_entity_at(w, on_index) != HOT_TARGET)
         set_slippery(w, x, y, z-1, w->seconds+ANIMATION_SINGLE_STEP_TIME*depth);
@@ -923,13 +947,14 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
         if (can_stop_cube_slide(get_entity_at(w, target_pos_index))) {
             sound_type st = CUBE_STOP;
             if (get_entity_at(w, target_pos_index) == CUBE) {
-                maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth);
+                maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth, true);
                 st = CUBE_TO_CUBE;
             }
             if (get_entity_at(w, target_pos_index) == REFLECTOR)
                 maybe_reflect_cube(w, x, y, x+dx, y+dy, z, dx, dy, dz, depth);
-            if (get_entity_at(w, target_pos_index) == FURNITURE)
+            if (get_entity_at(w, target_pos_index) == FURNITURE) {
                 maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth);
+            }
             // check if win.
             if (get_entity_at(w, on_index) == HOT_TARGET) {
                 schedule_entity_removal(w, cube_index, depth);
@@ -938,6 +963,7 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
                 set_none(w, index);
                 set_cold_target(w, x, y, z-1, w->seconds+ANIMATION_SINGLE_STEP_TIME*depth);
                 add_sound_to_queue(w, TARGET_FILLING, w->seconds + ANIMATION_SINGLE_STEP_TIME*(depth+1));
+                // TODO (21 Sep 2020 sam): add CUBE_MELT here when its ready.
             }
             add_sound_to_queue(w, st, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
             return 1;
@@ -955,9 +981,15 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
     w->grid_data[target_pos_index] = cube_index;
     set_none(w, index);
     add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
-    maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1);
+    maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1, false);
     if (depth == 0)
         add_sound_to_queue(w, CUBE_MOVE, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
+    if (just_pushed) {
+        // if one cube is pushing another, we want it to wait till its ready.
+        for (int i=0; i<depth; i++)
+            queue_animation(w, cube_index, CUBE_WAIT);
+        queue_animation(w, cube_index, CUBE_JUMP);
+    }
     return 0;
 }
 
@@ -1056,6 +1088,7 @@ bool can_push_player_back(entity_type et) {
     return false;
 }
 
+/*
 int set_player_animation(world* w, u32 index, animations a) {
     // reset current playing animation to frame 0
     u32 anim_index = w->entities[index].animation_index;
@@ -1065,16 +1098,7 @@ int set_player_animation(world* w, u32 index, animations a) {
     w->animations[anim_index] = as;
     return 0;
 }
-
-int queue_player_animation(world* w , u32 index, animations a) {
-    u32 anim_index = w->entities[index].animation_index;
-    animation_state as = w->animations[anim_index];
-    u32 queue_index = as.queue_length;
-    as.queue_length++;
-    as.queue[queue_index] = a;
-    w->animations[anim_index] = as;
-    return 0;
-}
+*/
 
 int schedule_player_win(world* w, int depth) {
     w->win_schedule_time = w->seconds + (depth+1)*ANIMATION_SINGLE_STEP_TIME;
@@ -1089,6 +1113,13 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     int target_index = get_position_index(w, pos.x+dx, pos.y+dy, pos.z+dz);
     int target_ground_index = get_position_index(w, pos.x+dx, pos.y+dy, pos.z+dz-1);
     int player_index = w->grid_data[position_index];
+    if (depth == 0) {
+        // flipping the animation
+        if (dx > 0)
+            w->facing_right = true;
+        else if (dx < 0)
+            w->facing_right = false;
+    }
     bool should_move_player = true;
     bool should_call_maybe_move = false;
     bool should_schedule_removal = false;
@@ -1108,11 +1139,8 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     if (get_entity_at(w, target_index) != NONE) {
         should_move_player = false;
         if (force) {
-            anim_to_queue = STOPPING_HARD_LEFT;
+            anim_to_queue = STOPPING_HARD;
             sound_to_queue = PLAYER_STOP;
-        } else {
-            anim_to_queue = PUSHING_LEFT;
-            sound_to_queue = PLAYER_MOVE;
         }
         if (can_push_player_back(get_entity_at(w, target_index)) && !force) {
             if (get_entity_at(w, ground_index) == SLIPPERY_GROUND) {
@@ -1122,12 +1150,22 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
                 new_dz = -dz;
             }
         }
-        if (get_entity_at(w, target_index) == CUBE)
-            maybe_move_cube(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz, depth);
-        if (get_entity_at(w, target_index) == FURNITURE)
+        entity_type target_entity = get_entity_at(w, target_index);
+        if (target_entity == CUBE)
+            maybe_move_cube(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz, depth, true);
+        if (target_entity == FURNITURE)
             maybe_move_furniture(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz, depth);
-        if (get_entity_at(w, target_index) == REFLECTOR)
+        if (target_entity == REFLECTOR)
             maybe_move_reflector(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz, depth);
+        if (!force && (target_entity == CUBE || target_entity == FURNITURE || get_entity_at(w, ground_index) == SLIPPERY_GROUND)) {
+            if (dy == 0)
+                anim_to_queue = PUSHING_SIDE;
+            else if (dy > 0)
+                anim_to_queue = PUSHING_DOWN;
+            else if (dy < 0)
+                anim_to_queue = PUSHING_UP;
+            sound_to_queue = PLAYER_MOVE;
+        }
     }
     // check if can stand
     if (!can_support_player(get_entity_at(w, target_ground_index))) {
@@ -1153,7 +1191,7 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     }
     if (get_entity_at(w, target_ground_index) == COLD_TARGET) {
         schedule_player_win(w, depth+1);
-        anim_to_queue = JUMPING_LEFT;
+        anim_to_queue = JUMPING;
     }
     if (anim_to_queue == STATIC && force && should_move_player) {
         anim_to_queue = SLIPPING;
@@ -1162,12 +1200,9 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
     }
     if (anim_to_queue == STATIC && should_move_player) {
         sound_to_queue = PLAYER_MOVE;
-        if (dx > 0)
-            anim_to_queue = MOVING_RIGHT;
-        else
-            anim_to_queue = MOVING_LEFT;
+        anim_to_queue = MOVING;
     }
-    queue_player_animation(w, player_index, anim_to_queue);
+    queue_animation(w, player_index, anim_to_queue);
     if (sound_to_queue != NO_SOUND)
         add_sound_to_queue(w, sound_to_queue, w->seconds + depth*ANIMATION_SINGLE_STEP_TIME);
     if (should_schedule_removal) {
@@ -1576,6 +1611,14 @@ int simulate_level_select(world* w) {
     return 0;
 }
 
+bool animation_complete(animation_state as) {
+    return as.animation_data[as.current_animation_index].index >= as.animation_data[as.current_animation_index].length;
+}
+
+bool can_clip_animation(animation_state as) {
+    return as.animation_data[as.current_animation_index].index >= ANIMATION_CLIP_LENGTH;
+}
+
 int simulate_world(world* w, float seconds) {
     w->seconds = seconds;
     if (w->active_mode == LEVEL_SELECT)
@@ -1610,8 +1653,8 @@ int simulate_world(world* w, float seconds) {
             if (w->animations[i].currently_animating) {
                 animation_state as = w->animations[i];
                 as.animation_data[as.current_animation_index].index++;
-                if (as.animation_data[as.current_animation_index].index ==
-                        as.animation_data[as.current_animation_index].length) {
+                // if animation is done or has reached clip length, and queue exists
+                if (animation_complete(as) || (can_clip_animation(as) && as.queue_length > 0)) {
                     as.animation_data[as.current_animation_index].index = 0;
                     if (as.queue_length > 0) {
                         as.current_animation_index = as.queue[0];
@@ -1861,9 +1904,8 @@ int handle_input_queue(world* w) {
         if (w->input_state[i].down) {
             input_state_type ist = w->input_state[i];
             if ( (int)((w->seconds-ist.seconds)/1.0/INPUT_DOWN_REPEAT)+1 > ist.count) {
-                if (ist.count > 0) {
+                if (ist.count > 0)
                     printf("repeat %i\n", ist.count);
-                }
                 w->input_state[i].count++;
                 set_input(w, i);
             }

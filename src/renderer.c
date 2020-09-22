@@ -252,7 +252,7 @@ int init_renderer(renderer* r, char* window_name) {
     return 0;
 }
 
-float get_player_animation_frame(world* w, entity_data ed) {
+float get_animation_frame(world* w, entity_data ed) {
     u32 anim_index = ed.animation_index;
     animation_state as = w->animations[anim_index];
     animation_frames_data afd = as.animation_data[as.current_animation_index];
@@ -280,9 +280,9 @@ int get_sprite_position(entity_type et)  {
 int get_entity_sprite_position(entity_data ed, world* w) {
     entity_type type = ed.type;
     if (type == PLAYER)
-        return 6 + get_player_animation_frame(w, ed);
+        return 6 + get_animation_frame(w, ed);
     if (type == CUBE)
-        return 0;
+        return 0 + get_animation_frame(w, ed);
     if (type == WALL)
         return 1;
     if (type == GROUND)
@@ -320,22 +320,36 @@ float get_x_pos(world* w, entity_data ed) {
         else
             xpos = w->movements[movement_index].x;
     }
-    return xpos;
+    // return xpos;
     if (ed.animation_index > 0) {
         animation_state as = w->animations[ed.animation_index];
         animation_frames_data afd = as.animation_data[as.current_animation_index];
-        xpos += 2.0*afd.frame_positions[afd.index].x;
+        float xdiff = 2.0*afd.frame_positions[afd.index].x;
+        if (w->facing_right)
+            xdiff *= -1.0;
+        xpos += xdiff;
     }
     return xpos;
 }
 
 float get_y_pos(world* w, entity_data ed) {
+    float ypos;
     if (!w->currently_moving)
-        return ed.y;
-    int movement_index = ed.movement_index;
-    if (!w->movements[movement_index].currently_moving)
-        return ed.y;
-    return w->movements[movement_index].y;
+        ypos = ed.y;
+    else {
+        int movement_index = ed.movement_index;
+        if (!w->movements[movement_index].currently_moving)
+            ypos = ed.y;
+        else
+            ypos = w->movements[movement_index].y;
+    }
+    // return xpos;
+    if (ed.animation_index > 0) {
+        animation_state as = w->animations[ed.animation_index];
+        animation_frames_data afd = as.animation_data[as.current_animation_index];
+        ypos += 2.0*afd.frame_positions[afd.index].y;
+    }
+    return ypos;
 }
 
 int get_vertex_buffer_index(world* w, int x, int y, int z) {
@@ -458,41 +472,41 @@ void add_rotated_vertex_to_buffer(renderer* r, buffer_data* buffer, float sx1, f
     buffer->vertex_buffer[(36*j)+ 2] = depth;
     buffer->vertex_buffer[(36*j)+ 3] = tx1;
     buffer->vertex_buffer[(36*j)+ 4] = ty1;
-    buffer->vertex_buffer[(36*j)+ 5] = angle;
+    buffer->vertex_buffer[(36*j)+ 5] = 0.0;
     buffer->vertex_buffer[(36*j)+ 6] = x4;
     buffer->vertex_buffer[(36*j)+ 7] = y4;
     buffer->vertex_buffer[(36*j)+ 8] = depth;
     buffer->vertex_buffer[(36*j)+ 9] = tx2;
     buffer->vertex_buffer[(36*j)+10] = ty1;
-    buffer->vertex_buffer[(36*j)+11] = angle;
+    buffer->vertex_buffer[(36*j)+11] = 0.0;
     buffer->vertex_buffer[(36*j)+12] = x2;
     buffer->vertex_buffer[(36*j)+13] = y2;
     buffer->vertex_buffer[(36*j)+14] = depth;
     buffer->vertex_buffer[(36*j)+15] = tx1;
     buffer->vertex_buffer[(36*j)+16] = ty2;
-    buffer->vertex_buffer[(36*j)+17] = angle;
+    buffer->vertex_buffer[(36*j)+17] = 0.0;
     buffer->vertex_buffer[(36*j)+18] = x2;
     buffer->vertex_buffer[(36*j)+19] = y2;
     buffer->vertex_buffer[(36*j)+20] = depth;
     buffer->vertex_buffer[(36*j)+21] = tx1;
     buffer->vertex_buffer[(36*j)+22] = ty2;
-    buffer->vertex_buffer[(36*j)+23] = angle;
+    buffer->vertex_buffer[(36*j)+23] = 0.0;
     buffer->vertex_buffer[(36*j)+24] = x4;
     buffer->vertex_buffer[(36*j)+25] = y4;
     buffer->vertex_buffer[(36*j)+26] = depth;
     buffer->vertex_buffer[(36*j)+27] = tx2;
     buffer->vertex_buffer[(36*j)+28] = ty1;
-    buffer->vertex_buffer[(36*j)+29] = angle;
+    buffer->vertex_buffer[(36*j)+29] = 0.0;
     buffer->vertex_buffer[(36*j)+30] = x3;
     buffer->vertex_buffer[(36*j)+31] = y3;
     buffer->vertex_buffer[(36*j)+32] = depth;
     buffer->vertex_buffer[(36*j)+33] = tx2;
     buffer->vertex_buffer[(36*j)+34] = ty2;
-    buffer->vertex_buffer[(36*j)+35] = angle;
+    buffer->vertex_buffer[(36*j)+35] = 0.0;
     return;
 }
 
-void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x_size, float y_size, float depth, int sprite_position, orientation_t orientation) {
+void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x_size, float y_size, float depth, int sprite_position, orientation_t orientation, float color_change) {
     float window_width = r->size[0];
     float block_width = window_width*BLOCK_WIDTH;
     float block_height = window_width*BLOCK_HEIGHT;
@@ -524,7 +538,7 @@ void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x
         vy1 = y_padding + (blocky * ypos) + ((1.0-y_size)*blocky);
         vy2 = y_padding + (blocky * ypos) + (1.0*blocky);
     }
-    add_single_vertex_to_buffer(r, &r->ingame_buffer, vx1, vy1, vx2, vy2, tx1, ty1, tx2, ty2, depth, 0.0);
+    add_single_vertex_to_buffer(r, &r->ingame_buffer, vx1, vy1, vx2, vy2, tx1, ty1, tx2, ty2, depth, color_change);
 }
 
 void add_ground_at_pos(renderer* r, world* w, int x, int y) {
@@ -536,7 +550,7 @@ void add_ground_at_pos(renderer* r, world* w, int x, int y) {
     float y_size = get_block_size_y(r, GROUND);
     // FIXME (26 Jun 2020 sam): Hardcoded value. Fix.
     int sprite_position = 2;
-    add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position, FLIP_NONE);
+    add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position, FLIP_NONE, 0.0);
 } 
 
 entity_type get_ground_et_at(renderer* r, world* w, int x, int y) {
@@ -546,14 +560,14 @@ entity_type get_ground_et_at(renderer* r, world* w, int x, int y) {
     return r->ground_entities[index];
 }
 
-void draw_additional_sprite(renderer* r, world* w, int x, int y, int sprite_position, orientation_t orientation, float depth) {
+void draw_additional_sprite(renderer* r, world* w, int x, int y, int sprite_position, orientation_t orientation, float depth, float color_change) {
     depth += (float) y/100.0;
     float xpos = x;
     float ypos = y;
     // TODO (22 Aug 2020 sam): cleanup the functions so that we don't have to do this calculation here.
     float x_size = 1.0 * r->sprites[sprite_position].w / SPRITE_WIDTH;
     float y_size = 1.0 * r->sprites[sprite_position].h / SPRITE_HEIGHT;
-    add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position, orientation);
+    add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position, orientation, color_change);
     return;
 }
 
@@ -582,22 +596,23 @@ void add_ice_edges(renderer* r, world* w) {
                  || get_ground_et_at(r, w, x+0, y-1) == COLD_TARGET;
             n9 = get_ground_et_at(r, w, x+1, y-1) == SLIPPERY_GROUND
                  || get_ground_et_at(r, w, x+1, y-1) == COLD_TARGET;
+            float color_change = x%2 + y%2;
             if (n1)
-                draw_additional_sprite(r, w, x-1, y+1, GROUND_EDGE_CORNER, FLIP_VERTICAL, -0.3);
+                draw_additional_sprite(r, w, x-1, y+1, GROUND_EDGE_CORNER, FLIP_VERTICAL, -0.3, color_change);
             if (n3)
-                draw_additional_sprite(r, w, x+1, y+1, GROUND_EDGE_CORNER, FLIP_NONE, -0.3);
+                draw_additional_sprite(r, w, x+1, y+1, GROUND_EDGE_CORNER, FLIP_NONE, -0.3, color_change);
             if (n7)
-                draw_additional_sprite(r, w, x-1, y-1, GROUND_EDGE_CORNER, FLIP_DIAGONAL, -0.3);
+                draw_additional_sprite(r, w, x-1, y-1, GROUND_EDGE_CORNER, FLIP_DIAGONAL, -0.3, color_change);
             if (n9)
-                draw_additional_sprite(r, w, x+1, y-1, GROUND_EDGE_CORNER, FLIP_HORIZONTAL, -0.3);
+                draw_additional_sprite(r, w, x+1, y-1, GROUND_EDGE_CORNER, FLIP_HORIZONTAL, -0.3, color_change);
             if (n2)
-                draw_additional_sprite(r, w, x, y+1, GROUND_EDGE_TOP, FLIP_NONE, -0.3);
+                draw_additional_sprite(r, w, x, y+1, GROUND_EDGE_TOP, FLIP_NONE, -0.3, color_change);
             if (n8)
-                draw_additional_sprite(r, w, x, y-1, GROUND_EDGE_TOP, FLIP_HORIZONTAL, -0.3);
+                draw_additional_sprite(r, w, x, y-1, GROUND_EDGE_TOP, FLIP_HORIZONTAL, -0.3, color_change);
             if (n4)
-                draw_additional_sprite(r, w, x-1, y, GROUND_EDGE_LEFT, FLIP_VERTICAL, -0.3);
+                draw_additional_sprite(r, w, x-1, y, GROUND_EDGE_LEFT, FLIP_VERTICAL, -0.3, color_change);
             if (n6)
-                draw_additional_sprite(r, w, x+1, y, GROUND_EDGE_LEFT, FLIP_NONE, -0.3);
+                draw_additional_sprite(r, w, x+1, y, GROUND_EDGE_LEFT, FLIP_NONE, -0.3, color_change);
         }
     }
 }
@@ -619,37 +634,38 @@ void add_ground_edges(renderer* r, world* w) {
             n7 = get_ground_et_at(r, w, x-1, y-1) != NONE;
             n8 = get_ground_et_at(r, w, x+0, y-1) != NONE;
             n9 = get_ground_et_at(r, w, x+1, y-1) != NONE;
+            float color_change = x%2 + y%2;
             if (n1 && !n2 && !n4) {
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_CORNER, FLIP_HORIZONTAL, -0.08);
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_CORNER, FLIP_HORIZONTAL, -0.1);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_CORNER, FLIP_HORIZONTAL, -0.08, 0.0);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_CORNER, FLIP_HORIZONTAL, -0.1, color_change);
             }
             if (n3 && !n2 && !n6) {
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_CORNER, FLIP_DIAGONAL, -0.08);
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_CORNER, FLIP_DIAGONAL, -0.1);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_CORNER, FLIP_DIAGONAL, -0.08, 0.0);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_CORNER, FLIP_DIAGONAL, -0.1, color_change);
             }
             if (n7 && !n8 && !n4) {
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_CORNER, FLIP_NONE, -0.08);
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_CORNER, FLIP_NONE, -0.1);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_CORNER, FLIP_NONE, -0.08, 0.0);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_CORNER, FLIP_NONE, -0.1, color_change);
             }
             if (n9 && !n8 && !n6) {
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_CORNER, FLIP_VERTICAL, -0.08);
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_CORNER, FLIP_VERTICAL, -0.1);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_CORNER, FLIP_VERTICAL, -0.08, 0.0);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_CORNER, FLIP_VERTICAL, -0.1, color_change);
             }
             if (n2) {
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_ABOVE, FLIP_HORIZONTAL, -0.08);
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_TOP, FLIP_HORIZONTAL, -0.1);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_ABOVE, FLIP_HORIZONTAL, -0.08, 0.0);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_TOP, FLIP_HORIZONTAL, -0.1, color_change);
             }
             if (n8) {
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_ABOVE, FLIP_NONE, -0.08);
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_TOP, FLIP_NONE, -0.1);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_ABOVE, FLIP_NONE, -0.08, 0.0);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_TOP, FLIP_NONE, -0.1, color_change);
             }
             if (n4) {
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_RIGHT, FLIP_NONE, -0.08);
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEFT, FLIP_NONE, -0.1);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_RIGHT, FLIP_NONE, -0.08, 0.0);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEFT, FLIP_NONE, -0.1, color_change);
             }
             if (n6) {
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_RIGHT, FLIP_VERTICAL, -0.08);
-                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEFT, FLIP_VERTICAL, -0.1);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEVEL_RIGHT, FLIP_VERTICAL, -0.08, 0.0);
+                draw_additional_sprite(r, w, x, y, GROUND_EDGE_LEFT, FLIP_VERTICAL, -0.1, color_change);
             }
         }
     }
@@ -659,10 +675,6 @@ void render_entity(renderer* r, world* w, entity_data ed) {
     entity_type et = ed.type;
     if (et == NONE)
         return;
-    // TODO (20 Jun 2020 sam): See the performance implications of blockx and blocky
-    // This needs to be calculated for every single vertex added to the buffer.
-    // But it's such a simple calculation that I don't know whether the memory overhead
-    // more or less performant...
     float depth = (float)-ed.z;
     // we want the depth buffer to include some data about the y position as well so that
     // things closer to us are drawn first.
@@ -672,13 +684,19 @@ void render_entity(renderer* r, world* w, entity_data ed) {
     if (et==HOT_TARGET || et==COLD_TARGET)
         depth -= 0.8;
     int sprite_position = get_entity_sprite_position(ed, w);
+    orientation_t orientation = FLIP_NONE;
+    if (ed.type==PLAYER && w->facing_right)
+        orientation = FLIP_VERTICAL;
     if (sprite_position < 0.0)
         return;
     float x_size = get_block_size_x(r, et);
     float y_size = get_block_size_y(r, et);
     float xpos = get_x_pos(w, ed);
     float ypos = get_y_pos(w, ed);
-    add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position, FLIP_NONE);
+    float color_change = 0.0;
+    if (et==GROUND)
+        color_change = ed.x%2 + ed.y%2;
+    add_vertex_to_buffer(r, w, xpos, ypos, x_size, y_size, depth, sprite_position, orientation, color_change);
 }
 
 int update_vertex_buffer(renderer* r, world* w) {
@@ -690,10 +708,22 @@ int update_vertex_buffer(renderer* r, world* w) {
         if (ed.z==0 && draw_ground_under(ed.type))
             add_ground_at_pos(r, w, ed.x, ed.y);
         if (ed.z==0 && ed.type==COLD_TARGET)
-            draw_additional_sprite(r, w, ed.x, ed.y, get_sprite_position(SLIPPERY_GROUND), FLIP_NONE, -0.2);
+            draw_additional_sprite(r, w, ed.x, ed.y, get_sprite_position(SLIPPERY_GROUND), FLIP_NONE, -0.2, 0.0);
         if (ed.z==0)
             r->ground_entities[ed.y*w->x_size+ed.x] = ed.type;
+        if (ed.type == CUBE || ed.type == PLAYER || ed.type == FURNITURE)
+            continue;
         render_entity(r, w, ed);
+    }
+    for (int i=0; i<w->entities_occupied; i++) {
+        entity_data ed = w->entities[i];
+        if (ed.type == PLAYER || ed.type == FURNITURE)
+            render_entity(r, w, ed);
+    }
+    for (int i=0; i<w->entities_occupied; i++) {
+        entity_data ed = w->entities[i];
+        if (ed.type == CUBE)
+            render_entity(r, w, ed);
     }
     add_ice_edges(r, w);
     add_ground_edges(r, w);

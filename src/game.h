@@ -117,12 +117,16 @@ typedef struct {
 
 typedef enum {
     STATIC,
-    MOVING_LEFT,
-    MOVING_RIGHT,
-    PUSHING_LEFT,
+    MOVING,
+    PUSHING_SIDE,
+    PUSHING_DOWN,
+    PUSHING_UP,
     SLIPPING,
-    STOPPING_HARD_LEFT,
-    JUMPING_LEFT,
+    STOPPING_HARD,
+    JUMPING,
+    CUBE_DOWN,
+    CUBE_WAIT,
+    CUBE_JUMP,
     ANIMATIONS_COUNT,
 } animations;
 
@@ -142,7 +146,7 @@ typedef struct {
     u32 default_animation_index;
     u32 queue_length;
     animations queue[MAX_QUEUED_ANIMATIONS];
-    animation_frames_data animation_data[ENTITY_NUM_ANIMATIONS];
+    animation_frames_data animation_data[ANIMATIONS_COUNT];
 } animation_state;
 
 typedef struct {
@@ -254,6 +258,7 @@ typedef struct {
 typedef struct {
     bool currently_moving;
     bool win_scheduled;
+    bool facing_right;
     u32 size;
     u32 x_size;
     u32 y_size;

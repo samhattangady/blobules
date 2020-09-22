@@ -8,21 +8,21 @@
 #include "stb_image_write.h"
 
 #define u8 uint8_t
-#define TOTAL_NUMBER 17
+#define TOTAL_NUMBER 30
 #define NUMBER_OF_NODES 2048
-#define SPRITE_DATA_FILE "static/sprite_data.txt"
+#define SPRITE_DATA_FILE "mis_data/img/sprite_data.txt"
 
 int main(int argc, char** argv) {
     char* filenames[TOTAL_NUMBER];
     unsigned char* fill_data[TOTAL_NUMBER];
     stbrp_rect rects[TOTAL_NUMBER];
     int w, h, n;
-    filenames[0] = "static/cube";
-    filenames[1] = "static/wall";
+    filenames[0] = "static/cube_0";
+    filenames[1] = "static/wall2";
     filenames[2] = "static/ground";
     filenames[3] = "static/target";
     filenames[4] = "static/target2";
-    filenames[5] = "static/furn";
+    filenames[5] = "static/furn2";
     filenames[6] = "static/player";
     filenames[7] = "static/slippery";
     filenames[8] = "static/ground1";
@@ -34,6 +34,19 @@ int main(int argc, char** argv) {
     filenames[14] = "static/player_push";
     filenames[15] = "static/player_jump";
     filenames[16] = "static/player_slip";
+    filenames[17] = "static/anim_0";
+    filenames[18] = "static/anim_1";
+    filenames[19] = "static/anim_2";
+    filenames[20] = "static/anim_3";
+    filenames[21] = "static/anim_4";
+    filenames[22] = "static/anim_5";
+    filenames[23] = "static/anim_6";
+    filenames[24] = "static/anim_7";
+    filenames[25] = "static/anim_8";
+    filenames[26] = "static/anim_9";
+    filenames[27] = "static/anim_10";
+    filenames[28] = "static/cube_1";
+    filenames[29] = "static/cube_2";
 
     for (int i=0; i<TOTAL_NUMBER; i++) {
         char fillname[50];
@@ -72,7 +85,7 @@ int main(int argc, char** argv) {
             }
         }
     }
-    stbi_write_png("static/fillsheet.png", total_width, total_height, 4, fill_output, 0);
+    stbi_write_png("mis_data/img/fillsheet.png", total_width, total_height, 4, fill_output, 0);
     FILE* sprite_data = fopen(SPRITE_DATA_FILE, "w");
     fprintf(sprite_data, "%i\n", TOTAL_NUMBER);
     for (int i=0; i<TOTAL_NUMBER; i++) {

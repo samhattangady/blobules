@@ -6,7 +6,7 @@ dirpath = pathlib.Path(__file__).parent.absolute()
 required_layers = ['Line', 'Shadow', 'Fill']
 files = ['player', 'wall', 'ground', 'slippery', 'target', 'target2', 'cube', 'furn', 'ground1', 'ground2', 'ground3', 'ground4', 'ice1', 'ice2', 'ice3']
 files = ['ground4', 'ice1', 'ice2', 'ice3']
-
+'''
 
 def all_layers_present(doc):
     layers = []
@@ -58,12 +58,13 @@ def main():
         print("set active doc")
         save_all_layers(doc, f)
         doc.close()
-
 '''
+
 export_all = False
 export_slippery=False
 export_player = False
-export_main_menu = True
+export_main_menu = False
+export_cube = True
 
 if export_all:
     objects = ['player', 'cube', 'furn', 'ground', 'slippery', 'cold', 'hot', 'wall']
@@ -89,15 +90,31 @@ if export_slippery:
         current_frame += 1
  
 if export_player:
-    doc = Krita.instance().openDocument(os.path.join(dirpath, 'player.kra'))
+    doc = Krita.instance().openDocument(os.path.join(dirpath, 'player3.kra'))
     doc.setBatchmode(True)
     current_frame = doc.fullClipRangeStartTime()
     last_frame = doc.fullClipRangeEndTime()
     while current_frame <= last_frame:
         print(f'current_frame = {current_frame}')
         doc.setCurrentTime(current_frame)
-        doc.exportImage(os.path.join(dirpath, f'player_{current_frame}.png'), InfoObject())
-        current_frame += 1
+        fname = os.path.join(dirpath, f'anim_{current_frame}_Fill.png')
+        doc.exportImage(fname, InfoObject())
+        if os.path.exists(fname):
+            current_frame += 1
+
+if export_cube:
+    doc = Krita.instance().openDocument(os.path.join(dirpath, 'cube.kra'))
+    doc.setBatchmode(True)
+    current_frame = doc.fullClipRangeStartTime()
+    last_frame = doc.fullClipRangeEndTime()
+    while current_frame <= last_frame:
+        print(f'current_frame = {current_frame}')
+        doc.setCurrentTime(current_frame)
+        fname = os.path.join(dirpath, f'cube_{current_frame}_Fill.png')
+        doc.exportImage(fname, InfoObject())
+        if os.path.exists(fname):
+            current_frame += 1
+
 
 if export_main_menu:
     doc = Krita.instance().openDocument(os.path.join(dirpath, 'main_menu_anim.kra'))
@@ -111,4 +128,4 @@ if export_main_menu:
         doc.exportImage(fname, InfoObject())
         if os.path.exists(fname):
             current_frame += 1
-'''
+
