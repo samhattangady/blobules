@@ -256,6 +256,11 @@ typedef struct {
 } input_queue_type;
 
 typedef struct {
+    int x;
+    int y;
+} controller_axes_data;
+
+typedef struct {
     bool currently_moving;
     bool win_scheduled;
     bool facing_right;
@@ -271,6 +276,7 @@ typedef struct {
     u32 movements_occupied;
     u32 animations_occupied;
     mouse_data mouse;
+    controller_axes_data controller_axes;
     void* data;
     u32* grid_data;
     entity_data* entities;

@@ -776,6 +776,8 @@ int init_world(world* w, u32 number) {
     tmp.level_select = level_select;
     init_main_menu(&tmp);
     tmp.player = ALIVE;
+    tmp.controller_axes.x = 0;
+    tmp.controller_axes.y = 0;
     tmp.level_mode = NEUTRAL;
     tmp.editor.editor_enabled = false;
     tmp.currently_moving = false;
@@ -1844,13 +1846,13 @@ int process_input_event(world* w, SDL_Event event) {
         process_mouse_button(w, event.button, event.type);
     if (event.type == SDL_KEYDOWN) {
         SDL_Keycode key = event.key.keysym.sym;
-        if (key == SDLK_w)
+        if (key == SDLK_w || key == SDLK_UP)
             set_key_down(w, MOVE_UP);
-        if (key == SDLK_a)
+        if (key == SDLK_a || key == SDLK_LEFT)
             set_key_down(w, MOVE_LEFT);
-        if (key == SDLK_s)
+        if (key == SDLK_s || key == SDLK_DOWN)
             set_key_down(w, MOVE_DOWN);
-        if (key == SDLK_d)
+        if (key == SDLK_d || key == SDLK_RIGHT)
             set_key_down(w, MOVE_RIGHT);
         if (key == SDLK_z)
             set_key_down(w, UNDO_MOVE);
@@ -1863,13 +1865,13 @@ int process_input_event(world* w, SDL_Event event) {
             set_input(w, ESCAPE);
         if (key == SDLK_RETURN || key == SDLK_KP_ENTER)
             set_input(w, ENTER);
-        if (key == SDLK_w)
+        if (key == SDLK_w || key == SDLK_UP)
             set_key_up(w, MOVE_UP);
-        if (key == SDLK_a)
+        if (key == SDLK_a || key == SDLK_LEFT)
             set_key_up(w, MOVE_LEFT);
-        if (key == SDLK_s)
+        if (key == SDLK_s || key == SDLK_DOWN)
             set_key_up(w, MOVE_DOWN);
-        if (key == SDLK_d)
+        if (key == SDLK_d || key == SDLK_RIGHT)
             set_key_up(w, MOVE_RIGHT);
         if (key == SDLK_z)
             set_key_up(w, UNDO_MOVE);
@@ -1894,6 +1896,68 @@ int process_input_event(world* w, SDL_Event event) {
                 load_previous_level(w);
         }
     }
+    if (event.type == SDL_CONTROLLERBUTTONDOWN) {
+        SDL_Keycode key = event.cbutton.button;
+        if (key == SDL_CONTROLLER_BUTTON_DPAD_UP)
+            set_key_down(w, MOVE_UP);
+        if (key == SDL_CONTROLLER_BUTTON_DPAD_LEFT)
+            set_key_down(w, MOVE_LEFT);
+        if (key == SDL_CONTROLLER_BUTTON_DPAD_DOWN)
+            set_key_down(w, MOVE_DOWN);
+        if (key == SDL_CONTROLLER_BUTTON_DPAD_RIGHT)
+            set_key_down(w, MOVE_RIGHT);
+        if (key == SDL_CONTROLLER_BUTTON_B)
+            set_key_down(w, UNDO_MOVE);
+        if (key == SDL_CONTROLLER_BUTTON_Y)
+            set_key_down(w, RESTART_LEVEL);
+        if (key == SDL_CONTROLLER_BUTTON_A)
+            set_input(w, ENTER);
+        if (key == SDL_CONTROLLER_BUTTON_START)
+            set_input(w, ESCAPE);
+    }
+    if (event.type == SDL_CONTROLLERBUTTONUP) {
+        SDL_Keycode key = event.cbutton.button;
+        if (key == SDL_CONTROLLER_BUTTON_DPAD_UP)
+            set_key_up(w, MOVE_UP);
+        if (key == SDL_CONTROLLER_BUTTON_DPAD_LEFT)
+            set_key_up(w, MOVE_LEFT);
+        if (key == SDL_CONTROLLER_BUTTON_DPAD_DOWN)
+            set_key_up(w, MOVE_DOWN);
+        if (key == SDL_CONTROLLER_BUTTON_DPAD_RIGHT)
+            set_key_up(w, MOVE_RIGHT);
+        if (key == SDL_CONTROLLER_BUTTON_B)
+            set_key_up(w, UNDO_MOVE);
+        if (key == SDL_CONTROLLER_BUTTON_Y)
+            set_key_up(w, RESTART_LEVEL);
+    }
+    if (event.type == SDL_CONTROLLERAXISMOTION) {
+        if (event.caxis.axis == SDL_CONTROLLER_AXIS_LEFTX) {
+            int val = event.caxis.value;
+            int oldval = w->controller_axes.x;
+            if (oldval <= 16384 && val > 16384)
+                set_key_down(w, MOVE_RIGHT);
+            if (oldval > 16384 && val <= 16384)
+                set_key_up(w, MOVE_RIGHT);
+            if (oldval >= -16384 && val < -16384)
+                set_key_down(w, MOVE_LEFT);
+            if (oldval < -16384 && val >= -16384)
+                set_key_up(w, MOVE_LEFT);
+            w->controller_axes.x = val;        
+        }
+        if (event.caxis.axis == SDL_CONTROLLER_AXIS_LEFTY) {
+            int val = event.caxis.value;
+            int oldval = w->controller_axes.y;
+            if (oldval <= 16384 && val > 16384)
+                set_key_down(w, MOVE_DOWN);
+            if (oldval > 16384 && val <= 16384)
+                set_key_up(w, MOVE_DOWN);
+            if (oldval >= -16384 && val < -16384)
+                set_key_down(w, MOVE_UP);
+            if (oldval < -16384 && val >= -16384)
+                set_key_up(w, MOVE_UP);
+            w->controller_axes.y = val;        
+        }
+    }
     return 0;
 }
 
@@ -1912,60 +1976,3 @@ int handle_input_queue(world* w) {
         }
     }
 }
-
-int handle_input_state(world* w, SDL_GameController* controller) {
-    // keyboard
-    const Uint8* keyboard = SDL_GetKeyboardState(NULL);
-    if (keyboard[SDL_SCANCODE_W] || keyboard[SDL_SCANCODE_UP])
-        set_input(w, MOVE_UP);
-    if (keyboard[SDL_SCANCODE_S] || keyboard[SDL_SCANCODE_DOWN])
-        set_input(w, MOVE_DOWN);
-    if (keyboard[SDL_SCANCODE_A] || keyboard[SDL_SCANCODE_LEFT])
-        set_input(w, MOVE_LEFT);
-    if (keyboard[SDL_SCANCODE_D] || keyboard[SDL_SCANCODE_RIGHT])
-        set_input(w, MOVE_RIGHT);
-    if (keyboard[SDL_SCANCODE_Z])
-        set_input(w, UNDO_MOVE);
-    if (keyboard[SDL_SCANCODE_R])
-        set_input(w, RESTART_LEVEL);
-    if (keyboard[SDL_SCANCODE_RETURN] || keyboard[SDL_SCANCODE_KP_ENTER] || keyboard[SDL_SCANCODE_SPACE] || keyboard[SDL_SCANCODE_X])
-        set_input(w, ENTER);
-    // controller buttons
-    if (controller != NULL) {
-        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP))
-            set_input(w, MOVE_UP);
-        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN))
-            set_input(w, MOVE_DOWN);
-        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT))
-            set_input(w, MOVE_LEFT);
-        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT))
-            set_input(w, MOVE_RIGHT);
-        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A))
-            set_input(w, ENTER);
-        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_B))
-            set_input(w, UNDO_MOVE);
-        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_Y))
-            set_input(w, RESTART_LEVEL);
-        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_START))
-            set_input(w, ESCAPE);
-        if (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX) > 16384)
-            set_input(w, MOVE_RIGHT);
-        if (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX) < -16384)
-            set_input(w, MOVE_LEFT);
-        if (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY) > 16384)
-            set_input(w, MOVE_DOWN);
-        if (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY) < -16384)
-            set_input(w, MOVE_UP);
-    }
-    return 0;
-}
-
-
-/*
-int set_callbacks(GLFWwindow* window) {
-    glfwSetKeyCallback(window, key_callback);
-    glfwSetCursorPosCallback(window, cursor_position_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
-    return 0;
-}
-*/
