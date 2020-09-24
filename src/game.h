@@ -173,7 +173,6 @@ typedef struct {
 } menu_option;
 
 typedef struct {
-    bool confirm_reset;
     int active_option;
     u32 total_options;
     menu_option options[8];

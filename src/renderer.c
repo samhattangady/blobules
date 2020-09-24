@@ -20,6 +20,7 @@ float GROUND_EDGE_LEVEL_RIGHT = 12;
 float GROUND_EDGE_LEVEL_CORNER = 13;
 float LS_WIDTH = 4000.0;
 float LS_HEIGHT = 4000.0;
+float X_HEIGHT_FRACTION = 0.25;
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Errors: %s\n", description);
@@ -793,6 +794,14 @@ char* get_level_mode(world* w) {
     return "NA";
 }
 
+float ls_pixel_to_screen_x(renderer* r, float x) {
+    return x/LS_WIDTH * r->size[0] / X_HEIGHT_FRACTION;
+}
+
+float ls_pixel_to_screen_y(renderer* r, float y) {
+    return y/LS_HEIGHT * r->size[1] / X_HEIGHT_FRACTION;
+}
+
 int update_level_vertex_background_buffer(renderer* r, world* w) {
     float vx1 = -1.0;
     float vy1 = -1.0;
@@ -800,12 +809,16 @@ int update_level_vertex_background_buffer(renderer* r, world* w) {
     float vy2 = 1.0;
     float depth = 0.1;
     float tx1, ty1, tx2, ty2;
-    float cx = w->level_select.cx;
-    float cy = w->level_select.cy;
-    tx1 = (cx - r->size[0]/2) / LS_WIDTH;
-    tx2 = (cx + r->size[0]/2) / LS_WIDTH;
-    ty1 = -(cy + r->size[1]/2) / LS_HEIGHT;
-    ty2 = -(cy - r->size[1]/2) / LS_HEIGHT;
+    float cx = ls_pixel_to_screen_x(r, w->level_select.cx);
+    float cy = ls_pixel_to_screen_y(r, w->level_select.cy);
+    tx1 = cx - r->size[0]/2.0;
+    tx1 /= r->size[0]/X_HEIGHT_FRACTION;
+    tx2 = cx + r->size[0]/2.0;
+    tx2 /= r->size[0]/X_HEIGHT_FRACTION;
+    ty1 = -(cy + r->size[1]/2.0);
+    ty1 /= r->size[1]/X_HEIGHT_FRACTION;
+    ty2 = -(cy - r->size[1]/2.0);
+    ty2 /= r->size[1]/X_HEIGHT_FRACTION;
     add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, tx1, ty1, tx2, ty2, depth, 0.0);
     return 0;
 }
@@ -868,12 +881,12 @@ int draw_stretched_line(renderer* r, float lx1, float ly1, float lx2, float ly2,
 int draw_line_connections(renderer* r, world* w, level_connection con) {
     level_option level = w->level_select.levels[con.head_index];
     level_option next_level = w->level_select.levels[con.tail_index];
-    float cx = w->level_select.cx - r->size[0]/2;
-    float cy = w->level_select.cy - r->size[1]/2;
-    float lx1 = level.xpos - cx;
-    float ly1 = r->size[1]-(level.ypos-cy);
-    float lx2 = next_level.xpos - cx;
-    float ly2 = r->size[1]-(next_level.ypos-cy);
+    float cx = ls_pixel_to_screen_x(r, w->level_select.cx) - r->size[0]/2;
+    float cy = ls_pixel_to_screen_y(r, w->level_select.cy) - r->size[1]/2;
+    float lx1 = ls_pixel_to_screen_x(r, level.xpos) - cx;
+    float ly1 = r->size[1]-(ls_pixel_to_screen_y(r, level.ypos)-cy);
+    float lx2 = ls_pixel_to_screen_x(r, next_level.xpos) - cx;
+    float ly2 = r->size[1]-(ls_pixel_to_screen_y(r, next_level.ypos)-cy);
     float line_spacing = 0.8 * r->size[0] * LEVEL_LINE_WIDTH * (LEVEL_LINE_SPACING+1.0);
     if (con.is_left_right) {
         lx1 += line_spacing;
@@ -946,10 +959,6 @@ int update_level_vertex_background_sdf_buffer(renderer* r, world* w, bool just_b
         float vy2 = bg_texture_pixel_to_vertex_y(r, ly+radius*extent/2.0);
         add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0);
     }
-    // render the lines sdf for lines connecting levels
-    // currently we are only drawing the left, up links (as a left will have a right, that will be same)
-    if (just_background)
-        return 0;
     return 0;
 }
 
@@ -957,16 +966,16 @@ int update_level_select_vertex_buffer(renderer* r, world* w) {
     // we want a single smaller circle in middle of screen always
     level_option active_level = w->level_select.levels[w->level_select.current_level];
     float sprite_size = r->size[0]*LEVEL_SPRITE_SIZE;
-    float cx = w->level_select.cx - r->size[0]/2;
-    float cy = w->level_select.cy - r->size[1]/2;
+    float cx = ls_pixel_to_screen_x(r, w->level_select.cx) - r->size[0]/2;
+    float cy = ls_pixel_to_screen_y(r, w->level_select.cy) - r->size[1]/2;
     for (int i=0; i<w->level_select.total_levels; i++) {
         level_option level = w->level_select.levels[i];
         if (!level.unlocked)
             continue;
         sprite_data sd;
         sd = r->level_sprites[1];
-        float lx = (level.xpos-cx);
-        float ly = r->size[1]-(level.ypos-cy);
+        float lx = (ls_pixel_to_screen_x(r, level.xpos)-cx);
+        float ly = r->size[1]-(ls_pixel_to_screen_y(r, level.ypos)-cy);
         float vx1 = screen_pixel_to_vertex_x(r, lx-sprite_size/2.0);
         float vy1 = screen_pixel_to_vertex_y(r, ly-sprite_size/2.0);
         float vx2 = screen_pixel_to_vertex_x(r, lx+sprite_size/2.0);
