@@ -64,7 +64,9 @@ export_all = False
 export_slippery=False
 export_player = False
 export_main_menu = False
-export_cube = True
+export_cube = False
+export_wall = False
+export_furn = True
 
 if export_all:
     objects = ['player', 'cube', 'furn', 'ground', 'slippery', 'cold', 'hot', 'wall']
@@ -115,6 +117,31 @@ if export_cube:
         if os.path.exists(fname):
             current_frame += 1
 
+if export_wall:
+    doc = Krita.instance().openDocument(os.path.join(dirpath, 'wall2.kra'))
+    doc.setBatchmode(True)
+    current_frame = doc.fullClipRangeStartTime()
+    last_frame = doc.fullClipRangeEndTime()
+    while current_frame <= last_frame:
+        print(f'current_frame = {current_frame}')
+        doc.setCurrentTime(current_frame)
+        fname = os.path.join(dirpath, f'wall_{current_frame}_Fill.png')
+        doc.exportImage(fname, InfoObject())
+        if os.path.exists(fname):
+            current_frame += 1
+
+if export_furn:
+    doc = Krita.instance().openDocument(os.path.join(dirpath, 'furn2.kra'))
+    doc.setBatchmode(True)
+    current_frame = doc.fullClipRangeStartTime()
+    last_frame = doc.fullClipRangeEndTime()
+    while current_frame <= last_frame:
+        print(f'current_frame = {current_frame}')
+        doc.setCurrentTime(current_frame)
+        fname = os.path.join(dirpath, f'furn_{current_frame}_Fill.png')
+        doc.exportImage(fname, InfoObject())
+        if os.path.exists(fname):
+            current_frame += 1
 
 if export_main_menu:
     doc = Krita.instance().openDocument(os.path.join(dirpath, 'main_menu_anim.kra'))

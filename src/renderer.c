@@ -232,7 +232,7 @@ int init_renderer(renderer* r, char* window_name) {
     shader_data level_background_shader = {0};
     buffer_data ingame_buffer = {0};
     buffer_data level_buffer = {0};
-    renderer r_ = { false, window, { (int)window_width, (int)window_height },
+    renderer r_ = { false, window, glcontext, { (int)window_width, (int)window_height },
                     ingame_shader, level_background_shader, level_shader, ingame_buffer, level_buffer, NULL };
     *r = r_;
     printf("initting shader data...\n");
@@ -285,7 +285,7 @@ int get_entity_sprite_position(entity_data ed, world* w) {
     if (type == CUBE)
         return 0 + get_animation_frame(w, ed);
     if (type == WALL)
-        return 1;
+        return 1 + get_animation_frame(w, ed);
     if (type == GROUND)
         return 2;
     if (type == SLIPPERY_GROUND)
@@ -295,7 +295,7 @@ int get_entity_sprite_position(entity_data ed, world* w) {
     if (type == COLD_TARGET)
         return 4;
     if (type == FURNITURE)
-        return 5;
+        return 5 + get_animation_frame(w, ed);
     return 0;
 }
 
@@ -936,7 +936,8 @@ float get_min_connection_length(renderer* r, world* w, level_option lev) {
     if (next != -1)
         radius = min(radius, get_connection_length(w, next));
     // this is to make the size relative to screen size (and not absolute pixel value)
-    radius *= 1.0 * r->size[0]/WINDOW_WIDTH;
+    // radius *= 1.0 * r->size[0]/WINDOW_WIDTH;
+    radius = ls_pixel_to_screen_x(r, radius);
     return radius;
 }
 

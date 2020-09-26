@@ -47,6 +47,7 @@ typedef struct {
 typedef struct {
     bool fullscreen;
     SDL_Window* window;
+    SDL_GLContext* context;
     int size[2];
     shader_data ingame_shader;
     shader_data level_background_shader;

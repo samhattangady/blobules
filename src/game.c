@@ -172,7 +172,7 @@ bool has_movements(entity_type et) {
 }
 
 bool has_animations(entity_type et) {
-    return (et==PLAYER || et==CUBE);
+    return (et==PLAYER || et==CUBE || et==WALL || et==FURNITURE);
 }
 
 animations get_anim_from_name(char* a) {
@@ -196,8 +196,24 @@ animations get_anim_from_name(char* a) {
         return CUBE_DOWN;
     if (strcmp(a, "CUBE_WAIT") == 0)
         return CUBE_WAIT;
+    if (strcmp(a, "CUBE_SLIDE") == 0)
+        return CUBE_SLIDE;
     if (strcmp(a, "CUBE_JUMP") == 0)
         return CUBE_JUMP;
+    if (strcmp(a, "CUBE_MELT") == 0)
+        return CUBE_MELT;
+    if (strcmp(a, "WALL_REGULAR") == 0)
+        return WALL_REGULAR;
+    if (strcmp(a, "WALL_WAIT") == 0)
+        return WALL_WAIT;
+    if (strcmp(a, "WALL_BOUNCE") == 0)
+        return WALL_BOUNCE;
+    if (strcmp(a, "FURN_REGULAR") == 0)
+        return FURN_REGULAR;
+    if (strcmp(a, "FURN_WAIT") == 0)
+        return FURN_WAIT;
+    if (strcmp(a, "FURN_BOUNCE") == 0)
+        return FURN_BOUNCE;
     return ANIMATIONS_COUNT;
 }
 
@@ -258,6 +274,12 @@ int add_entity(world* w, entity_type e, int x, int y, int z) {
             } else if (e == CUBE) {
                 w->animations[animation_index].current_animation_index = CUBE_DOWN;
                 w->animations[animation_index].default_animation_index = CUBE_DOWN;
+            } else if (e == WALL) {
+                w->animations[animation_index].current_animation_index = WALL_REGULAR;
+                w->animations[animation_index].default_animation_index = WALL_REGULAR;
+            } else if (e == FURNITURE) {
+                w->animations[animation_index].current_animation_index = FURN_REGULAR;
+                w->animations[animation_index].default_animation_index = FURN_REGULAR;
             }
             w->animations[animation_index].queue_length = 0;
             w->animations_occupied++;
@@ -935,7 +957,6 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
         (y+dy < 0 || y+dy > w->y_size-1) ||
         (z+dz < 0 || z+dz > w->z_size-1)) {
         // remove cube
-        // TODO (07 May 2020 sam): Figure out how to handle animations here?
         add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
         set_entity_position(w, cube_index, x+dx, y+dy, z+dz);
         schedule_entity_removal(w, cube_index, depth);
@@ -955,7 +976,12 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
             if (get_entity_at(w, target_pos_index) == REFLECTOR)
                 maybe_reflect_cube(w, x, y, x+dx, y+dy, z, dx, dy, dz, depth);
             if (get_entity_at(w, target_pos_index) == FURNITURE) {
-                maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth);
+                maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth, true);
+            }
+            if (get_entity_at(w, target_pos_index) == WALL) {
+                for (int i=0; i<depth; i++)
+                    queue_animation(w, w->grid_data[target_pos_index], WALL_WAIT);
+                queue_animation(w, w->grid_data[target_pos_index], WALL_BOUNCE);
             }
             // check if win.
             if (get_entity_at(w, on_index) == HOT_TARGET) {
@@ -965,7 +991,7 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
                 set_none(w, index);
                 set_cold_target(w, x, y, z-1, w->seconds+ANIMATION_SINGLE_STEP_TIME*depth);
                 add_sound_to_queue(w, TARGET_FILLING, w->seconds + ANIMATION_SINGLE_STEP_TIME*(depth+1));
-                // TODO (21 Sep 2020 sam): add CUBE_MELT here when its ready.
+                queue_animation(w, cube_index, CUBE_MELT);
             }
             add_sound_to_queue(w, st, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
             return 1;
@@ -973,7 +999,6 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
     }
     if (!can_support_cube(get_entity_at(w, target_on_index))) {
         // remove cube
-        // TODO (07 May 2020 sam): Figure out how to handle animations here?
         schedule_entity_removal(w, cube_index, depth);
         add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
         set_entity_position(w, cube_index, x+dx, y+dy, z+dz);
@@ -983,7 +1008,6 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
     w->grid_data[target_pos_index] = cube_index;
     set_none(w, index);
     add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
-    maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1, false);
     if (depth == 0)
         add_sound_to_queue(w, CUBE_MOVE, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
     if (just_pushed) {
@@ -991,11 +1015,14 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
         for (int i=0; i<depth; i++)
             queue_animation(w, cube_index, CUBE_WAIT);
         queue_animation(w, cube_index, CUBE_JUMP);
+    } else {
+        queue_animation(w, cube_index, CUBE_SLIDE);
     }
+    maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1, false);
     return 0;
 }
 
-int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, int depth) {
+int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, int depth, bool just_pushed) {
     int on_index = get_position_index(w, x, y, z-1);
     int index = get_position_index(w, x, y, z);
     int furniture_index = w->grid_data[index];
@@ -1012,6 +1039,11 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, 
     int target_pos_index = get_position_index(w, x+dx, y+dy, z+dz);
     if (get_entity_at(w, target_pos_index) != NONE) {
         if (get_entity_at(w, target_pos_index) == WALL)
+            if (get_entity_at(w, target_pos_index) == WALL) {
+                for (int i=0; i<depth; i++)
+                    queue_animation(w, w->grid_data[target_pos_index], WALL_WAIT);
+                queue_animation(w, w->grid_data[target_pos_index], WALL_BOUNCE);
+            }
             return 1;
         if (get_entity_at(w, target_pos_index) == FURNITURE)
             return 1;
@@ -1033,8 +1065,14 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, 
     if (depth == 0) {
         add_sound_to_queue(w, FURN_MOVE, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
     }
+    if (just_pushed) {
+        // if one cube is pushing another, we want it to wait till its ready.
+        for (int i=0; i<depth; i++)
+            queue_animation(w, furniture_index, FURN_WAIT);
+        queue_animation(w, furniture_index, FURN_BOUNCE);
+    }
     if (get_entity_at(w, target_on_index) == SLIPPERY_GROUND)
-        maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1);
+        maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1, false);
     return 0;
 }
 
@@ -1143,6 +1181,11 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
         if (force) {
             anim_to_queue = STOPPING_HARD;
             sound_to_queue = PLAYER_STOP;
+            if (get_entity_at(w, target_index) == WALL) {
+                for (int i=0; i<depth; i++)
+                    queue_animation(w, w->grid_data[target_index], WALL_WAIT);
+                queue_animation(w, w->grid_data[target_index], WALL_BOUNCE);
+            }
         }
         if (can_push_player_back(get_entity_at(w, target_index)) && !force) {
             if (get_entity_at(w, ground_index) == SLIPPERY_GROUND) {
@@ -1151,12 +1194,17 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
                 new_dy = -dy;
                 new_dz = -dz;
             }
+            if (get_entity_at(w, target_index) == WALL) {
+                for (int i=0; i<depth; i++)
+                    queue_animation(w, w->grid_data[target_index], WALL_WAIT);
+                queue_animation(w, w->grid_data[target_index], WALL_BOUNCE);
+            }
         }
         entity_type target_entity = get_entity_at(w, target_index);
         if (target_entity == CUBE)
             maybe_move_cube(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz, depth, true);
         if (target_entity == FURNITURE)
-            maybe_move_furniture(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz, depth);
+            maybe_move_furniture(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz, depth, true);
         if (target_entity == REFLECTOR)
             maybe_move_reflector(w, pos.x+dx, pos.y+dy, pos.z+dz, dx, dy, dz, depth);
         if (!force && (target_entity == CUBE || target_entity == FURNITURE || get_entity_at(w, ground_index) == SLIPPERY_GROUND)) {
@@ -1474,10 +1522,6 @@ void add_entity_at_mouse(world* w) {
     int y = get_world_y(w);
     if (x < 0 || x >= w->x_size || y < 0 || y >= w->y_size)
         return;
-    // TODO (19 Apr 2020 sam): Add check here to see whether the type is
-    // on "correct z level"
-    // TODO (03 Jul 2020 sam): Check if there is already an entity here
-    // and remove in that case.
     u32 index = get_position_index(w, x, y, w->editor.z_level);
     entity_type et = get_entity_at(w, index);
     if (et != NONE)
@@ -1976,3 +2020,90 @@ int handle_input_queue(world* w) {
         }
     }
 }
+
+/*
+ * NOTE: This was imported from main. the pointers etc need to be sorted out.
+int draw_editor(world* w) {
+    char active_z_level[32];
+    add_text(w->editor.ui_state, &w->editor.ui_window, w.level_select.levels[w.level_select.current_level].name.text, true);
+    sprintf(active_z_level, "z_level: %i", w.editor.z_level);
+    add_text(w->editor.ui_state, &w->editor.ui_window, active_z_level, true);
+    char active_block[48];
+    sprintf(active_block, "active_block: %s", as_text(w.editor.active_type));
+    add_text(w->editor.ui_state, &w->editor.ui_window, active_block, true);
+    new_line(w->editor.ui_state, &w->editor.ui_window, false);
+    add_text(w->editor.ui_state, &w->editor.ui_window, "Select a block type...", true);
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "CUBE", true)) {
+        printf("cube\n");
+        w.editor.z_level = 1;
+        w.editor.active_type = CUBE;
+    }
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "FURNITURE", true)) {
+        w.editor.z_level = 1;
+        w.editor.active_type = FURNITURE;
+    }
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "REFLECTOR", true)) {
+        w.editor.z_level = 1;
+        w.editor.active_type = REFLECTOR;
+    }
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "PLAYER", true)) {
+        w.editor.z_level = 1;
+        w.editor.active_type = PLAYER;
+    }
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "WALL", true)) {
+        w.editor.z_level = 1;
+        w.editor.active_type = WALL;
+    }
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "GROUND", true)) {
+        w.editor.z_level = 0;
+        w.editor.active_type = GROUND;
+    }
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "SLIPPERY_GROUND", true)) {
+        w.editor.z_level = 0;
+        w.editor.active_type = SLIPPERY_GROUND;
+    }
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "HOT_TARGET", true)) {
+        w.editor.z_level = 0;
+        w.editor.active_type = HOT_TARGET;
+    }
+    new_line(w->editor.ui_state, &w->editor.ui_window, false);
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "add col left", false)) {
+        change_world_xsize(&w, -1, 1);
+    }
+    vert_spacer(w->editor.ui_state, &w->editor.ui_window, true);
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "add col right", true)) {
+        change_world_xsize(&w, 1, 1);
+    }
+    new_line(w->editor.ui_state, &w->editor.ui_window, false);
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "del col left", false)) {
+        change_world_xsize(&w, -1, -1);
+    }
+    vert_spacer(w->editor.ui_state, &w->editor.ui_window, true);
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "del col right", true)) {
+        change_world_xsize(&w, 1, -1);
+    }
+    new_line(w->editor.ui_state, &w->editor.ui_window, false);
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "add row top", false)) {
+        change_world_ysize(&w, 1, 1);
+    }
+    vert_spacer(w->editor.ui_state, &w->editor.ui_window, true);
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "del row top", true)) {
+        change_world_ysize(&w, 1, -1);
+    }
+    new_line(w->editor.ui_state, &w->editor.ui_window, false);
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "add row bottom", false)) {
+        change_world_ysize(&w, -1, 1);
+    }
+    vert_spacer(w->editor.ui_state, &w->editor.ui_window, true);
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "del row bottom", true)) {
+        change_world_ysize(&w, -1, -1);
+    }
+    new_line(w->editor.ui_state, &w->editor.ui_window, false);
+    new_line(w->editor.ui_state, &w->editor.ui_window, false);
+    new_line(w->editor.ui_state, &w->editor.ui_window, false);
+    if (add_button(w->editor.ui_state, &w->editor.ui_window, "save_level", true)) {
+        save_level(&w);
+    }
+    cb_render_window(w->editor.ui_state, &w->editor.ui_window);
+}
+*/

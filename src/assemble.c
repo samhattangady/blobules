@@ -8,7 +8,7 @@
 #include "stb_image_write.h"
 
 #define u8 uint8_t
-#define TOTAL_NUMBER 30
+#define TOTAL_NUMBER 38
 #define NUMBER_OF_NODES 2048
 #define SPRITE_DATA_FILE "mis_data/img/sprite_data.txt"
 
@@ -18,11 +18,11 @@ int main(int argc, char** argv) {
     stbrp_rect rects[TOTAL_NUMBER];
     int w, h, n;
     filenames[0] = "static/cube_0";
-    filenames[1] = "static/wall2";
+    filenames[1] = "static/wall_0";
     filenames[2] = "static/ground";
     filenames[3] = "static/target";
     filenames[4] = "static/target2";
-    filenames[5] = "static/furn2";
+    filenames[5] = "static/furn_0";
     filenames[6] = "static/player";
     filenames[7] = "static/slippery";
     filenames[8] = "static/ground1";
@@ -47,6 +47,14 @@ int main(int argc, char** argv) {
     filenames[27] = "static/anim_10";
     filenames[28] = "static/cube_1";
     filenames[29] = "static/cube_2";
+    filenames[30] = "static/cube_3";
+    filenames[31] = "static/cube_4";
+    filenames[32] = "static/cube_6";
+    filenames[33] = "static/cube_7";
+    filenames[34] = "static/wall_1";
+    filenames[35] = "static/wall_2";
+    filenames[36] = "static/furn_1";
+    filenames[37] = "static/furn_2";
 
     for (int i=0; i<TOTAL_NUMBER; i++) {
         char fillname[50];

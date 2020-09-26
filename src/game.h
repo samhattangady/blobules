@@ -126,7 +126,15 @@ typedef enum {
     JUMPING,
     CUBE_DOWN,
     CUBE_WAIT,
+    CUBE_SLIDE,
     CUBE_JUMP,
+    CUBE_MELT,
+    WALL_REGULAR,
+    WALL_WAIT,
+    WALL_BOUNCE,
+    FURN_REGULAR,
+    FURN_WAIT,
+    FURN_BOUNCE,
     ANIMATIONS_COUNT,
 } animations;
 
