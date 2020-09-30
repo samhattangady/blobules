@@ -184,7 +184,7 @@ typedef struct {
     int active_option;
     u32 total_options;
     menu_option options[8];
-} main_menu_struct;
+} menu_struct;
 
 typedef struct {
     int head_index;
@@ -271,12 +271,18 @@ typedef struct {
     bool currently_moving;
     bool win_scheduled;
     bool facing_right;
+    bool settings_menu_open;
+    u32 music_channel;
+    u32 sound_channel;
+    u32 music_volume;
+    u32 sound_volume;
     u32 size;
     u32 x_size;
     u32 y_size;
     u32 z_size;
     world_mode active_mode;
-    main_menu_struct main_menu;
+    menu_struct main_menu;
+    menu_struct settings_menu;
     level_editor_modes level_mode;
     level_select_struct level_select;
     u32 entities_occupied;

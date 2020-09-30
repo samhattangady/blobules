@@ -16,7 +16,7 @@ void main() {
     if (col.a < 0.1)
         discard;
     if (texCoord.z > 0.0) {
-        col.g += 0.02*texCoord.z;
+        // col.g += 0.02*texCoord.z;
     }
     fragColor = col;
     return;

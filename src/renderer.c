@@ -769,12 +769,21 @@ int render_menu_scene(renderer* r, world* w) {
     // TODO (14 Jun 2020 sam): Keep the ui state in a more accessible location
     glViewport(0, 0, r->size[0], r->size[1]);
     render_level_select(r, w, true, true);
-    for (int i=0; i<w->main_menu.total_options; i++) {
-        cb_ui_render_text_centered_x(w->editor.ui_state, w->main_menu.options[i].text.text,
-                          r->size[0]*0.5, r->size[1]*0.7+(i*30));
+    if (!w->settings_menu_open) {
+        for (int i=0; i<w->main_menu.total_options; i++) {
+            cb_ui_render_text_centered_x(w->editor.ui_state, w->main_menu.options[i].text.text,
+                              r->size[0]*0.5, r->size[1]*0.7+(i*30));
+        }
+        cb_ui_render_rectangle(w->editor.ui_state, r->size[0]*0.4, r->size[1]*0.7+(w->main_menu.active_option*30)-5,
+                               r->size[0]*0.2, 21, 0.5);
+    } else {
+        for (int i=0; i<w->settings_menu.total_options; i++) {
+            cb_ui_render_text_centered_x(w->editor.ui_state, w->settings_menu.options[i].text.text,
+                              r->size[0]*0.5, r->size[1]*0.7+(i*30));
+        }
+        cb_ui_render_rectangle(w->editor.ui_state, r->size[0]*0.4, r->size[1]*0.7+(w->settings_menu.active_option*30)-5,
+                               r->size[0]*0.2, 21, 0.5);
     }
-    cb_ui_render_rectangle(w->editor.ui_state, r->size[0]*0.4, r->size[1]*0.7+(w->main_menu.active_option*30)-5,
-                           r->size[0]*0.2, 21, 0.5);
     return 0;
 }
 

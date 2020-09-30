@@ -39,14 +39,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Init sounds stuff.
-    Mix_Chunk *music = NULL;
-    music = Mix_LoadWAV("mis_data/sounds/music1.wav");
-    Mix_Chunk *ambient1 = NULL;
-    ambient1 = Mix_LoadWAV("mis_data/sounds/ambience1.wav");
-    Mix_PlayChannel(-1, music, -1);
-    Mix_PlayChannel(-1, ambient1, -1);
-
     u32 frame = 0;
     u32 start_time;
     u32 clock_time;

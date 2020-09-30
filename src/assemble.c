@@ -20,8 +20,8 @@ int main(int argc, char** argv) {
     filenames[0] = "static/cube_0";
     filenames[1] = "static/wall_0";
     filenames[2] = "static/ground";
-    filenames[3] = "static/target";
-    filenames[4] = "static/target2";
+    filenames[3] = "static/target_0";
+    filenames[4] = "static/target_1";
     filenames[5] = "static/furn_0";
     filenames[6] = "static/player";
     filenames[7] = "static/slippery";

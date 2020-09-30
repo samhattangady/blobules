@@ -12,6 +12,8 @@
 #define LEVEL_LISTING "mis_data/levels/data.txt"
 #define SAVEFILE "mis_data/savefile.txt"
 #define PI 3.14159265
+#define SOUND_MULTIPLIER 16
+#define SOUND_MAX_VOLUME 8
 
 // TODO (18 Apr 2020 sam): This is required to get the inputs working correctly
 // with callbacks. See if there is a better way to accomplish this.
@@ -423,6 +425,8 @@ int complete_level(world* w, int l_index) {
         if (con.head_index == l_index && con.head_unlocks_tail) {
             if (!w->level_select.levels[con.tail_index].unlocked)
                 w->level_select.levels[con.tail_index].unlocked = true;
+            if (!w->level_select.levels[con.tail_index].discovered)
+                w->level_select.levels[con.tail_index].discovered = true;
             if (!con.discovered) {
                 w->level_select.connections[con_index].discovered = true;
                 w->level_select.connections[con_index].draw_time = w->seconds;
@@ -430,6 +434,8 @@ int complete_level(world* w, int l_index) {
         } else if (con.tail_index == l_index && con.tail_unlocks_head) {
             if  (!w->level_select.levels[con.head_index].unlocked)
                 w->level_select.levels[con.head_index].unlocked = true;
+            if  (!w->level_select.levels[con.head_index].discovered)
+                w->level_select.levels[con.head_index].discovered = true;
             if (!con.discovered) {
                 w->level_select.connections[con_index].discovered = true;
                 w->level_select.connections[con_index].draw_time = w->seconds;
@@ -537,8 +543,8 @@ int load_levels_list(level_select_struct* l) {
                 levels_done = true;
             index = 0;
             clear_string(&tmp);
-            // if (n>5)
-            //     lev.unlocked = false;
+            if (n-n_levels == n_connections)
+                break;
         }
         else if (c == '\0')
             break;
@@ -560,10 +566,11 @@ int load_levels_list(level_select_struct* l) {
 }
 
 int save_game_progress(world* w) {
+    printf("saving file...\n");
     FILE* save_file = fopen(SAVEFILE, "w");
     // first line has the settings saved
     fprintf(save_file, "beta v0.0\n");
-    fprintf(save_file, "%i %i %i %i\n", w->level_select.current_level, global_r->fullscreen, w->level_select.total_levels, w->level_select.total_connections);
+    fprintf(save_file, "%i %i %i %i %i %i\n", w->level_select.current_level, global_r->fullscreen, w->level_select.total_levels, w->level_select.total_connections, w->music_volume, w->sound_volume);
     for (int i=0; i<w->level_select.total_levels; i++) {
         level_option lev = w->level_select.levels[i];
         fprintf(save_file, "L %i %i %i\n", lev.unlocked, lev.discovered, lev.completed);
@@ -573,6 +580,7 @@ int save_game_progress(world* w) {
         fprintf(save_file, "C %i\n", con.discovered);
     }
     fclose(save_file);
+    printf("saved file...\n");
     return 0;
 }
 
@@ -584,7 +592,7 @@ int load_game_progress(world* w) {
     fscanf(save_file, "beta v%i.%i\n", &major_version, &minor_version);
     // TODO (12 Aug 2020 sam): Check version here.
     // getting saved settings
-    fscanf(save_file, "%i %i %i %i\n", &w->level_select.current_level, &global_fullscreen, &total_levels, &total_connections);
+    fscanf(save_file, "%i %i %i %i %i %i\n", &w->level_select.current_level, &global_fullscreen, &total_levels, &total_connections, &w->music_volume, &w->sound_volume);
     printf("total levels: %i\t total connections: %i\n", total_levels, total_connections);
     // TODO (12 Aug 2020 sam): Make sure there aren't more levels/connections than data loaded.
     for (int i=0; i<total_levels; i++) {
@@ -780,6 +788,85 @@ int init_input_state(world* w) {
     return 0;
 }
 
+int set_sound_volume_text(world* w) {
+    clear_string(&w->settings_menu.options[2]);
+    append_chars(&w->settings_menu.options[2], "Sound <");
+    for (int i=0; i<SOUND_MAX_VOLUME; i++) {
+        if (i<w->sound_volume)
+            append_chars(&w->settings_menu.options[2], "-");
+        else
+            append_chars(&w->settings_menu.options[2], " ");
+    }
+    append_chars(&w->settings_menu.options[2], ">");
+    return 0;
+}
+
+int set_music_volume_text(world* w) {
+    clear_string(&w->settings_menu.options[1]);
+    append_chars(&w->settings_menu.options[1], "Music <");
+    for (int i=0; i<SOUND_MAX_VOLUME; i++) {
+        if (i<w->music_volume)
+            append_chars(&w->settings_menu.options[1], "-");
+        else
+            append_chars(&w->settings_menu.options[1], " ");
+    }
+    append_chars(&w->settings_menu.options[1], ">");
+    return 0;
+}
+
+int init_sounds(world* w) {
+    Mix_Chunk *music = NULL;
+    music = Mix_LoadWAV("mis_data/sounds/music1.wav");
+    Mix_Chunk *ambient1 = NULL;
+    ambient1 = Mix_LoadWAV("mis_data/sounds/ambience1.wav");
+    int music_channel = Mix_PlayChannel(-1, music, -1);
+    int sound_channel = Mix_PlayChannel(-1, ambient1, -1);
+    w->music_channel = music_channel;
+    w->sound_channel = sound_channel;
+    Mix_Volume(w->music_channel, w->music_volume*SOUND_MULTIPLIER);
+    Mix_Volume(w->sound_channel, w->sound_volume*SOUND_MULTIPLIER);
+    set_sound_volume_text(w);
+    set_music_volume_text(w);
+    printf("music_volume = %i\n", w->music_volume);
+    return 0;
+}
+
+int increase_sound_volume(world* w) {
+    if (w->sound_volume >= SOUND_MAX_VOLUME)
+        return 0;
+    w->sound_volume++;
+    Mix_Volume(w->sound_channel, w->sound_volume*SOUND_MULTIPLIER);
+    set_sound_volume_text(w);
+    return 0;
+}
+
+int increase_music_volume(world* w) {
+    if (w->music_volume >= SOUND_MAX_VOLUME)
+        return 0;
+    w->music_volume++;
+    Mix_Volume(w->music_channel, w->music_volume*SOUND_MULTIPLIER);
+    set_music_volume_text(w);
+    return 0;
+}
+
+int decrease_sound_volume(world* w) {
+    if (w->sound_volume <= 0)
+        return 0;
+    w->sound_volume--;
+    Mix_Volume(w->sound_channel, w->sound_volume*SOUND_MULTIPLIER);
+    set_sound_volume_text(w);
+    return 0;
+}
+
+int decrease_music_volume(world* w) {
+    if (w->music_volume <= 0)
+        return 0;
+    w->music_volume--;
+    Mix_Volume(w->music_channel, w->music_volume*SOUND_MULTIPLIER);
+    set_music_volume_text(w);
+    return 0;
+}
+
 int init_world(world* w, u32 number) {
     world_freezeframe* frames = (world_freezeframe*) malloc(HISTORY_STEPS * sizeof(world_freezeframe));
     world_history history = {0, frames};
@@ -797,12 +884,14 @@ int init_world(world* w, u32 number) {
     tmp.active_mode = MAIN_MENU;
     tmp.level_select = level_select;
     init_main_menu(&tmp);
+    init_settings_menu(&tmp);
     tmp.player = ALIVE;
     tmp.controller_axes.x = 0;
     tmp.controller_axes.y = 0;
     tmp.level_mode = NEUTRAL;
     tmp.editor.editor_enabled = false;
     tmp.currently_moving = false;
+    tmp.settings_menu_open = false;
     tmp.win_scheduled = false;
     tmp.facing_right = false;
     tmp.mouse = mouse;
@@ -829,6 +918,7 @@ int init_world(world* w, u32 number) {
     save_level_history(w);
     printf("loading level\n");
     load_level(w);
+    init_sounds(w);
     printf("initted world\n");
     return 0;
 }
@@ -966,6 +1056,19 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
     // see what's already in desired place
     int target_pos_index = get_position_index(w, x+dx, y+dy, z+dz);
     int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);
+    if (just_pushed) {
+        // if one cube is pushing another, we want it to wait till its ready.
+        for (int i=0; i<depth; i++)
+            queue_animation(w, cube_index, CUBE_WAIT);
+        queue_animation(w, cube_index, CUBE_JUMP);
+    } else {
+        if (get_entity_at(w, target_on_index) == HOT_TARGET) {
+            // TODO (26 Sep 2020 sam): Add sound here as well.
+            queue_animation(w, cube_index, CUBE_JUMP);
+        }
+        else 
+            queue_animation(w, cube_index, CUBE_SLIDE);
+    }
     if (get_entity_at(w, target_pos_index) != NONE) {
         if (can_stop_cube_slide(get_entity_at(w, target_pos_index))) {
             sound_type st = CUBE_STOP;
@@ -1010,14 +1113,6 @@ int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int d
     add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
     if (depth == 0)
         add_sound_to_queue(w, CUBE_MOVE, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
-    if (just_pushed) {
-        // if one cube is pushing another, we want it to wait till its ready.
-        for (int i=0; i<depth; i++)
-            queue_animation(w, cube_index, CUBE_WAIT);
-        queue_animation(w, cube_index, CUBE_JUMP);
-    } else {
-        queue_animation(w, cube_index, CUBE_SLIDE);
-    }
     maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1, false);
     return 0;
 }
@@ -1034,6 +1129,12 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, 
         schedule_entity_removal(w, furniture_index, depth);
         set_none(w, index);
         return -1;
+    }
+    if (just_pushed) {
+        // if one cube is pushing another, we want it to wait till its ready.
+        for (int i=0; i<depth; i++)
+            queue_animation(w, furniture_index, FURN_WAIT);
+        queue_animation(w, furniture_index, FURN_BOUNCE);
     }
     // see what's already in desired place
     int target_pos_index = get_position_index(w, x+dx, y+dy, z+dz);
@@ -1064,12 +1165,6 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, 
     add_interpolation(w, furniture_index, x, y, z, dx, dy, depth);
     if (depth == 0) {
         add_sound_to_queue(w, FURN_MOVE, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
-    }
-    if (just_pushed) {
-        // if one cube is pushing another, we want it to wait till its ready.
-        for (int i=0; i<depth; i++)
-            queue_animation(w, furniture_index, FURN_WAIT);
-        queue_animation(w, furniture_index, FURN_BOUNCE);
     }
     if (get_entity_at(w, target_on_index) == SLIPPERY_GROUND)
         maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1, false);
@@ -1193,11 +1288,11 @@ int maybe_move_player(world* w, int dx, int dy, int dz, bool force, int depth) {
                 new_dx = -dx;
                 new_dy = -dy;
                 new_dz = -dz;
-            }
-            if (get_entity_at(w, target_index) == WALL) {
-                for (int i=0; i<depth; i++)
-                    queue_animation(w, w->grid_data[target_index], WALL_WAIT);
-                queue_animation(w, w->grid_data[target_index], WALL_BOUNCE);
+                if (get_entity_at(w, target_index) == WALL) {
+                    for (int i=0; i<depth; i++)
+                        queue_animation(w, w->grid_data[target_index], WALL_WAIT);
+                    queue_animation(w, w->grid_data[target_index], WALL_BOUNCE);
+                }
             }
         }
         entity_type target_entity = get_entity_at(w, target_index);
@@ -1382,15 +1477,38 @@ int set_input(world* w, input_type it) {
         if (it == ESCAPE)
             go_to_main_menu(w);
     } else if (w->active_mode == MAIN_MENU) {
-        if (it == MOVE_UP)
-            previous_option(w);
-        if (it == MOVE_DOWN)
-            next_option(w);
-        if (it == ENTER)
-            select_active_option(w);
-        if (DEBUG_BUILD) {
+        if (!w->settings_menu_open) {
+            if (it == MOVE_UP)
+                previous_option(w);
+            if (it == MOVE_DOWN)
+                next_option(w);
+            if (it == ENTER)
+                select_active_option(w);
+            if (DEBUG_BUILD) {
+                if (it  == ESCAPE)
+                    w->active_mode = EXIT;
+            }
+        } else {
+            if (it == MOVE_UP)
+                previous_settings_option(w);
+            if (it == MOVE_DOWN)
+                next_settings_option(w);
+            if (it == MOVE_LEFT) {
+                if (w->settings_menu.active_option == 1)
+                    decrease_music_volume(w);
+                if (w->settings_menu.active_option == 2)
+                    decrease_sound_volume(w);
+            }
+            if (it == MOVE_RIGHT) {
+                if (w->settings_menu.active_option == 1)
+                    increase_music_volume(w);
+                if (w->settings_menu.active_option == 2)
+                    increase_sound_volume(w);
+            }
             if (it  == ESCAPE)
-                w->active_mode = EXIT;
+                w->settings_menu_open = false;
+            if (it == ENTER)
+                select_settings_active_option(w);
         }
     }
     return 0;
@@ -1400,6 +1518,7 @@ int unlock_all_levels(world* w) {
     printf("unlocking levels...\n");
     for (int i=0; i<w->level_select.total_levels; i++) {
         w->level_select.levels[i].unlocked = true;
+        w->level_select.levels[i].discovered = true;
         w->level_select.levels[i].completed = true;
     }
     for (int i=0; i<w->level_select.total_connections; i++)
@@ -1409,15 +1528,31 @@ int unlock_all_levels(world* w) {
 
 int init_main_menu(world* w) {
     menu_option new_game = {string_from("Play")};
-    menu_option fullscreen = {string_from("Toggle Fullscreen")};
-    menu_option reset_progress = {string_from("Reset Progess")};
+    menu_option settings = {string_from("Settings")};
+    menu_option about = {string_from("About")};
     menu_option exit = {string_from("Save and Quit")};
     w->main_menu.total_options = 4;
     w->main_menu.active_option = 0;
     w->main_menu.options[0] = new_game;
-    w->main_menu.options[1] = fullscreen;
-    w->main_menu.options[2] = reset_progress;
+    w->main_menu.options[1] = settings;
+    w->main_menu.options[2] = about;
     w->main_menu.options[3] = exit;
+    return 0;
+}
+
+int init_settings_menu(world* w) {
+    menu_option fullscreen = {string_from("Toggle Fullscreen")};
+    menu_option music_volume = {string_from("Music <-------->")};
+    menu_option sound_volume = {string_from("Sound <-------->")};
+    menu_option reset_progress = {string_from("Reset Progress")};
+    menu_option back = {string_from("Back")};
+    w->settings_menu.total_options = 5;
+    w->settings_menu.active_option = 0;
+    w->settings_menu.options[0] = fullscreen;
+    w->settings_menu.options[1] = music_volume;
+    w->settings_menu.options[2] = sound_volume;
+    w->settings_menu.options[3] = reset_progress;
+    w->settings_menu.options[4] = back;
     return 0;
 }
 
@@ -1428,10 +1563,24 @@ int next_option(world* w) {
     return 0;
 }
 
+int next_settings_option(world* w) {
+    w->settings_menu.active_option++;
+    if (w->settings_menu.active_option >= w->settings_menu.total_options)
+        w->settings_menu.active_option = 0;
+    return 0;
+}
+
 int previous_option(world* w) {
     w->main_menu.active_option--;
     if (w->main_menu.active_option < 0)
         w->main_menu.active_option = w->main_menu.total_options-1;
+    return 0;
+}
+
+int previous_settings_option(world* w) {
+    w->settings_menu.active_option--;
+    if (w->settings_menu.active_option < 0)
+        w->settings_menu.active_option = w->settings_menu.total_options-1;
     return 0;
 }
 
@@ -1440,14 +1589,23 @@ int select_active_option(world* w) {
     if (w->main_menu.active_option == 0)
         w->active_mode = LEVEL_SELECT;
     if (w->main_menu.active_option == 1)
-        toggle_fullscreen(global_r, w);
+        w->settings_menu_open = true;
     if (w->main_menu.active_option == 2)
-        reset_game_progress(w);
+        // TODO (30 Sep 2020 sam): Implement about here.
+        printf("about menu here\n");
     if (w->main_menu.active_option == 3) {
         save_game_progress(w);
         w->active_mode = EXIT;
     }
     return 0;
+}
+
+int select_settings_active_option(world* w) {
+    if (w->settings_menu.active_option == 0)
+        toggle_fullscreen(global_r, w);
+    if (w->settings_menu.active_option == 4)
+        w->settings_menu_open = false;
+
 }
 
 int go_to_next_level_mode(world* w) {
@@ -1604,9 +1762,12 @@ float get_ease_in_out_progress(float time_elapsed) {
     // we are using the easeInOutQuad
     // return t < 0.5 ? 2 * t * t : t * (4 - 2 * t) - 1;
     // return time_elapsed;
+    float elapsed;
     if (time_elapsed < 0.5)
-        return 2 * time_elapsed * time_elapsed;
-    return time_elapsed * (4 - 2*time_elapsed)-1;
+        elapsed = 2 * time_elapsed * time_elapsed;
+    else
+        elapsed = time_elapsed * (4 - 2*time_elapsed)-1;
+    return elapsed;
 }
 
 float get_sigmoid_progress(float time_elapsed) {
@@ -1680,10 +1841,11 @@ int simulate_world(world* w, float seconds) {
             for (int i=0; i<w->movements_occupied; i++) {
                 if (!w->movements[i].currently_moving)
                     continue;
-                float elapsed = (seconds-w->movements[i].start_time) / w->movements[i].duration;
-                if (elapsed < 0.0)
+                float time_elapsed = (seconds-w->movements[i].start_time) / w->movements[i].duration;
+                float elapsed = get_ease_in_out_progress(time_elapsed);
+                if (time_elapsed < 0.0)
                     elapsed = 0.0;
-                if (elapsed > 1.0)
+                if (time_elapsed > 1.0)
                     w->movements[i].currently_moving = false;
                 still_moving = still_moving || w->movements[i].currently_moving;
                 float progress = get_linear_progress(elapsed);
@@ -1728,7 +1890,8 @@ int simulate_world(world* w, float seconds) {
     for (int i=0; i<SOUND_QUEUE_LENGTH; i++) {
         sound_queue_item sqi = w->sound_queue[i];
         if (sqi.sound != NO_SOUND && w->seconds > sqi.seconds) {
-            Mix_PlayChannel(-1, w->sounds[sqi.sound].data, 0);
+            int channel = Mix_PlayChannel(-1, w->sounds[sqi.sound].data, 0);
+            Mix_Volume(channel, w->sound_volume*SOUND_MULTIPLIER);
             w->sound_queue[i].sound = NO_SOUND;
         }
     }
@@ -1938,6 +2101,10 @@ int process_input_event(world* w, SDL_Event event) {
                 load_next_level(w);
             if (key == SDLK_p)
                 load_previous_level(w);
+            if (key == SDLK_v)
+                Mix_Volume(-1, 128);
+            if (key == SDLK_b)
+                Mix_Volume(-1, 64);
         }
     }
     if (event.type == SDL_CONTROLLERBUTTONDOWN) {
