@@ -1,1 +1,1 @@
-pushd src && time gcc -O1 -pg -o blobules cb_lib/cb_string.c  renderer.c game.c ui.c main.c -I/usr/include/freetype2 -I/usr/include/libpng16 -lfreetype -lglfw -lGL -lGLEW  -lm && ./blobules; gprof blobules gmon.out > prof_output && rm ./blobules && rm gmon.out && popd;
+pushd src && time gcc -O1 -pg -o blobules cb_lib/cb_string.c  renderer.c game.c ui.c main.c -I/usr/include/SDL2 -lSDL2 -lglfw -lGL -lGLEW  -lm && ./blobules && rm ./blobules && popd

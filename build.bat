@@ -1,4 +1,2 @@
 @echo off
-pushd src
-build
-popd
+"c:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.26.28801\bin\Hostx64\x64\cl.exe"  /Zi /I "C:\Users\user\libraries\SDL2-2.0.12\include" /I "C:\Users\user\libraries\glew-2.1.0-win32\glew-2.1.0\include" main.c cb_lib/cb_string.c renderer.c game.c ui.c /link "C:\Users\user\libraries\glew-2.1.0-win32\glew-2.1.0\lib\Release\x64\glew32s.lib"  "C:\Users\user\libraries\SDL2-2.0.12\lib\x64\SDL2main.lib" "C:\Users\user\libraries\SDL2-2.0.12\lib\x64\SDL2.lib" "C:\Program Files (x86)\Windows Kits\10\Lib\10.0.18362.0\um\x64\shell32.lib" "C:\Program Files (x86)\Windows Kits\10\Lib\10.0.18362.0\um\x64\OpenGL32.Lib" /SUBSYSTEM:CONSOLE
