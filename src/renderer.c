@@ -38,6 +38,44 @@ int test_shader_compilation(u32 shader, char* type) {
     return 0;
 }
 
+float ls_pixel_to_screen_x(renderer* r, float x) {
+    return x/LS_WIDTH * r->size[0] / X_HEIGHT_FRACTION;
+}
+
+float ls_pixel_to_screen_y(renderer* r, float y) {
+    return y/LS_HEIGHT * r->size[1] / X_HEIGHT_FRACTION;
+}
+
+float bg_texture_pixel_to_vertex_x(renderer* r, float x) {
+    float window_height = LS_WIDTH;
+    float vertex_x = (x/window_height) * 2.0;
+    vertex_x -= 1.0;
+    return vertex_x;
+}
+
+float bg_texture_pixel_to_vertex_y(renderer* r, float y) {
+    float window_height = LS_HEIGHT;
+    float vertex_y = (y/window_height) * 2.0;
+    vertex_y -= 1.0;
+    return vertex_y;
+}
+
+float my_min(float a, float b) {
+    if (a<b) return a;
+    return b;
+}
+
+float my_max(float a, float b) {
+    if (a>b) return a;
+    return b;
+}
+
+float my_abs(float a) {
+    if (a < 0.0)
+        return -a;
+    return a;
+}
+
 float vertex_to_screen_pixel_x(renderer* r, float x) {
     float window_width = (float)r->size[0];
     float screen_x = (x+1.0) / 2.0; 
@@ -672,6 +710,35 @@ void add_ground_edges(renderer* r, world* w) {
     }
 }
 
+float get_connection_length(world* w, int con_index) {
+    level_connection con = w->level_select.connections[con_index];
+    level_option l1 = w->level_select.levels[con.head_index];
+    level_option l2 = w->level_select.levels[con.tail_index];
+    return sqrt(pow(l1.xpos-l2.xpos, 2.0) + pow(l1.ypos-l2.ypos, 2.0));
+}
+
+float get_min_connection_length(renderer* r, world* w, level_option lev) {
+    float radius = 100000.0;
+    level_connection con;
+    int next;
+    next = lev.up_index;
+    if (next != -1)
+        radius = my_min(radius, get_connection_length(w, next));
+    next = lev.left_index;
+    if (next != -1)
+        radius = my_min(radius, get_connection_length(w, next));
+    next = lev.down_index;
+    if (next != -1)
+        radius = my_min(radius, get_connection_length(w, next));
+    next = lev.right_index;
+    if (next != -1)
+        radius = my_min(radius, get_connection_length(w, next));
+    // this is to make the size relative to screen size (and not absolute pixel value)
+    // radius *= 1.0 * r->size[0]/WINDOW_WIDTH;
+    radius = ls_pixel_to_screen_x(r, radius);
+    return radius;
+}
+
 void render_entity(renderer* r, world* w, entity_data ed) {
     entity_type et = ed.type;
     if (et == NONE)
@@ -728,6 +795,28 @@ int update_vertex_buffer(renderer* r, world* w) {
     }
     add_ice_edges(r, w);
     add_ground_edges(r, w);
+    return 0;
+}
+
+int update_level_vertex_background_sdf_buffer(renderer* r, world* w, bool just_background) {
+    level_option active_level = w->level_select.levels[w->level_select.current_level];
+    float circle_sprite = 1.0;
+    float line_sprite = 2.0;
+    // render the background sdf for color fill
+    for (int i=0; i<w->level_select.total_levels; i++) {
+        level_option level = w->level_select.levels[i];
+        if (!level.completed)
+            continue;
+        float radius = get_min_connection_length(r, w, level);
+        float lx = (level.xpos);
+        float ly = LS_HEIGHT-(level.ypos);
+        float extent = 3.0 * pow(my_min((w->seconds - level.complete_time) / 2.0, 1.0), 0.7);
+        float vx1 = bg_texture_pixel_to_vertex_x(r, lx-radius*extent/2.0);
+        float vy1 = bg_texture_pixel_to_vertex_y(r, ly-radius*extent/2.0);
+        float vx2 = bg_texture_pixel_to_vertex_x(r, lx+radius*extent/2.0);
+        float vy2 = bg_texture_pixel_to_vertex_y(r, ly+radius*extent/2.0);
+        add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0);
+    }
     return 0;
 }
 
@@ -930,14 +1019,6 @@ char* get_level_mode(world* w) {
     return "NA";
 }
 
-float ls_pixel_to_screen_x(renderer* r, float x) {
-    return x/LS_WIDTH * r->size[0] / X_HEIGHT_FRACTION;
-}
-
-float ls_pixel_to_screen_y(renderer* r, float y) {
-    return y/LS_HEIGHT * r->size[1] / X_HEIGHT_FRACTION;
-}
-
 int update_level_vertex_background_buffer(renderer* r, world* w) {
     float vx1 = -1.0;
     float vy1 = -1.0;
@@ -957,36 +1038,6 @@ int update_level_vertex_background_buffer(renderer* r, world* w) {
     ty2 /= r->size[1]/X_HEIGHT_FRACTION;
     add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, tx1, ty1, tx2, ty2, depth, 0.0);
     return 0;
-}
-
-float bg_texture_pixel_to_vertex_x(renderer* r, float x) {
-    float window_height = LS_WIDTH;
-    float vertex_x = (x/window_height) * 2.0;
-    vertex_x -= 1.0;
-    return vertex_x;
-}
-
-float bg_texture_pixel_to_vertex_y(renderer* r, float y) {
-    float window_height = LS_HEIGHT;
-    float vertex_y = (y/window_height) * 2.0;
-    vertex_y -= 1.0;
-    return vertex_y;
-}
-
-float my_min(float a, float b) {
-    if (a<b) return a;
-    return b;
-}
-
-float my_max(float a, float b) {
-    if (a>b) return a;
-    return b;
-}
-
-float my_abs(float a) {
-    if (a < 0.0)
-        return -a;
-    return a;
 }
 
 int draw_single_line(renderer* r, float x, float y, float length, float angle) {
@@ -1044,57 +1095,6 @@ int draw_line_connections(renderer* r, world* w, level_connection con) {
         draw_stretched_line(r, lx1, mid_y, lx1, ly1, M_PI/2.0);
         draw_stretched_line(r, lx1, mid_y, lx2, mid_y, 0.0);
         draw_stretched_line(r, lx2, ly2, lx2, mid_y, M_PI/2.0);
-    }
-    return 0;
-}
-
-float get_connection_length(world* w, int con_index) {
-    level_connection con = w->level_select.connections[con_index];
-    level_option l1 = w->level_select.levels[con.head_index];
-    level_option l2 = w->level_select.levels[con.tail_index];
-    return sqrt(pow(l1.xpos-l2.xpos, 2.0) + pow(l1.ypos-l2.ypos, 2.0));
-}
-
-float get_min_connection_length(renderer* r, world* w, level_option lev) {
-    float radius = 100000.0;
-    level_connection con;
-    int next;
-    next = lev.up_index;
-    if (next != -1)
-        radius = min(radius, get_connection_length(w, next));
-    next = lev.left_index;
-    if (next != -1)
-        radius = min(radius, get_connection_length(w, next));
-    next = lev.down_index;
-    if (next != -1)
-        radius = min(radius, get_connection_length(w, next));
-    next = lev.right_index;
-    if (next != -1)
-        radius = min(radius, get_connection_length(w, next));
-    // this is to make the size relative to screen size (and not absolute pixel value)
-    // radius *= 1.0 * r->size[0]/WINDOW_WIDTH;
-    radius = ls_pixel_to_screen_x(r, radius);
-    return radius;
-}
-
-int update_level_vertex_background_sdf_buffer(renderer* r, world* w, bool just_background) {
-    level_option active_level = w->level_select.levels[w->level_select.current_level];
-    float circle_sprite = 1.0;
-    float line_sprite = 2.0;
-    // render the background sdf for color fill
-    for (int i=0; i<w->level_select.total_levels; i++) {
-        level_option level = w->level_select.levels[i];
-        if (!level.completed)
-            continue;
-        float radius = get_min_connection_length(r, w, level);
-        float lx = (level.xpos);
-        float ly = LS_HEIGHT-(level.ypos);
-        float extent = 3.0 * pow(my_min((w->seconds - level.complete_time) / 2.0, 1.0), 0.7);
-        float vx1 = bg_texture_pixel_to_vertex_x(r, lx-radius*extent/2.0);
-        float vy1 = bg_texture_pixel_to_vertex_y(r, ly-radius*extent/2.0);
-        float vx2 = bg_texture_pixel_to_vertex_x(r, lx+radius*extent/2.0);
-        float vy2 = bg_texture_pixel_to_vertex_y(r, ly+radius*extent/2.0);
-        add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0);
     }
     return 0;
 }
