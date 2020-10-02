@@ -731,6 +731,133 @@ int update_vertex_buffer(renderer* r, world* w) {
     return 0;
 }
 
+int render_level_select(renderer* r, world* w, bool just_background, bool draw_menu) {
+    int position_attribute, tex_attribute, uni_ybyx, uni_time;
+    // background sdf -> drawing is done in the shader. We just want to pass in the coords
+    glBindFramebuffer(GL_FRAMEBUFFER, r->level_background_shader.framebuffer);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    update_level_vertex_background_sdf_buffer(r, w, just_background);
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT); 
+    glLinkProgram(r->level_background_shader.shader_program);
+    glUseProgram(r->level_background_shader.shader_program);
+    glActiveTexture(GL_TEXTURE0);
+    glEnable(GL_BLEND);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, r->level_background_shader.fill_texture);
+    glBindVertexArray(r->level_buffer.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, r->level_buffer.vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, r->level_buffer.buffer_size, r->level_buffer.vertex_buffer);
+    position_attribute = glGetAttribLocation(r->level_background_shader.shader_program, "position");
+    glEnableVertexAttribArray(position_attribute);
+    glVertexAttribPointer(position_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
+    tex_attribute = glGetAttribLocation(r->level_background_shader.shader_program, "tex");
+    glEnableVertexAttribArray(tex_attribute);
+    glVertexAttribPointer(tex_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*) (3*sizeof(float)));
+    uni_ybyx = glGetUniformLocation(r->level_background_shader.shader_program, "ybyx");
+    uni_time = glGetUniformLocation(r->level_background_shader.shader_program, "time");
+    glUniform1f(uni_ybyx, LS_HEIGHT/LS_WIDTH);
+    glUniform1f(uni_time, w->seconds);
+    glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "mode"), 1);
+    glViewport(0, 0, LS_WIDTH, LS_HEIGHT);
+    glDrawArrays(GL_TRIANGLES, 0, r->level_buffer.buffer_size);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    memset(r->level_buffer.vertex_buffer, 0, r->level_buffer.buffer_size);
+    r->level_buffer.buffer_occupied = 0;
+    // background
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    update_level_vertex_background_buffer(r, w);
+    glLinkProgram(r->level_background_shader.shader_program);
+    glUseProgram(r->level_background_shader.shader_program);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, r->level_background_shader.fill_texture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, r->level_background_shader.rendered_texture);
+    glBindVertexArray(r->level_buffer.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, r->level_buffer.vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, r->level_buffer.buffer_size, r->level_buffer.vertex_buffer);
+    position_attribute = glGetAttribLocation(r->level_background_shader.shader_program, "position");
+    glEnableVertexAttribArray(position_attribute);
+    glVertexAttribPointer(position_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
+    tex_attribute = glGetAttribLocation(r->level_background_shader.shader_program, "tex");
+    glEnableVertexAttribArray(tex_attribute);
+    glVertexAttribPointer(tex_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*) (3*sizeof(float)));
+    uni_ybyx = glGetUniformLocation(r->level_background_shader.shader_program, "ybyx");
+    uni_time = glGetUniformLocation(r->level_background_shader.shader_program, "time");
+    glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "spritesheet"), 0);
+    glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "sdfsheet"), 1);
+    glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "mode"), 2+(int)just_background);
+    glUniform1f(uni_ybyx, r->size[1]*1.0/r->size[0]);
+    glUniform1f(uni_time, w->seconds);
+    glViewport(0, 0, r->size[0], r->size[1]);
+    glDrawArrays(GL_TRIANGLES, 0, r->level_buffer.buffer_size);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    memset(r->level_buffer.vertex_buffer, 0, r->level_buffer.buffer_size);
+    r->level_buffer.buffer_occupied = 0;
+    // level options
+    if (!just_background) {
+        update_level_select_vertex_buffer(r, w);
+    } else {
+        if (draw_menu) {
+            // draw the main menu graphic
+            sprite_data sd = r->level_sprites[6];
+            float width = r->size[0] * 1.0/3.0;
+            float height = width * 360.0/960.0;
+            float x1 = r->size[0]/2.0 - width/2.0;
+            float x2 = x1 + width;
+            float y1 = r->size[1]/2.5 + height/2.0;
+            float y2 = y1 + height;
+            float vx1 = screen_pixel_to_vertex_x(r, x1);
+            float vy1 = screen_pixel_to_vertex_y(r, y1);
+            float vx2 = screen_pixel_to_vertex_x(r, x2);
+            float vy2 = screen_pixel_to_vertex_y(r, y2);
+            add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, 0.0, 0.0);
+        }
+        else
+            return 0;
+    }
+    glLinkProgram(r->level_shader.shader_program);
+    glUseProgram(r->level_shader.shader_program);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, r->level_shader.fill_texture);
+    glBindVertexArray(r->level_buffer.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, r->level_buffer.vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, r->level_buffer.buffer_size, r->level_buffer.vertex_buffer);
+    position_attribute = glGetAttribLocation(r->level_shader.shader_program, "position");
+    glEnableVertexAttribArray(position_attribute);
+    glVertexAttribPointer(position_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
+    tex_attribute = glGetAttribLocation(r->level_shader.shader_program, "tex");
+    glEnableVertexAttribArray(tex_attribute);
+    glVertexAttribPointer(tex_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*) (3*sizeof(float)));
+    uni_ybyx = glGetUniformLocation(r->level_shader.shader_program, "ybyx");
+    uni_time = glGetUniformLocation(r->level_shader.shader_program, "time");
+    glUniform1f(uni_ybyx, r->size[1]*1.0/r->size[0]);
+    glUniform1f(uni_time, w->seconds);
+    glViewport(0, 0, r->size[0], r->size[1]);
+    glDrawArrays(GL_TRIANGLES, 0, r->level_buffer.buffer_size);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    memset(r->level_buffer.vertex_buffer, 0, r->level_buffer.buffer_size);
+    r->level_buffer.buffer_occupied = 0;
+    return 0;
+}
+
 int render_game_scene(renderer* r, world* w) {
     render_level_select(r, w, true, false);
     update_vertex_buffer(r, w);
@@ -1009,149 +1136,6 @@ int update_level_select_vertex_buffer(renderer* r, world* w) {
             continue;
         draw_line_connections(r, w, con);
     }
-    return 0;
-}
-
-int render_level_select(renderer* r, world* w, bool just_background, bool draw_menu) {
-    int position_attribute, tex_attribute, uni_ybyx, uni_time;
-    // background sdf -> drawing is done in the shader. We just want to pass in the coords
-    glBindFramebuffer(GL_FRAMEBUFFER, r->level_background_shader.framebuffer);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    update_level_vertex_background_sdf_buffer(r, w, just_background);
-    glClearColor(0.0, 0.0, 0.0, 0.0);
-    glClear(GL_COLOR_BUFFER_BIT); 
-    glLinkProgram(r->level_background_shader.shader_program);
-    glUseProgram(r->level_background_shader.shader_program);
-    glActiveTexture(GL_TEXTURE0);
-    glEnable(GL_BLEND);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, r->level_background_shader.fill_texture);
-    glBindVertexArray(r->level_buffer.vao);
-    glBindBuffer(GL_ARRAY_BUFFER, r->level_buffer.vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, r->level_buffer.buffer_size, r->level_buffer.vertex_buffer);
-    position_attribute = glGetAttribLocation(r->level_background_shader.shader_program, "position");
-    glEnableVertexAttribArray(position_attribute);
-    glVertexAttribPointer(position_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
-    tex_attribute = glGetAttribLocation(r->level_background_shader.shader_program, "tex");
-    glEnableVertexAttribArray(tex_attribute);
-    glVertexAttribPointer(tex_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*) (3*sizeof(float)));
-    uni_ybyx = glGetUniformLocation(r->level_background_shader.shader_program, "ybyx");
-    uni_time = glGetUniformLocation(r->level_background_shader.shader_program, "time");
-    glUniform1f(uni_ybyx, LS_HEIGHT/LS_WIDTH);
-    glUniform1f(uni_time, w->seconds);
-    glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "mode"), 1);
-    glViewport(0, 0, LS_WIDTH, LS_HEIGHT);
-    glDrawArrays(GL_TRIANGLES, 0, r->level_buffer.buffer_size);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    memset(r->level_buffer.vertex_buffer, 0, r->level_buffer.buffer_size);
-    r->level_buffer.buffer_occupied = 0;
-    // background
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    update_level_vertex_background_buffer(r, w);
-    glLinkProgram(r->level_background_shader.shader_program);
-    glUseProgram(r->level_background_shader.shader_program);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, r->level_background_shader.fill_texture);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, r->level_background_shader.rendered_texture);
-    glBindVertexArray(r->level_buffer.vao);
-    glBindBuffer(GL_ARRAY_BUFFER, r->level_buffer.vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, r->level_buffer.buffer_size, r->level_buffer.vertex_buffer);
-    position_attribute = glGetAttribLocation(r->level_background_shader.shader_program, "position");
-    glEnableVertexAttribArray(position_attribute);
-    glVertexAttribPointer(position_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
-    tex_attribute = glGetAttribLocation(r->level_background_shader.shader_program, "tex");
-    glEnableVertexAttribArray(tex_attribute);
-    glVertexAttribPointer(tex_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*) (3*sizeof(float)));
-    uni_ybyx = glGetUniformLocation(r->level_background_shader.shader_program, "ybyx");
-    uni_time = glGetUniformLocation(r->level_background_shader.shader_program, "time");
-    glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "spritesheet"), 0);
-    glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "sdfsheet"), 1);
-    glUniform1i(glGetUniformLocation(r->level_background_shader.shader_program, "mode"), 2+(int)just_background);
-    glUniform1f(uni_ybyx, r->size[1]*1.0/r->size[0]);
-    glUniform1f(uni_time, w->seconds);
-    glViewport(0, 0, r->size[0], r->size[1]);
-    glDrawArrays(GL_TRIANGLES, 0, r->level_buffer.buffer_size);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    memset(r->level_buffer.vertex_buffer, 0, r->level_buffer.buffer_size);
-    r->level_buffer.buffer_occupied = 0;
-    // level options
-    if (!just_background) {
-        update_level_select_vertex_buffer(r, w);
-    } else {
-        if (draw_menu) {
-            // draw the main menu graphic
-            sprite_data sd = r->level_sprites[6];
-            float width = r->size[0] * 1.0/3.0;
-            float height = width * 360.0/960.0;
-            float x1 = r->size[0]/2.0 - width/2.0;
-            float x2 = x1 + width;
-            float y1 = r->size[1]/2.5 + height/2.0;
-            float y2 = y1 + height;
-            float vx1 = screen_pixel_to_vertex_x(r, x1);
-            float vy1 = screen_pixel_to_vertex_y(r, y1);
-            float vx2 = screen_pixel_to_vertex_x(r, x2);
-            float vy2 = screen_pixel_to_vertex_y(r, y2);
-            add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, sd.x1, sd.y1, sd.x2, sd.y2, 0.0, 0.0);
-        }
-        else
-            return 0;
-    }
-    glLinkProgram(r->level_shader.shader_program);
-    glUseProgram(r->level_shader.shader_program);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, r->level_shader.fill_texture);
-    glBindVertexArray(r->level_buffer.vao);
-    glBindBuffer(GL_ARRAY_BUFFER, r->level_buffer.vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, r->level_buffer.buffer_size, r->level_buffer.vertex_buffer);
-    position_attribute = glGetAttribLocation(r->level_shader.shader_program, "position");
-    glEnableVertexAttribArray(position_attribute);
-    glVertexAttribPointer(position_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
-    tex_attribute = glGetAttribLocation(r->level_shader.shader_program, "tex");
-    glEnableVertexAttribArray(tex_attribute);
-    glVertexAttribPointer(tex_attribute, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*) (3*sizeof(float)));
-    uni_ybyx = glGetUniformLocation(r->level_shader.shader_program, "ybyx");
-    uni_time = glGetUniformLocation(r->level_shader.shader_program, "time");
-    glUniform1f(uni_ybyx, r->size[1]*1.0/r->size[0]);
-    glUniform1f(uni_time, w->seconds);
-    glViewport(0, 0, r->size[0], r->size[1]);
-    glDrawArrays(GL_TRIANGLES, 0, r->level_buffer.buffer_size);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    memset(r->level_buffer.vertex_buffer, 0, r->level_buffer.buffer_size);
-    r->level_buffer.buffer_occupied = 0;
-    // TODO (14 Jun 2020 sam): Keep the ui state in a more accessible location
-    // cb_ui_render_text(w->editor.ui_state, get_level_mode(w), 20, 20);
-    // level_option active_level = w->level_select.levels[w->level_select.current_level];
-    // float cx = w->level_select.cx - r->size[0]/2;
-    // float cy = w->level_select.cy - r->size[1]/2;
-    // for (int i=0; i<w->level_select.total_levels; i++) {
-    //     level_option level = w->level_select.levels[i];
-    //     if (!level.unlocked)
-    //         continue;
-    //     float lx = (level.xpos-cx);
-    //     float ly = (level.ypos-cy);
-
-    //     cb_ui_render_text(w->editor.ui_state, level.name.text, lx, ly);
-    //     cb_ui_render_rectangle(w->editor.ui_state, lx-10, ly-5, 200, 21, 0.5);
-    // }
-    // cb_ui_render_rectangle(w->editor.ui_state, r->size[0]/2-10, r->size[1]/2-5, 200, 21, 0.5);
     return 0;
 }
 

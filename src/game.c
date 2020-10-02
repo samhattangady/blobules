@@ -991,6 +991,7 @@ int add_interpolation(world* w, u32 index, int x, int y, int z, int dx, int dy, 
     return 0;
 }
 
+/*
 int maybe_reflect_cube(world* w, int ogx, int ogy, int x, int y, int z, int dx, int dy, int dz, int depth) {
     // this is slightly different from the other functions because we need to be able to
     // chain the reflections. ogx and ogy are the original positions of the cube. x and
@@ -1026,6 +1027,7 @@ int maybe_reflect_cube(world* w, int ogx, int ogy, int x, int y, int z, int dx, 
     maybe_move_cube(w, tx, ty, z, ndx, ndy, dz, depth+1, true);
     return 0;
 }
+*/
 
 int queue_animation(world* w , u32 index, animations a) {
     u32 anim_index = w->entities[index].animation_index;
@@ -1034,86 +1036,6 @@ int queue_animation(world* w , u32 index, animations a) {
     as.queue_length++;
     as.queue[queue_index] = a;
     w->animations[anim_index] = as;
-    return 0;
-}
-
-int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int depth, bool just_pushed) {
-    int on_index = get_position_index(w, x, y, z-1);
-    if (get_entity_at(w, on_index) != HOT_TARGET)
-        set_slippery(w, x, y, z-1, w->seconds+ANIMATION_SINGLE_STEP_TIME*depth);
-    int index = get_position_index(w, x, y, z);
-    int cube_index = w->grid_data[index];
-    if ((x+dx < 0 || x+dx > w->x_size-1) ||
-        (y+dy < 0 || y+dy > w->y_size-1) ||
-        (z+dz < 0 || z+dz > w->z_size-1)) {
-        // remove cube
-        add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
-        set_entity_position(w, cube_index, x+dx, y+dy, z+dz);
-        schedule_entity_removal(w, cube_index, depth);
-        set_none(w, index);
-        return -1;
-    }
-    // see what's already in desired place
-    int target_pos_index = get_position_index(w, x+dx, y+dy, z+dz);
-    int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);
-    if (just_pushed) {
-        // if one cube is pushing another, we want it to wait till its ready.
-        for (int i=0; i<depth; i++)
-            queue_animation(w, cube_index, CUBE_WAIT);
-        queue_animation(w, cube_index, CUBE_JUMP);
-    } else {
-        if (get_entity_at(w, target_on_index) == HOT_TARGET) {
-            // TODO (26 Sep 2020 sam): Add sound here as well.
-            queue_animation(w, cube_index, CUBE_JUMP);
-        }
-        else 
-            queue_animation(w, cube_index, CUBE_SLIDE);
-    }
-    if (get_entity_at(w, target_pos_index) != NONE) {
-        if (can_stop_cube_slide(get_entity_at(w, target_pos_index))) {
-            sound_type st = CUBE_STOP;
-            if (get_entity_at(w, target_pos_index) == CUBE) {
-                maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth, true);
-                st = CUBE_TO_CUBE;
-            }
-            if (get_entity_at(w, target_pos_index) == REFLECTOR)
-                maybe_reflect_cube(w, x, y, x+dx, y+dy, z, dx, dy, dz, depth);
-            if (get_entity_at(w, target_pos_index) == FURNITURE) {
-                maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth, true);
-            }
-            if (get_entity_at(w, target_pos_index) == WALL) {
-                for (int i=0; i<depth; i++)
-                    queue_animation(w, w->grid_data[target_pos_index], WALL_WAIT);
-                queue_animation(w, w->grid_data[target_pos_index], WALL_BOUNCE);
-            }
-            // check if win.
-            if (get_entity_at(w, on_index) == HOT_TARGET) {
-                schedule_entity_removal(w, cube_index, depth);
-                schedule_entity_removal(w, w->grid_data[on_index], depth);
-                set_entity_position(w, cube_index, x, y, z);
-                set_none(w, index);
-                set_cold_target(w, x, y, z-1, w->seconds+ANIMATION_SINGLE_STEP_TIME*depth);
-                add_sound_to_queue(w, TARGET_FILLING, w->seconds + ANIMATION_SINGLE_STEP_TIME*(depth+1));
-                queue_animation(w, cube_index, CUBE_MELT);
-            }
-            add_sound_to_queue(w, st, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
-            return 1;
-        }
-    }
-    if (!can_support_cube(get_entity_at(w, target_on_index))) {
-        // remove cube
-        schedule_entity_removal(w, cube_index, depth);
-        add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
-        set_entity_position(w, cube_index, x+dx, y+dy, z+dz);
-        set_none(w, index);
-        return -2;
-    }
-    w->grid_data[target_pos_index] = cube_index;
-    set_none(w, index);
-    add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
-    if (depth == 0)
-        add_sound_to_queue(w, CUBE_MOVE, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
-    maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1, false);
     return 0;
 }
 
@@ -1168,6 +1090,84 @@ int maybe_move_furniture(world* w, int x, int y, int z, int dx, int dy, int dz, 
     }
     if (get_entity_at(w, target_on_index) == SLIPPERY_GROUND)
         maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1, false);
+    return 0;
+}
+
+int maybe_move_cube(world* w, int x, int y, int z, int dx, int dy, int dz, int depth, bool just_pushed) {
+    int on_index = get_position_index(w, x, y, z-1);
+    if (get_entity_at(w, on_index) != HOT_TARGET)
+        set_slippery(w, x, y, z-1, w->seconds+ANIMATION_SINGLE_STEP_TIME*depth);
+    int index = get_position_index(w, x, y, z);
+    int cube_index = w->grid_data[index];
+    if ((x+dx < 0 || x+dx > w->x_size-1) ||
+        (y+dy < 0 || y+dy > w->y_size-1) ||
+        (z+dz < 0 || z+dz > w->z_size-1)) {
+        // remove cube
+        add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
+        set_entity_position(w, cube_index, x+dx, y+dy, z+dz);
+        schedule_entity_removal(w, cube_index, depth);
+        set_none(w, index);
+        return -1;
+    }
+    // see what's already in desired place
+    int target_pos_index = get_position_index(w, x+dx, y+dy, z+dz);
+    int target_on_index = get_position_index(w, x+dx, y+dy, z+dz-1);
+    if (just_pushed) {
+        // if one cube is pushing another, we want it to wait till its ready.
+        for (int i=0; i<depth; i++)
+            queue_animation(w, cube_index, CUBE_WAIT);
+        queue_animation(w, cube_index, CUBE_JUMP);
+    } else {
+        if (get_entity_at(w, target_on_index) == HOT_TARGET) {
+            // TODO (26 Sep 2020 sam): Add sound here as well.
+            queue_animation(w, cube_index, CUBE_JUMP);
+        }
+        else 
+            queue_animation(w, cube_index, CUBE_SLIDE);
+    }
+    if (get_entity_at(w, target_pos_index) != NONE) {
+        if (can_stop_cube_slide(get_entity_at(w, target_pos_index))) {
+            sound_type st = CUBE_STOP;
+            if (get_entity_at(w, target_pos_index) == CUBE) {
+                maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth, true);
+                st = CUBE_TO_CUBE;
+            }
+            if (get_entity_at(w, target_pos_index) == FURNITURE) {
+                maybe_move_furniture(w, x+dx, y+dy, z+dz, dx, dy, dz, depth, true);
+            }
+            if (get_entity_at(w, target_pos_index) == WALL) {
+                for (int i=0; i<depth; i++)
+                    queue_animation(w, w->grid_data[target_pos_index], WALL_WAIT);
+                queue_animation(w, w->grid_data[target_pos_index], WALL_BOUNCE);
+            }
+            // check if win.
+            if (get_entity_at(w, on_index) == HOT_TARGET) {
+                schedule_entity_removal(w, cube_index, depth);
+                schedule_entity_removal(w, w->grid_data[on_index], depth);
+                set_entity_position(w, cube_index, x, y, z);
+                set_none(w, index);
+                set_cold_target(w, x, y, z-1, w->seconds+ANIMATION_SINGLE_STEP_TIME*depth);
+                add_sound_to_queue(w, TARGET_FILLING, w->seconds + ANIMATION_SINGLE_STEP_TIME*(depth+1));
+                queue_animation(w, cube_index, CUBE_MELT);
+            }
+            add_sound_to_queue(w, st, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
+            return 1;
+        }
+    }
+    if (!can_support_cube(get_entity_at(w, target_on_index))) {
+        // remove cube
+        schedule_entity_removal(w, cube_index, depth);
+        add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
+        set_entity_position(w, cube_index, x+dx, y+dy, z+dz);
+        set_none(w, index);
+        return -2;
+    }
+    w->grid_data[target_pos_index] = cube_index;
+    set_none(w, index);
+    add_interpolation(w, cube_index, x, y, z, dx, dy, depth);
+    if (depth == 0)
+        add_sound_to_queue(w, CUBE_MOVE, w->seconds + ANIMATION_SINGLE_STEP_TIME*depth);
+    maybe_move_cube(w, x+dx, y+dy, z+dz, dx, dy, dz, depth+1, false);
     return 0;
 }
 

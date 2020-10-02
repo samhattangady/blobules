@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
     u32 window_pos[2] = {20, 40};
     u32 window_size[2] = {UI_WIDTH, WINDOW_HEIGHT};
     init_cb_window(&w.editor.ui_window, "Level Editor", window_pos, window_size);
-    start_time = clock();
+    // start_time = clock();
     printf("starting game loop\n");
     SDL_Event event;
     while (w.active_mode != EXIT) {
