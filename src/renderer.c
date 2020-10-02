@@ -732,7 +732,7 @@ int update_vertex_buffer(renderer* r, world* w) {
 }
 
 int render_game_scene(renderer* r, world* w) {
-    // render_level_select(r, true, false);
+    render_level_select(r, w, true, false);
     update_vertex_buffer(r, w);
     glLinkProgram(r->ingame_shader.shader_program);
     glUseProgram(r->ingame_shader.shader_program);

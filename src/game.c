@@ -1603,6 +1603,8 @@ int select_active_option(world* w) {
 int select_settings_active_option(world* w) {
     if (w->settings_menu.active_option == 0)
         toggle_fullscreen(global_r, w);
+    if (w->settings_menu.active_option == 3)
+        reset_game_progress(w);
     if (w->settings_menu.active_option == 4)
         w->settings_menu_open = false;
 
