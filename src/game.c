@@ -223,7 +223,7 @@ animations get_anim_from_name(char* a) {
 int load_animations(world* w) {
     FILE* anim_file = fopen("mis_data/img/player_animations.txt", "r");
     for (int i=0; i<ANIMATIONS_COUNT; i++) {
-        char* anim_name[128];
+        char anim_name[128];
         fscanf(anim_file, "%s\n", &anim_name);
         animations a = get_anim_from_name(anim_name);
         animation_frames_data afd;
@@ -795,28 +795,28 @@ int init_input_state(world* w) {
 }
 
 int set_sound_volume_text(world* w) {
-    clear_string(&w->settings_menu.options[2]);
-    append_chars(&w->settings_menu.options[2], "Sound <");
+    clear_string(&w->settings_menu.options[2].text);
+    append_chars(&w->settings_menu.options[2].text, "Sound <");
     for (int i=0; i<SOUND_MAX_VOLUME; i++) {
         if (i<w->sound_volume)
-            append_chars(&w->settings_menu.options[2], "-");
+            append_chars(&w->settings_menu.options[2].text, "-");
         else
-            append_chars(&w->settings_menu.options[2], " ");
+            append_chars(&w->settings_menu.options[2].text, " ");
     }
-    append_chars(&w->settings_menu.options[2], ">");
+    append_chars(&w->settings_menu.options[2].text, ">");
     return 0;
 }
 
 int set_music_volume_text(world* w) {
-    clear_string(&w->settings_menu.options[1]);
-    append_chars(&w->settings_menu.options[1], "Music <");
+    clear_string(&w->settings_menu.options[1].text);
+    append_chars(&w->settings_menu.options[1].text, "Music <");
     for (int i=0; i<SOUND_MAX_VOLUME; i++) {
         if (i<w->music_volume)
-            append_chars(&w->settings_menu.options[1], "-");
+            append_chars(&w->settings_menu.options[1].text, "-");
         else
-            append_chars(&w->settings_menu.options[1], " ");
+            append_chars(&w->settings_menu.options[1].text, " ");
     }
-    append_chars(&w->settings_menu.options[1], ">");
+    append_chars(&w->settings_menu.options[1].text, ">");
     return 0;
 }
 
@@ -915,9 +915,9 @@ int init_world(world* w, u32 number) {
     u32 animation_data_size = sizeof(animation_state) * MAX_WORLD_ENTITIES;
     w->data = (void*) calloc(grid_data_size+entity_data_size+movement_data_size+animation_data_size, sizeof(char));
     w->grid_data = w->data;
-    w->entities = (char*) w->data+grid_data_size;
-    w->movements = (char*)w->data+(grid_data_size+entity_data_size);
-    w->animations = (char*)w->data+(grid_data_size+entity_data_size+movement_data_size);
+    w->entities = (entity_data*) (char*) w->data+grid_data_size;
+    w->movements = (movement_state*) (char*)w->data+(grid_data_size+entity_data_size);
+    w->animations = (animation_state*) (char*)w->data+(grid_data_size+entity_data_size+movement_data_size);
     load_animations(w);
     w->animation_seconds_update = 0.0;
     w->seconds = 0.0;
@@ -1585,7 +1585,7 @@ int select_settings_active_option(world* w) {
         reset_game_progress(w);
     if (w->settings_menu.active_option == 4)
         w->settings_menu_open = false;
-
+    return 0;
 }
 
 int go_to_next_level_mode(world* w) {
@@ -2189,6 +2189,7 @@ int handle_input_queue(world* w) {
             }
         }
     }
+    return 0;
 }
 
 /*

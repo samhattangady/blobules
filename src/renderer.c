@@ -22,8 +22,6 @@
 #define LS_WIDTH 4000.0
 #define LS_HEIGHT 4000.0
 #define X_HEIGHT_FRACTION 0.25
-#define X_PADDING 1178
-#define Y_PADDING 882
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Errors: %s\n", description);
@@ -1031,7 +1029,7 @@ int render_menu_scene(renderer* r, world* w) {
     glViewport(0, 0, r->size[0], r->size[1]);
     render_level_select(r, w, true, true);
     if (w->show_about) {
-        char** about[12];
+        char* about[12];
         about[0] = "Designed and Developed by Samarth Hattangady";
         about[1] = "";
         about[2] = "Special thanks to";
