@@ -272,6 +272,10 @@ typedef struct {
     bool win_scheduled;
     bool facing_right;
     bool settings_menu_open;
+    bool refresh_ls_background_texture;
+    bool first_frame;
+    bool show_controls;
+    bool show_about;
     u32 music_channel;
     u32 sound_channel;
     u32 music_volume;
@@ -297,6 +301,7 @@ typedef struct {
     animation_state* animations;
     vec3i player_position;
     player_state player;
+    float last_input;
     float seconds;
     float animation_seconds_update;
     float win_schedule_time;

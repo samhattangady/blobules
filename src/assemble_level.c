@@ -8,9 +8,9 @@
 #include "stb_image_write.h"
 
 #define u8 uint8_t
-#define TOTAL_NUMBER 7
+#define TOTAL_NUMBER 9
 #define NUMBER_OF_NODES 2048
-#define SPRITE_DATA_FILE "static/level_sprite_data.txt"
+#define SPRITE_DATA_FILE "mis_data/img/level_sprite_data.txt"
 
 int main(int argc, char** argv) {
     char* filenames[TOTAL_NUMBER];
@@ -24,6 +24,8 @@ int main(int argc, char** argv) {
     filenames[4] = "static/line2";
     filenames[5] = "static/line3";
     filenames[6] = "static/title";
+    filenames[7] = "static/controls1";
+    filenames[8] = "static/controls2";
 
     for (int i=0; i<TOTAL_NUMBER; i++) {
         char fillname[50];
@@ -59,7 +61,7 @@ int main(int argc, char** argv) {
             }
         }
     }
-    stbi_write_png("static/level_fillsheet.png", total_width, total_height, 4, fill_output, 0);
+    stbi_write_png("mis_data/img/level_fillsheet.png", total_width, total_height, 4, fill_output, 0);
     FILE* sprite_data = fopen(SPRITE_DATA_FILE, "w");
     fprintf(sprite_data, "%i\n", TOTAL_NUMBER);
     for (int i=0; i<TOTAL_NUMBER; i++) {

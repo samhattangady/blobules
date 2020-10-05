@@ -39,36 +39,32 @@ int main(int argc, char** argv) {
         }
     }
 
-    u32 frame = 0;
     u32 start_time;
     u32 clock_time;
     float frame_time;
     float frame_cycles;
     float seconds = 0.0;
     start_time = SDL_GetTicks();
-    double mouse_x, mouse_y;
 
     u32 window_pos[2] = {20, 40};
     u32 window_size[2] = {UI_WIDTH, WINDOW_HEIGHT};
     init_cb_window(&w.editor.ui_window, "Level Editor", window_pos, window_size);
-    // start_time = clock();
     printf("starting game loop\n");
     SDL_Event event;
     while (w.active_mode != EXIT) {
-        frame += 1;
         while (SDL_PollEvent(&event)) {
             process_input_event(&w, event);
             if (event.type == SDL_QUIT)
                 w.active_mode = EXIT;
         }
         handle_input_queue(&w);
+        simulate_world(&w, seconds);
+        ui_state.mouse = w.mouse;
+        render_scene(&r, &w);
         clock_time = SDL_GetTicks();
         frame_time = ((double)clock_time-(double)start_time)/1000.0;
         start_time = clock_time;
         seconds += frame_time;
-        simulate_world(&w, seconds);
-        ui_state.mouse = w.mouse;
-        render_scene(&r, &w);
         // if (w.editor.editor_enabled)
         //     draw_editor(&w);
         char fps_counter[48];

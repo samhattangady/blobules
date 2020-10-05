@@ -87,6 +87,7 @@ int go_to_level_select(world* w) {
     printf("going to level select\n");
     w->editor.editor_enabled = false;
     w->active_mode = LEVEL_SELECT;
+    w->show_controls = false;
     return 0;
 }
 
@@ -628,6 +629,8 @@ int reset_game_progress(world* w) {
     w->level_select.current_level = 0;
     w->level_select.cx = w->level_select.levels[0].xpos;
     w->level_select.cy = w->level_select.levels[0].ypos;
+    w->refresh_ls_background_texture = true;
+    w->first_frame = true;
     save_game_progress(w);
     return 0;
 }
@@ -671,6 +674,9 @@ int clear_world_history(world* w) {
 }
 
 int load_level(world* w) {
+    w->show_controls = false;
+    if (w->level_select.current_level == 0)
+        w->show_controls = true;
     w->player = ALIVE;
     w->currently_moving = false;
     printf("initting entities\n");
@@ -894,6 +900,10 @@ int init_world(world* w, u32 number) {
     tmp.settings_menu_open = false;
     tmp.win_scheduled = false;
     tmp.facing_right = false;
+    tmp.refresh_ls_background_texture = true;
+    tmp.first_frame = true;
+    tmp.show_controls = false;
+    tmp.show_about = false;
     tmp.mouse = mouse;
     tmp.editor.z_level = 0;
     tmp.editor.active_type = GROUND;
@@ -910,6 +920,8 @@ int init_world(world* w, u32 number) {
     w->animations = (char*)w->data+(grid_data_size+entity_data_size+movement_data_size);
     load_animations(w);
     w->animation_seconds_update = 0.0;
+    w->seconds = 0.0;
+    w->last_input = 0.0;
     init_input_state(w);
     load_sounds(w);
     printf("loading game progress\n");
@@ -990,44 +1002,6 @@ int add_interpolation(world* w, u32 index, int x, int y, int z, int dx, int dy, 
     }
     return 0;
 }
-
-/*
-int maybe_reflect_cube(world* w, int ogx, int ogy, int x, int y, int z, int dx, int dy, int dz, int depth) {
-    // this is slightly different from the other functions because we need to be able to
-    // chain the reflections. ogx and ogy are the original positions of the cube. x and
-    // y are the positions of the reflector (not the cube).
-    int r_index = get_position_index(w, x, y, z);
-    int reflector_index = w->grid_data[r_index];
-    int index = get_position_index(w, ogx, ogy, z);
-    int tx, ty, ndx, ndy;
-    if (w->entities[reflector_index].data == 0) {
-        ndx = dy;
-        ndy = dx;
-        tx = x+ndx;
-        ty = y+ndy;
-    } else {
-        ndx = -dy;
-        ndy = -dx;
-        tx = x+ndx;
-        ty = y+ndy;
-    }
-    int target_pos_index = get_position_index(w, tx, ty, z);
-    int et = get_entity_at(w, target_pos_index);
-    if (can_stop_cube_slide(et) && et!=REFLECTOR)
-        return 1;
-    if (et == REFLECTOR) {
-        maybe_reflect_cube(w, ogx, ogy, tx, ty, z, ndx, ndy, dz, depth+1);
-        // does this need to return?
-        return 1;
-    }
-    int cube_index = w->grid_data[index];
-    // TODO (16 May 2020 sam): Check if there is ground available here or whatevs
-    w->grid_data[target_pos_index] = cube_index;
-    set_none(w, index);
-    maybe_move_cube(w, tx, ty, z, ndx, ndy, dz, depth+1, true);
-    return 0;
-}
-*/
 
 int queue_animation(world* w , u32 index, animations a) {
     u32 anim_index = w->entities[index].animation_index;
@@ -1422,6 +1396,7 @@ int clear_all_animations(world* w) {
 }
 
 int set_input(world* w, input_type it) {
+    w->last_input = w->seconds;
     if (w->currently_moving) {
         // we want to cancel the interpolations that are playing
         clear_all_movement(w);
@@ -1477,7 +1452,7 @@ int set_input(world* w, input_type it) {
         if (it == ESCAPE)
             go_to_main_menu(w);
     } else if (w->active_mode == MAIN_MENU) {
-        if (!w->settings_menu_open) {
+        if (!w->settings_menu_open && !w->show_about) {
             if (it == MOVE_UP)
                 previous_option(w);
             if (it == MOVE_DOWN)
@@ -1488,6 +1463,9 @@ int set_input(world* w, input_type it) {
                 if (it  == ESCAPE)
                     w->active_mode = EXIT;
             }
+        } else if (w->show_about) {
+            if (it  == ESCAPE)
+                w->show_about = false;
         } else {
             if (it == MOVE_UP)
                 previous_settings_option(w);
@@ -1523,6 +1501,7 @@ int unlock_all_levels(world* w) {
     }
     for (int i=0; i<w->level_select.total_connections; i++)
         w->level_select.connections[i].discovered = true;
+    w->first_frame = true;
     return 0;
 }
 
@@ -1591,8 +1570,7 @@ int select_active_option(world* w) {
     if (w->main_menu.active_option == 1)
         w->settings_menu_open = true;
     if (w->main_menu.active_option == 2)
-        // TODO (30 Sep 2020 sam): Implement about here.
-        printf("about menu here\n");
+        w->show_about = true;
     if (w->main_menu.active_option == 3) {
         save_game_progress(w);
         w->active_mode = EXIT;
@@ -1796,6 +1774,10 @@ int run_level_select_functions(world* w) {
 }
 
 int simulate_level_select(world* w) {
+    if (w->seconds - w->last_input > CONTROLS_POPUP_TIMER)
+        w->show_controls = true;
+    else
+        w->show_controls = false;
     if (!w->level_select.moving)
         return 0;
     float elapsed = (w->seconds-w->level_select.move_start) / ANIMATION_SINGLE_STEP_TIME/2.0;
@@ -1830,6 +1812,10 @@ bool can_clip_animation(animation_state as) {
 
 int simulate_world(world* w, float seconds) {
     w->seconds = seconds;
+    if (w->player == DEAD)
+        w->show_controls = true;
+    else
+        w->show_controls = false;
     if (w->active_mode == LEVEL_SELECT)
         simulate_level_select(w);
     if (w->player == WIN && w->active_mode==IN_GAME) {
@@ -1896,6 +1882,21 @@ int simulate_world(world* w, float seconds) {
             Mix_Volume(channel, w->sound_volume*SOUND_MULTIPLIER);
             w->sound_queue[i].sound = NO_SOUND;
         }
+    }
+    bool refresh_ls = false;
+    for (int i=0; i<w->level_select.total_levels; i++) {
+        level_option level = w->level_select.levels[i];
+        if (!level.completed)
+            continue;
+        if ((w->seconds - level.complete_time)/2.0 < LEVEL_COMPLETION_ANIMATION_TIME) {
+            refresh_ls = true;
+            break;
+        }
+    }
+    w->refresh_ls_background_texture = refresh_ls;
+    if (w->first_frame) {
+        w->refresh_ls_background_texture = true;
+        w->first_frame = false;    
     }
     copy_grid_data_to_entities(w);
     remove_scheduled_entities(w);
@@ -2072,7 +2073,7 @@ int process_input_event(world* w, SDL_Event event) {
         SDL_Keycode key = event.key.keysym.sym;
         if (key == SDLK_ESCAPE)
             set_input(w, ESCAPE);
-        if (key == SDLK_RETURN || key == SDLK_KP_ENTER)
+        if (key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_SPACE)
             set_input(w, ENTER);
         if (key == SDLK_w || key == SDLK_UP)
             set_key_up(w, MOVE_UP);
