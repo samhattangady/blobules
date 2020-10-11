@@ -526,7 +526,6 @@ int load_levels_list(level_select_struct* l) {
         } else if (c == '\n') {
             if (!levels_done) {
                 levels[n] = lev;
-                printf("%s %f %f\n", lev.path.text, lev.xpos, lev.ypos);
             }
             else {
                 u32 con_index = n-n_levels;
@@ -675,8 +674,6 @@ int clear_world_history(world* w) {
 
 int load_level(world* w) {
     w->show_controls = false;
-    if (w->level_select.current_level == 0)
-        w->show_controls = true;
     w->player = ALIVE;
     w->currently_moving = false;
     printf("initting entities\n");
@@ -915,9 +912,9 @@ int init_world(world* w, u32 number) {
     u32 animation_data_size = sizeof(animation_state) * MAX_WORLD_ENTITIES;
     w->data = (void*) calloc(grid_data_size+entity_data_size+movement_data_size+animation_data_size, sizeof(char));
     w->grid_data = w->data;
-    w->entities = (entity_data*) (char*) w->data+grid_data_size;
-    w->movements = (movement_state*) (char*)w->data+(grid_data_size+entity_data_size);
-    w->animations = (animation_state*) (char*)w->data+(grid_data_size+entity_data_size+movement_data_size);
+    w->entities = (char*) w->data+grid_data_size;
+    w->movements =  (char*)w->data+(grid_data_size+entity_data_size);
+    w->animations = (char*)w->data+(grid_data_size+entity_data_size+movement_data_size);
     load_animations(w);
     w->animation_seconds_update = 0.0;
     w->seconds = 0.0;
@@ -926,9 +923,7 @@ int init_world(world* w, u32 number) {
     load_sounds(w);
     printf("loading game progress\n");
     load_game_progress(w);
-    printf("saving lelve history\n");
     save_level_history(w);
-    printf("loading level\n");
     load_level(w);
     init_sounds(w);
     printf("initted world\n");
@@ -1812,7 +1807,7 @@ bool can_clip_animation(animation_state as) {
 
 int simulate_world(world* w, float seconds) {
     w->seconds = seconds;
-    if (w->player == DEAD)
+    if (w->player == DEAD || w->level_select.current_level == 0)
         w->show_controls = true;
     else
         w->show_controls = false;

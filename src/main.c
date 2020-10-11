@@ -17,10 +17,9 @@ int main(int argc, char** argv) {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
     Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 4096);
     renderer r;
-    init_renderer(&r, "Mouse in Slippers");
+    init_renderer(&r, "This Mouse Will Swim");
     world w;
     init_world(&w, 1024);
-    printf("initted world\n");
     cb_ui_state ui_state;
     init_ui(&ui_state);
     w.editor.ui_state = &ui_state;
