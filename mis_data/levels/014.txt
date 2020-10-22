@@ -6,7 +6,7 @@
 .~~oooooooo.
 .o~~~~o~ooo.
 .oooooooooo.
-.oooooooooo.
+.oo~ooooooo.
 .ooooooooTo.
 .......ooo..
 ............

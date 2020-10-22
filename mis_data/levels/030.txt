@@ -2,9 +2,9 @@
 ..........
 .ooo~~ooo.
 .ooo~~ooo.
+.o~~~~ooo.
+.ooo~~ooo.
 .oo~~~ooo.
-.ooo~~ooo.
-.ooo~~ooo.
 .ooo~~ooo.
 .oooT~ooo.
 ....o.....

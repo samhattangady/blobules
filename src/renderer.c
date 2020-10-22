@@ -582,8 +582,8 @@ void add_vertex_to_buffer(renderer* r, world* w, float xpos, float ypos, float x
 }
 
 void add_ground_at_pos(renderer* r, world* w, int x, int y) {
-    float depth = 0;    
-    depth += (float) y/100.0;
+    float depth = -0.0;    
+    depth += (float) y/1000.0;
     float xpos = x;
     float ypos = y;
     float x_size = get_block_size_x(r, GROUND);
@@ -601,7 +601,7 @@ entity_type get_ground_et_at(renderer* r, world* w, int x, int y) {
 }
 
 void draw_additional_sprite(renderer* r, world* w, int x, int y, int sprite_position, orientation_t orientation, float depth, float color_change) {
-    depth += (float) y/100.0;
+    depth += (float) y/1000.0;
     float xpos = x;
     float ypos = y;
     // TODO (22 Aug 2020 sam): cleanup the functions so that we don't have to do this calculation here.
@@ -747,7 +747,7 @@ void render_entity(renderer* r, world* w, entity_data ed) {
     float depth = (float)-ed.z;
     // we want the depth buffer to include some data about the y position as well so that
     // things closer to us are drawn first.
-    depth += (float) ed.y/100.0;
+    depth += (float) ed.y/1000.0;
     if (et==SLIPPERY_GROUND)
         depth -= 0.1;
     if (et==HOT_TARGET || et==COLD_TARGET)
@@ -816,7 +816,7 @@ int update_level_vertex_background_sdf_buffer(renderer* r, world* w, bool just_b
         float vy1 = bg_texture_pixel_to_vertex_y(r, ly-radius*extent/2.0);
         float vx2 = bg_texture_pixel_to_vertex_x(r, lx+radius*extent/2.0);
         float vy2 = bg_texture_pixel_to_vertex_y(r, ly+radius*extent/2.0);
-        add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0);
+        add_single_vertex_to_buffer(r, &r->level_buffer, vx1, vy1, vx2, vy2, 0.0, 0.0, 1.0, 1.0, -0.5, 0.0);
     }
     return 0;
 }
@@ -1040,7 +1040,7 @@ int render_menu_scene(renderer* r, world* w) {
         about[7] = "";
         about[8] = "Playtesters: Nihal Mohan, Vikram Hattangady, Erik Svensson";
         about[9] = "From the thinky-puzzle-games discord: clementsparrow, Portponky, TheZachMan";
-        about[10] = "Joseph Mansfield (sftrabbit), marcosd, jackk, ricky, EPGAstudios (Ethan)";
+        about[10] = "knexator, Joseph Mansfield (sftrabbit), marcosd, jackk, ricky, EPGAstudios (Ethan)";
         about[11] = "";
         int lines = 12;
         for (int i=0; i<lines; i++) {
